@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #0a0e27;
+  --foreground: #f8f9fa;
+  
+  --accent-primary: #00d4aa;
+  --accent-secondary: #4a9eff;
+  
+  --status-green: #00d4aa;
+  --status-yellow: #ffd43b;
+  --status-orange: #ff922b;
+  --status-red: #ff6b6b;
+  
+  --card-bg: rgba(25, 33, 73, 0.6);
+  --card-border: rgba(255, 255, 255, 0.1);
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  /* The layout wrapper will handle the font-family */
+}
+
+@layer utilities {
+  .glass-card {
+    @apply bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl backdrop-blur-md shadow-lg;
+  }
+  
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.4s ease-out;
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Slider Styling */
+input[type=range] {
+  -webkit-appearance: none; 
+  @apply w-full bg-transparent h-2 rounded-full cursor-pointer touch-target outline-none;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  @apply w-6 h-6 rounded-full bg-[var(--accent-primary)] shadow-md;
+  margin-top: -8px;
+}
+
+input[type=range]::-webkit-slider-runnable-track {
+  @apply w-full h-2 rounded-full;
+  background: linear-gradient(90deg, var(--accent-secondary) 0%, var(--accent-primary) 100%);
+}
