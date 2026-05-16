@@ -4,13 +4,15 @@ import React, { useState, useEffect } from 'react';
 import { useData } from '../lib/DataContext';
 import { UserProfile, Position, Priority } from '../lib/types';
 import { Save } from 'lucide-react';
+import { differenceInYears, parseISO } from 'date-fns';
 
 export function ProfileForm() {
   const { profile, saveProfile } = useData();
 
-  const [age, setAge] = useState<number>(18);
+  const [dateOfBirth, setDateOfBirth] = useState<string>('');
   const [positions, setPositions] = useState<Position[]>([]);
   const [priorities, setPriorities] = useState<Priority[]>([]);
+  const [error, setError] = useState<string>('');
 
   const availablePositions: Position[] = ['GK', 'CB', 'FB', 'CM', 'AM', 'W', 'ST'];
   const availablePriorities: Priority[] = [
@@ -20,11 +22,15 @@ export function ProfileForm() {
 
   useEffect(() => {
     if (profile) {
-      setAge(profile.age);
+      setDateOfBirth(profile.dateOfBirth || '');
       setPositions(profile.positions);
       setPriorities(profile.priorities);
     }
   }, [profile]);
+
+  const computedAge = dateOfBirth
+    ? differenceInYears(new Date(), parseISO(dateOfBirth))
+    : null;
 
   const togglePosition = (pos: Position) => {
     if (positions.includes(pos)) {
@@ -44,25 +50,62 @@ export function ProfileForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    saveProfile({ age, positions, priorities });
+    setError('');
+
+    if (!dateOfBirth) {
+      setError('Please enter your date of birth.');
+      return;
+    }
+
+    if (computedAge === null || computedAge < 1 || computedAge > 99) {
+      setError('Please enter a valid date of birth (age must be between 1 and 99).');
+      return;
+    }
+
+    saveProfile({
+      age: computedAge,
+      dateOfBirth,
+      positions,
+      priorities,
+    });
     alert('Profile saved successfully');
   };
+
+  // Format DOB for display
+  const formattedDOB = dateOfBirth
+    ? parseISO(dateOfBirth).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : '';
 
   return (
     <form onSubmit={handleSubmit} className="glass-card p-5 mt-6 animate-slide-up">
       <h3 className="text-[var(--accent-primary)] font-bold uppercase tracking-wider text-xs mb-4">Player Profile</h3>
       
       <div className="mb-6">
-        <label className="block text-xs font-medium text-gray-400 mb-2">Age</label>
-        <input 
-          type="number" 
-          min={1} 
-          max={99} 
-          value={age}
-          onChange={(e) => setAge(Number(e.target.value))}
-          className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-white touch-target"
-        />
+        <label className="block text-xs font-medium text-gray-400 mb-2">Date of Birth</label>
+        <div className="flex items-center space-x-4">
+          <input 
+            type="date" 
+            value={dateOfBirth}
+            onChange={(e) => { setDateOfBirth(e.target.value); setError(''); }}
+            max={new Date().toISOString().split('T')[0]}
+            className="flex-1 bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-white touch-target [color-scheme:dark]"
+          />
+          {computedAge !== null && (
+            <div className="flex-shrink-0 bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold px-4 py-2.5 rounded-xl text-sm shadow-md">
+              Age: {computedAge}
+            </div>
+          )}
+        </div>
+        {formattedDOB && (
+          <p className="text-xs text-gray-500 mt-1.5">{formattedDOB}</p>
+        )}
       </div>
+
+      {error && (
+        <div className="mb-4 p-3 rounded-xl bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.3)] text-[#ff6b6b] text-xs font-medium animate-fade-in">
+          {error}
+        </div>
+      )}
 
       <div className="mb-6">
         <label className="block text-xs font-medium text-gray-400 mb-2">Positions Played</label>

@@ -42,11 +42,11 @@ export function calculateReadiness(
 
   // Base weights (used when full load data is available — Stage 3)
   const baseWeights = {
-    sleepQuantity: 0.15,
-    sleepQuality: 0.15,
+    sleepQuantity: 0.14,
+    sleepQuality: 0.14,
     sleepConsistency: 0.07,
     energy: 0.15,
-    fatigue: 0.20,
+    fatigue: 0.22,
     stress: 0.08,
     load: 0.20,
   };
@@ -90,11 +90,11 @@ export function calculateReadiness(
     weights = { ...baseWeights };
   }
 
-  // 1. Sleep Quantity (Max 100 points for >= 8 hours, scales down to 0 for <= 4 hours)
+  // 1. Sleep Quantity (Max 100 points for >= 9 hours, scales down to 0 for <= 4 hours)
   let sleepQuantityScore = 0;
-  if (todayLog.sleepDuration >= 8) sleepQuantityScore = 100;
+  if (todayLog.sleepDuration >= 9) sleepQuantityScore = 100;
   else if (todayLog.sleepDuration <= 4) sleepQuantityScore = 0;
-  else sleepQuantityScore = ((todayLog.sleepDuration - 4) / 4) * 100;
+  else sleepQuantityScore = ((todayLog.sleepDuration - 4) / 5) * 100;
 
   // 2. Sleep Quality (1-10 -> 0-100)
   const sleepQualityScore = (todayLog.sleepQuality / 10) * 100;
@@ -156,7 +156,7 @@ export function calculateReadiness(
 
   // Trend Adjustment: Calculate avg raw score past 3 days vs past 7 days
   let finalScore = Math.round(rawScore);
-  
+
   if (last7Days.length >= 4) {
     // very simplistic trend: if fatigue is rising, subtract points
     const recentFatigue = last7Days.slice(0, 2).reduce((sum, l) => sum + l.fatigue, 0) / 2;

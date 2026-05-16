@@ -13,7 +13,8 @@ export type Priority =
   | 'Strength';
 
 export interface UserProfile {
-  age: number; // 1-99
+  age: number; // 1-99 (computed from dateOfBirth)
+  dateOfBirth?: string; // YYYY-MM-DD
   positions: Position[];
   priorities: Priority[];
 }
@@ -51,10 +52,11 @@ export interface TrainingLog {
   notes?: string;
 }
 
-export type RecurrenceType = 'none' | 'daily' | 'weekly';
+export type RecurrenceType = 'none' | 'daily' | 'weekly' | 'monthly';
 
 export interface RecurrenceConfig {
   days?: number[]; // for weekly (1=Monday, 2=Tuesday, ..., 7=Sunday)
+  monthDays?: number[]; // for monthly (1-31, max 4 days)
 }
 
 export interface CalendarEvent {
@@ -66,6 +68,7 @@ export interface CalendarEvent {
   color?: string; // override custom color
   recurrence: RecurrenceType;
   recurrenceConfig?: RecurrenceConfig;
+  recurrenceEndDate?: string; // YYYY-MM-DD — recurring event stops after this date
   excludedDates?: string[]; // YYYY-MM-DD dates where this recurring event is suppressed
   overrides?: Record<string, Partial<CalendarEvent>>; // per-date overrides for single-instance edits keyed by YYYY-MM-DD
   anticipatedIntensity?: 'Low' | 'Moderate' | 'High'; // for training/gym sessions

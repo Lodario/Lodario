@@ -18,7 +18,7 @@ export function TrainingForm({ onSaved, selectedDate }: TrainingFormProps) {
   const sessionTypes: SessionType[] = ['Solo', 'Partner', 'Team', 'Match', 'Gym', 'Other'];
   const [sessionType, setSessionType] = useState<SessionType>('Team');
   
-  const [duration, setDuration] = useState<number>(90);
+  const [duration, setDuration] = useState<string>('90');
   const quickDurations = [30, 45, 60, 90, 120];
 
   const [distance, setDistance] = useState<string>('');
@@ -31,13 +31,23 @@ export function TrainingForm({ onSaved, selectedDate }: TrainingFormProps) {
   const [painNotes, setPainNotes] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
 
+  const [error, setError] = useState<string>('');
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    const durationNum = Number(duration);
+    if (!duration || isNaN(durationNum) || durationNum <= 0) {
+      setError('Please enter a valid duration.');
+      return;
+    }
+
     const log: TrainingLog = {
       id: uuidv4(),
       date: selectedDate,
       sessionType,
-      duration,
+      duration: durationNum,
       distance: distance ? parseFloat(distance) : undefined,
       intensity,
       sprinting,
@@ -58,6 +68,12 @@ export function TrainingForm({ onSaved, selectedDate }: TrainingFormProps) {
   return (
     <form onSubmit={handleSubmit} className="animate-fade-in pb-8">
       
+      {error && (
+        <div className="mb-4 p-3 rounded-xl bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.3)] text-[#ff6b6b] text-xs font-medium animate-fade-in">
+          {error}
+        </div>
+      )}
+
       {/* Session Details */}
       <div className="glass-card p-5 mb-6">
         <h3 className="text-[var(--accent-primary)] font-bold uppercase tracking-wider text-xs mb-4">Session Details</h3>
@@ -85,9 +101,9 @@ export function TrainingForm({ onSaved, selectedDate }: TrainingFormProps) {
             <button
               type="button"
               key={dur}
-              onClick={() => setDuration(dur)}
+              onClick={() => setDuration(String(dur))}
               className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm touch-target ${
-                duration === dur
+                duration === String(dur)
                   ? 'bg-[var(--accent-secondary)] text-white font-bold'
                   : 'bg-[rgba(255,255,255,0.05)] text-gray-300 border border-[rgba(255,255,255,0.1)]'
               }`}
@@ -98,7 +114,7 @@ export function TrainingForm({ onSaved, selectedDate }: TrainingFormProps) {
           <input 
             type="number"
             value={duration}
-            onChange={(e) => setDuration(Number(e.target.value))}
+            onChange={(e) => setDuration(e.target.value)}
             className="w-20 bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-2 text-white text-center ml-2 touch-target"
           />
         </div>

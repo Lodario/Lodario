@@ -4,9 +4,36 @@ import React, { useState } from 'react';
 import { CalendarWeek } from '@/components/CalendarWeek';
 import { EventModal } from '@/components/EventModal';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { format, subWeeks, addWeeks, subDays, addDays, isSameDay, parseISO, getHours, getDay, isBefore } from 'date-fns';
+import { format, subWeeks, addWeeks, subDays, addDays, isSameDay, parseISO, getHours, getDay, getDate, isBefore, isAfter, lastDayOfMonth } from 'date-fns';
 import { useData } from '@/lib/DataContext';
 import { CalendarEvent } from '@/lib/types';
+
+// Parse "HH:mm" into { hour, minute }
+function parseTime(timeStr: string): { hour: number; minute: number } {
+  const parts = timeStr.split(':');
+  return { hour: parseInt(parts[0], 10), minute: parseInt(parts[1] || '0', 10) };
+}
+
+// Compute what fraction of an hour cell this event covers
+function getHourCellCoverage(
+  cellHour: number,
+  startHour: number, startMinute: number,
+  endHour: number, endMinute: number
+): { top: number; height: number } | null {
+  const cellStart = cellHour * 60;
+  const cellEnd = (cellHour + 1) * 60;
+  const evStart = startHour * 60 + startMinute;
+  const evEnd = endHour * 60 + endMinute;
+
+  if (evEnd <= cellStart || evStart >= cellEnd) return null;
+
+  const overlapStart = Math.max(evStart, cellStart);
+  const overlapEnd = Math.min(evEnd, cellEnd);
+  const top = (overlapStart - cellStart) / 60;
+  const height = (overlapEnd - overlapStart) / 60;
+
+  return { top, height };
+}
 
 export default function CalendarPage() {
   const [view, setView] = useState<'Day' | 'Week'>('Week');
@@ -16,6 +43,7 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>(undefined);
   const [editingIsRecurring, setEditingIsRecurring] = useState(false);
   const [editingInstanceDate, setEditingInstanceDate] = useState<string | undefined>(undefined);
+  const [defaultStartHour, setDefaultStartHour] = useState<number | undefined>(undefined); // Feature 5
 
   const handlePrev = () => {
     if (view === 'Week') setCurrentDate(subWeeks(currentDate, 1));
@@ -27,11 +55,13 @@ export default function CalendarPage() {
     if (view === 'Day') setCurrentDate(addDays(currentDate, 1));
   };
 
-  const handleAddEvent = (dateStr?: string) => {
+  // Feature 5: Accept optional hour from clicked slot
+  const handleAddEvent = (dateStr?: string, hour?: number) => {
     setEditingEvent(undefined);
     setEditingIsRecurring(false);
     setEditingInstanceDate(undefined);
     setSelectedDateForEvent(dateStr || format(currentDate, 'yyyy-MM-dd'));
+    setDefaultStartHour(hour); // undefined when clicking + button
     setShowEventModal(true);
   };
 
@@ -40,6 +70,7 @@ export default function CalendarPage() {
     setEditingIsRecurring(isRecurringInstance);
     setEditingInstanceDate(instanceDate);
     setSelectedDateForEvent(instanceDate);
+    setDefaultStartHour(undefined);
     setShowEventModal(true);
   };
 
@@ -48,6 +79,7 @@ export default function CalendarPage() {
     setEditingEvent(undefined);
     setEditingIsRecurring(false);
     setEditingInstanceDate(undefined);
+    setDefaultStartHour(undefined);
   };
 
   const getViewLabel = () => {
@@ -123,6 +155,7 @@ export default function CalendarPage() {
           existingEvent={editingEvent}
           isRecurringInstance={editingIsRecurring}
           instanceDate={editingInstanceDate}
+          defaultStartHour={defaultStartHour}
         />
       )}
     </div>
@@ -133,7 +166,7 @@ export default function CalendarPage() {
 
 function DayView({ currentDate, onAddEvent, onEditEvent }: { 
   currentDate: Date; 
-  onAddEvent: (dateStr: string) => void;
+  onAddEvent: (dateStr: string, hour?: number) => void;
   onEditEvent: (event: CalendarEvent, isRecurringInstance: boolean, instanceDate: string) => void;
 }) {
   const { calendarEvents, customEventTypes } = useData();
@@ -146,11 +179,29 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
     return customEventTypes.find(t => t.id === typeId)?.color || 'var(--accent-primary)';
   };
 
+  // Check if day is past recurrence end
+  const isPastRecurrenceEnd = (day: Date, endDateStr?: string): boolean => {
+    if (!endDateStr) return false;
+    return isAfter(day, parseISO(endDateStr));
+  };
+
+  // Feature 8: month-day matching
+  const matchesMonthDay = (day: Date, monthDays: number[]): boolean => {
+    const dayOfMonth = getDate(day);
+    const lastDay = getDate(lastDayOfMonth(day));
+    return monthDays.some(md => {
+      if (md > lastDay) return dayOfMonth === lastDay;
+      return dayOfMonth === md;
+    });
+  };
+
   interface RenderedEvent {
     event: CalendarEvent;
     isRecurringInstance: boolean;
     startHour: number;
+    startMinute: number;
     endHour: number;
+    endMinute: number;
     title?: string;
     color: string;
   }
@@ -161,8 +212,8 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
     const eventStartDate = event.start.split('T')[0];
     const startTime = event.start.split('T')[1] || '00:00';
     const endTime = event.end.split('T')[1] || '01:00';
-    const startHour = parseInt(startTime.split(':')[0], 10);
-    const endHour = parseInt(endTime.split(':')[0], 10) || 24;
+    const parsedStart = parseTime(startTime);
+    const parsedEnd = parseTime(endTime);
 
     if (event.excludedDates?.includes(dateStr)) return;
 
@@ -173,12 +224,17 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
     if (event.recurrence === 'none') {
       if (eventStartDate === dateStr) matches = true;
     } else if (event.recurrence === 'daily') {
-      if (!isBefore(currentDate, parseISO(eventStartDate))) {
+      if (!isBefore(currentDate, parseISO(eventStartDate)) && !isPastRecurrenceEnd(currentDate, event.recurrenceEndDate)) {
         matches = true;
         isRecurringInstance = true;
       }
     } else if (event.recurrence === 'weekly') {
-      if (!isBefore(currentDate, parseISO(eventStartDate)) && event.recurrenceConfig?.days?.includes(dayOfWeek)) {
+      if (!isBefore(currentDate, parseISO(eventStartDate)) && event.recurrenceConfig?.days?.includes(dayOfWeek) && !isPastRecurrenceEnd(currentDate, event.recurrenceEndDate)) {
+        matches = true;
+        isRecurringInstance = true;
+      }
+    } else if (event.recurrence === 'monthly') {
+      if (!isBefore(currentDate, parseISO(eventStartDate)) && event.recurrenceConfig?.monthDays && matchesMonthDay(currentDate, event.recurrenceConfig.monthDays) && !isPastRecurrenceEnd(currentDate, event.recurrenceEndDate)) {
         matches = true;
         isRecurringInstance = true;
       }
@@ -188,22 +244,27 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
       const finalTitle = override?.title !== undefined ? override.title : event.title;
       const finalStartTime = override?.start ? override.start.split('T')[1] || startTime : startTime;
       const finalEndTime = override?.end ? override.end.split('T')[1] || endTime : endTime;
-      const finalStartHour = parseInt(finalStartTime.split(':')[0], 10);
-      const finalEndHour = parseInt(finalEndTime.split(':')[0], 10) || 24;
+      const finalParsedStart = parseTime(finalStartTime);
+      const finalParsedEnd = parseTime(finalEndTime);
       const finalEventTypeId = override?.eventTypeId || event.eventTypeId;
 
       renderedEvents.push({
         event,
         isRecurringInstance,
-        startHour: finalStartHour,
-        endHour: finalEndHour,
+        startHour: finalParsedStart.hour,
+        startMinute: finalParsedStart.minute,
+        endHour: finalParsedEnd.hour,
+        endMinute: finalParsedEnd.minute,
         title: finalTitle,
         color: event.color || getTypeColor(finalEventTypeId),
       });
     }
   });
 
-  const getEventsAtHour = (hour: number) => renderedEvents.filter(re => hour >= re.startHour && hour < re.endHour);
+  const getEventsAtHour = (hour: number) => renderedEvents.filter(re => {
+    const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
+    return coverage !== null;
+  });
   const getStartsAtHour = (hour: number) => renderedEvents.filter(re => re.startHour === hour);
 
   return (
@@ -213,6 +274,9 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
           const eventsHere = getEventsAtHour(hour);
           const startsHere = getStartsAtHour(hour);
           const hasEvent = eventsHere.length > 0;
+
+          // Feature 3: Max 4 overlapping events in day view
+          const displayEvents = eventsHere.slice(0, 4);
 
           return (
             <div key={hour} className="flex min-h-[44px] border-b border-[rgba(255,255,255,0.05)]">
@@ -228,7 +292,8 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
                     const re = eventsHere[0];
                     onEditEvent(re.event, re.isRecurringInstance, dateStr);
                   } else {
-                    onAddEvent(dateStr);
+                    // Feature 5: pass clicked hour
+                    onAddEvent(dateStr, hour);
                   }
                 }}
               >
@@ -237,9 +302,38 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
                     <Plus size={16} className="text-[var(--accent-secondary)]" />
                   </div>
                 )}
-                {hasEvent && (
-                  <div className="absolute inset-0 opacity-70 rounded-r" style={{ backgroundColor: eventsHere[0].color }} />
-                )}
+
+                {/* Feature 3+4: Overlapping events with partial hour fills */}
+                {hasEvent && displayEvents.map((re, eIdx) => {
+                  const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
+                  if (!coverage) return null;
+
+                  const totalSlots = displayEvents.length;
+                  const slotWidth = 100 / totalSlots;
+                  const sorted = [...displayEvents].sort((a, b) => (a.startHour * 60 + a.startMinute) - (b.startHour * 60 + b.startMinute));
+                  const sortedIdx = sorted.indexOf(re);
+
+                  return (
+                    <div
+                      key={re.event.id}
+                      className="absolute opacity-70 rounded-r"
+                      style={{
+                        backgroundColor: re.color,
+                        top: `${coverage.top * 100}%`,
+                        height: `${coverage.height * 100}%`,
+                        left: totalSlots > 1 ? `${sortedIdx * slotWidth}%` : '0',
+                        width: totalSlots > 1 ? `${slotWidth}%` : '100%',
+                      }}
+                      onClick={(e) => {
+                        if (totalSlots > 1) {
+                          e.stopPropagation();
+                          onEditEvent(re.event, re.isRecurringInstance, dateStr);
+                        }
+                      }}
+                    />
+                  );
+                })}
+
                 {startsHere.map(re => (
                   <div 
                     key={re.event.id}

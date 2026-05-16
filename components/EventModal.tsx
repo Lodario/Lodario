@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { CalendarEvent, RecurrenceType } from '../lib/types';
 import { useData } from '../lib/DataContext';
-import { X, Save, Plus, Trash2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, Check } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 interface EventModalProps {
@@ -12,21 +12,43 @@ interface EventModalProps {
   existingEvent?: CalendarEvent; // if editing
   isRecurringInstance?: boolean; // true when clicking a generated recurring occurrence
   instanceDate?: string; // the specific date of this occurrence (YYYY-MM-DD)
+  defaultStartHour?: number; // Feature 5: clicked hour slot
 }
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export function EventModal({ onClose, selectedDate, existingEvent, isRecurringInstance, instanceDate }: EventModalProps) {
+export function EventModal({ onClose, selectedDate, existingEvent, isRecurringInstance, instanceDate, defaultStartHour }: EventModalProps) {
   const { customEventTypes, saveCalendarEvent, deleteCalendarEvent, saveCustomEventType } = useData();
   
   const isEditing = !!existingEvent;
 
+  // Compute default start/end based on defaultStartHour (Feature 5)
+  const computeDefaultStart = () => {
+    if (existingEvent) return existingEvent.start.split('T')[1]?.substring(0, 5) || '16:00';
+    if (defaultStartHour !== undefined) {
+      return `${String(defaultStartHour).padStart(2, '0')}:00`;
+    }
+    return '16:00';
+  };
+
+  const computeDefaultEnd = () => {
+    if (existingEvent) return existingEvent.end.split('T')[1]?.substring(0, 5) || '18:00';
+    if (defaultStartHour !== undefined) {
+      const endHour = Math.min(defaultStartHour + 2, 23);
+      return `${String(endHour).padStart(2, '0')}:00`;
+    }
+    return '18:00';
+  };
+
   const [title, setTitle] = useState(existingEvent?.title || '');
   const [eventTypeId, setEventTypeId] = useState<string>(existingEvent?.eventTypeId || customEventTypes[0]?.id || 'other');
-  const [startTime, setStartTime] = useState(existingEvent ? existingEvent.start.split('T')[1]?.substring(0, 5) || '16:00' : '16:00');
-  const [endTime, setEndTime] = useState(existingEvent ? existingEvent.end.split('T')[1]?.substring(0, 5) || '18:00' : '18:00');
+  const [startTime, setStartTime] = useState(computeDefaultStart());
+  const [endTime, setEndTime] = useState(computeDefaultEnd());
+  const [eventDate, setEventDate] = useState(existingEvent ? existingEvent.start.split('T')[0] : selectedDate); // Feature 6
   const [recurrence, setRecurrence] = useState<RecurrenceType>(existingEvent?.recurrence || 'none');
   const [selectedDays, setSelectedDays] = useState<number[]>(existingEvent?.recurrenceConfig?.days || []);
+  const [selectedMonthDays, setSelectedMonthDays] = useState<number[]>(existingEvent?.recurrenceConfig?.monthDays || []); // Feature 8
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>(existingEvent?.recurrenceEndDate || ''); // Feature 7
   const [applyOnlyToThis, setApplyOnlyToThis] = useState(false);
   const [anticipatedIntensity, setAnticipatedIntensity] = useState<'Low' | 'Moderate' | 'High' | undefined>(existingEvent?.anticipatedIntensity);
 
@@ -46,14 +68,40 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
     }
   };
 
+  // Feature 8: Toggle month day selection (max 4)
+  const toggleMonthDay = (day: number) => {
+    if (selectedMonthDays.includes(day)) {
+      setSelectedMonthDays(selectedMonthDays.filter(d => d !== day));
+    } else if (selectedMonthDays.length < 4) {
+      setSelectedMonthDays([...selectedMonthDays, day]);
+    }
+  };
+
+  // Feature 9: Save event type immediately without closing the modal
+  const handleSaveEventType = () => {
+    if (!newTypeName.trim()) return;
+    const newId = uuidv4();
+    saveCustomEventType({
+      id: newId,
+      name: newTypeName.trim(),
+      color: newTypeColor,
+      isBuiltIn: false,
+    });
+    setEventTypeId(newId);
+    setIsCreatingNewType(false);
+    setNewTypeName('');
+    setNewTypeColor('#845ef7');
+  };
+
   const handleSave = () => {
     let finalEventTypeId = eventTypeId;
     
-    if (isCreatingNewType && newTypeName) {
+    // If still in new-type creation mode and there's a name, save it on event save too
+    if (isCreatingNewType && newTypeName.trim()) {
       finalEventTypeId = uuidv4();
       saveCustomEventType({
         id: finalEventTypeId,
-        name: newTypeName,
+        name: newTypeName.trim(),
         color: newTypeColor,
         isBuiltIn: false
       });
@@ -74,7 +122,7 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
       return;
     }
 
-    const dateToUse = isEditing && existingEvent ? existingEvent.start.split('T')[0] : selectedDate;
+    const dateToUse = eventDate; // Feature 6: use user-selected date
 
     const event: CalendarEvent = {
       id: isEditing && existingEvent ? existingEvent.id : uuidv4(),
@@ -83,7 +131,12 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
       start: `${dateToUse}T${startTime}`,
       end: `${dateToUse}T${endTime}`,
       recurrence,
-      recurrenceConfig: recurrence === 'weekly' ? { days: selectedDays } : undefined,
+      recurrenceConfig: recurrence === 'weekly'
+        ? { days: selectedDays }
+        : recurrence === 'monthly'
+        ? { monthDays: selectedMonthDays }
+        : undefined,
+      recurrenceEndDate: recurrence !== 'none' && recurrenceEndDate ? recurrenceEndDate : undefined, // Feature 7
       excludedDates: existingEvent?.excludedDates,
       overrides: existingEvent?.overrides,
       anticipatedIntensity: TRAINING_TYPE_IDS.includes(finalEventTypeId) ? anticipatedIntensity : undefined,
@@ -199,6 +252,14 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
                     className="w-8 h-8 rounded cursor-pointer border-0 p-0 bg-transparent"
                   />
                   <div className="flex-1"></div>
+                  {/* Feature 9: Save Event Type button */}
+                  <button 
+                    onClick={handleSaveEventType}
+                    disabled={!newTypeName.trim()}
+                    className="text-xs font-bold text-black bg-[var(--accent-primary)] hover:bg-[var(--accent-secondary)] disabled:opacity-40 disabled:cursor-not-allowed px-3 py-1.5 rounded-lg flex items-center transition-colors"
+                  >
+                    <Check size={12} className="mr-1" /> Save Type
+                  </button>
                   <button 
                     onClick={() => setIsCreatingNewType(false)}
                     className="text-xs text-gray-400 hover:text-white px-2 py-1"
@@ -208,6 +269,17 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Feature 6: Date Selector */}
+          <div className="mb-5">
+            <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Date</label>
+            <input 
+              type="date" 
+              value={eventDate}
+              onChange={(e) => setEventDate(e.target.value)}
+              className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl p-3 text-white touch-target [color-scheme:dark]"
+            />
           </div>
 
           <div className="flex space-x-4 mb-5">
@@ -233,8 +305,8 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
 
           <div className="mb-5">
             <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">Recurrence</label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['none', 'daily', 'weekly'] as RecurrenceType[]).map(r => (
+            <div className="grid grid-cols-4 gap-2">
+              {(['none', 'daily', 'weekly', 'monthly'] as RecurrenceType[]).map(r => (
                 <button
                   key={r}
                   onClick={() => setRecurrence(r)}
@@ -273,6 +345,69 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
                   );
                 })}
               </div>
+            </div>
+          )}
+
+          {/* Feature 8: Monthly day picker */}
+          {recurrence === 'monthly' && (
+            <div className="mb-6 animate-fade-in">
+              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">
+                Select Days of Month <span className="text-gray-600">(max 4)</span>
+              </label>
+              <div className="grid grid-cols-7 gap-1.5">
+                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
+                  const isSelected = selectedMonthDays.includes(day);
+                  const isDisabled = !isSelected && selectedMonthDays.length >= 4;
+                  return (
+                    <button
+                      key={day}
+                      onClick={() => toggleMonthDay(day)}
+                      disabled={isDisabled}
+                      className={`py-1.5 rounded-lg text-xs font-bold transition-all touch-target ${
+                        isSelected
+                          ? 'bg-[var(--accent-primary)] text-black'
+                          : isDisabled
+                          ? 'bg-[rgba(255,255,255,0.02)] text-gray-700 cursor-not-allowed'
+                          : 'bg-[rgba(255,255,255,0.05)] text-gray-400 border border-[rgba(255,255,255,0.1)]'
+                      }`}
+                    >
+                      {day}
+                    </button>
+                  );
+                })}
+              </div>
+              {selectedMonthDays.length > 0 && (
+                <p className="text-[10px] text-gray-500 mt-2">
+                  Selected: {selectedMonthDays.sort((a, b) => a - b).join(', ')}
+                  {selectedMonthDays.some(d => d > 28) && (
+                    <span className="text-[var(--status-yellow)]"> · Days &gt;28 will use month&apos;s last day when needed</span>
+                  )}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Feature 7: Recurrence End Date */}
+          {recurrence !== 'none' && (
+            <div className="mb-6 animate-fade-in">
+              <label className="block text-xs font-semibold text-gray-400 mb-2 uppercase tracking-wider">
+                End Date <span className="text-gray-600">(optional)</span>
+              </label>
+              <input 
+                type="date" 
+                value={recurrenceEndDate}
+                onChange={(e) => setRecurrenceEndDate(e.target.value)}
+                min={eventDate}
+                className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl p-3 text-white touch-target [color-scheme:dark]"
+              />
+              {recurrenceEndDate && (
+                <button 
+                  onClick={() => setRecurrenceEndDate('')}
+                  className="mt-1.5 text-[10px] text-gray-500 hover:text-gray-300 underline"
+                >
+                  Clear end date (repeat forever)
+                </button>
+              )}
             </div>
           )}
 

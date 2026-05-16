@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { format, addDays, startOfWeek, isSameDay, parseISO, getHours, getDay, isAfter, isBefore } from 'date-fns';
+import { format, addDays, startOfWeek, isSameDay, parseISO, getHours, getDay, getDate, isAfter, isBefore, lastDayOfMonth } from 'date-fns';
 import { CalendarEvent } from '../lib/types';
 import { useData } from '../lib/DataContext';
 import { Plus } from 'lucide-react';
@@ -11,15 +11,46 @@ interface RenderedEvent {
   isRecurringInstance: boolean;
   instanceDate: string;
   startHour: number;
+  startMinute: number;
   endHour: number;
+  endMinute: number;
   title?: string;
   color: string;
 }
 
 interface CalendarWeekProps {
   currentDate: Date;
-  onAddEvent: (dateStr: string) => void;
+  onAddEvent: (dateStr: string, hour?: number) => void; // Feature 5: optional hour
   onEditEvent: (event: CalendarEvent, isRecurringInstance: boolean, instanceDate: string) => void;
+}
+
+// Parse "HH:mm" into { hour, minute }
+function parseTime(timeStr: string): { hour: number; minute: number } {
+  const parts = timeStr.split(':');
+  return { hour: parseInt(parts[0], 10), minute: parseInt(parts[1] || '0', 10) };
+}
+
+// Compute what fraction of an hour cell (0-23) this event covers
+// Returns { top: fraction from top, height: fraction of cell }
+function getHourCellCoverage(
+  cellHour: number,
+  startHour: number, startMinute: number,
+  endHour: number, endMinute: number
+): { top: number; height: number } | null {
+  const cellStart = cellHour * 60;
+  const cellEnd = (cellHour + 1) * 60;
+  const evStart = startHour * 60 + startMinute;
+  const evEnd = endHour * 60 + endMinute;
+
+  // No overlap
+  if (evEnd <= cellStart || evStart >= cellEnd) return null;
+
+  const overlapStart = Math.max(evStart, cellStart);
+  const overlapEnd = Math.min(evEnd, cellEnd);
+  const top = (overlapStart - cellStart) / 60;
+  const height = (overlapEnd - overlapStart) / 60;
+
+  return { top, height };
 }
 
 export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarWeekProps) {
@@ -38,6 +69,23 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
     return jsDay === 0 ? 7 : jsDay; // Sunday=0 -> 7
   };
 
+  // Check if a day is past the recurrence end date
+  const isPastRecurrenceEnd = (day: Date, endDateStr?: string): boolean => {
+    if (!endDateStr) return false;
+    return isAfter(day, parseISO(endDateStr));
+  };
+
+  // Feature 8: Check if day-of-month matches any of the monthDays config
+  // Handles months with fewer days (e.g., 31 -> last day of Feb)
+  const matchesMonthDay = (day: Date, monthDays: number[]): boolean => {
+    const dayOfMonth = getDate(day);
+    const lastDay = getDate(lastDayOfMonth(day));
+    return monthDays.some(md => {
+      if (md > lastDay) return dayOfMonth === lastDay;
+      return dayOfMonth === md;
+    });
+  };
+
   // Expand all events (including recurring) for a given day, returning rendered events
   const getRenderedEventsForDay = (day: Date): RenderedEvent[] => {
     const dateStr = format(day, 'yyyy-MM-dd');
@@ -48,8 +96,8 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
       const eventStartDate = event.start.split('T')[0];
       const startTime = event.start.split('T')[1] || '00:00';
       const endTime = event.end.split('T')[1] || '01:00';
-      const startHour = parseInt(startTime.split(':')[0], 10);
-      const endHour = parseInt(endTime.split(':')[0], 10) || 24;
+      const parsedStart = parseTime(startTime);
+      const parsedEnd = parseTime(endTime);
 
       // Check if this date is excluded
       if (event.excludedDates?.includes(dateStr)) return;
@@ -66,16 +114,20 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
           matches = true;
         }
       } else if (event.recurrence === 'daily') {
-        // Daily: appears every day from the original date onwards
         const originalDate = parseISO(eventStartDate);
-        if (!isBefore(day, originalDate)) {
+        if (!isBefore(day, originalDate) && !isPastRecurrenceEnd(day, event.recurrenceEndDate)) {
           matches = true;
           isRecurringInstance = true;
         }
       } else if (event.recurrence === 'weekly') {
-        // Weekly: appears on selected days from the original date onwards
         const originalDate = parseISO(eventStartDate);
-        if (!isBefore(day, originalDate) && event.recurrenceConfig?.days?.includes(dayOfWeek)) {
+        if (!isBefore(day, originalDate) && event.recurrenceConfig?.days?.includes(dayOfWeek) && !isPastRecurrenceEnd(day, event.recurrenceEndDate)) {
+          matches = true;
+          isRecurringInstance = true;
+        }
+      } else if (event.recurrence === 'monthly') {
+        const originalDate = parseISO(eventStartDate);
+        if (!isBefore(day, originalDate) && event.recurrenceConfig?.monthDays && matchesMonthDay(day, event.recurrenceConfig.monthDays) && !isPastRecurrenceEnd(day, event.recurrenceEndDate)) {
           matches = true;
           isRecurringInstance = true;
         }
@@ -86,16 +138,18 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
         const finalTitle = override?.title !== undefined ? override.title : event.title;
         const finalStartTime = override?.start ? override.start.split('T')[1] || startTime : startTime;
         const finalEndTime = override?.end ? override.end.split('T')[1] || endTime : endTime;
-        const finalStartHour = parseInt(finalStartTime.split(':')[0], 10);
-        const finalEndHour = parseInt(finalEndTime.split(':')[0], 10) || 24;
+        const finalParsedStart = parseTime(finalStartTime);
+        const finalParsedEnd = parseTime(finalEndTime);
         const finalEventTypeId = override?.eventTypeId || event.eventTypeId;
 
         results.push({
           event,
           isRecurringInstance,
           instanceDate: dateStr,
-          startHour: finalStartHour,
-          endHour: finalEndHour,
+          startHour: finalParsedStart.hour,
+          startMinute: finalParsedStart.minute,
+          endHour: finalParsedEnd.hour,
+          endMinute: finalParsedEnd.minute,
           title: finalTitle,
           color: event.color || getTypeColor(finalEventTypeId),
         });
@@ -105,9 +159,12 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
     return results;
   };
 
-  // Check if a rendered event covers a specific hour
+  // Get events that cover a specific hour cell (using minute-level precision)
   const getEventsAtHour = (renderedEvents: RenderedEvent[], hour: number) => {
-    return renderedEvents.filter(re => hour >= re.startHour && hour < re.endHour);
+    return renderedEvents.filter(re => {
+      const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
+      return coverage !== null;
+    });
   };
 
   // Check if this hour is the start hour of any event
@@ -154,6 +211,9 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
                 const hasEvent = eventsHere.length > 0;
                 const dateStr = format(day, 'yyyy-MM-dd');
 
+                // Feature 3: Max 2 overlapping events in weekly view
+                const displayEvents = eventsHere.slice(0, 2);
+
                 return (
                   <div 
                     key={dIdx} 
@@ -167,8 +227,8 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
                         const re = eventsHere[0];
                         onEditEvent(re.event, re.isRecurringInstance, re.instanceDate);
                       } else {
-                        // Click empty slot -> add
-                        onAddEvent(dateStr);
+                        // Click empty slot -> add with hour (Feature 5)
+                        onAddEvent(dateStr, hour);
                       }
                     }}
                   >
@@ -179,13 +239,37 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
                       </div>
                     )}
 
-                    {/* Event fill for covered hours */}
-                    {hasEvent && (
-                      <div
-                        className="absolute inset-0 opacity-70"
-                        style={{ backgroundColor: eventsHere[0].color }}
-                      />
-                    )}
+                    {/* Feature 3+4: Event fills with overlap and partial hour support */}
+                    {hasEvent && displayEvents.map((re, eIdx) => {
+                      const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
+                      if (!coverage) return null;
+                      
+                      const totalSlots = displayEvents.length;
+                      const slotWidth = 100 / totalSlots;
+                      // Sort by start time: earlier starts go left
+                      const sorted = [...displayEvents].sort((a, b) => (a.startHour * 60 + a.startMinute) - (b.startHour * 60 + b.startMinute));
+                      const sortedIdx = sorted.indexOf(re);
+
+                      return (
+                        <div
+                          key={re.event.id}
+                          className="absolute opacity-70"
+                          style={{
+                            backgroundColor: re.color,
+                            top: `${coverage.top * 100}%`,
+                            height: `${coverage.height * 100}%`,
+                            left: totalSlots > 1 ? `${sortedIdx * slotWidth}%` : '0',
+                            width: totalSlots > 1 ? `${slotWidth}%` : '100%',
+                          }}
+                          onClick={(e) => {
+                            if (totalSlots > 1) {
+                              e.stopPropagation();
+                              onEditEvent(re.event, re.isRecurringInstance, re.instanceDate);
+                            }
+                          }}
+                        />
+                      );
+                    })}
 
                     {/* Event title label only on start hour */}
                     {startsHere.map(re => (

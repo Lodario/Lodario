@@ -24,6 +24,7 @@ export class StorageService {
 
     return {
       age: data.age,
+      dateOfBirth: data.date_of_birth ?? undefined,
       positions: data.positions || [],
       priorities: data.priorities || [],
     };
@@ -38,6 +39,7 @@ export class StorageService {
       .upsert({
         id: user.id,
         age: profile.age,
+        date_of_birth: profile.dateOfBirth ?? null,
         positions: profile.positions,
         priorities: profile.priorities,
       }, { onConflict: 'id' });
@@ -168,6 +170,7 @@ export class StorageService {
       color: row.color ?? undefined,
       recurrence: row.recurrence,
       recurrenceConfig: row.recurrence_config ?? undefined,
+      recurrenceEndDate: row.recurrence_end_date ?? undefined,
       excludedDates: row.excluded_dates ?? undefined,
       overrides: row.overrides ?? undefined,
       anticipatedIntensity: row.anticipated_intensity ?? undefined,
@@ -190,6 +193,7 @@ export class StorageService {
         color: event.color ?? null,
         recurrence: event.recurrence,
         recurrence_config: event.recurrenceConfig ?? {},
+        recurrence_end_date: event.recurrenceEndDate ?? null,
         excluded_dates: event.excludedDates ?? [],
         overrides: event.overrides ?? {},
         anticipated_intensity: event.anticipatedIntensity ?? null,
