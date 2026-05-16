@@ -35,6 +35,65 @@ function getHourCellCoverage(
   return { top, height };
 }
 
+interface RenderedEvent {
+  event: CalendarEvent;
+  isRecurringInstance: boolean;
+  startHour: number;
+  startMinute: number;
+  endHour: number;
+  endMinute: number;
+  title?: string;
+  color: string;
+}
+
+interface EventLayout {
+  column: number;
+  totalColumns: number;
+}
+
+/**
+ * Sweep-line overlap detection + persistent column assignment.
+ * Non-overlapping events get separate clusters and render full-width.
+ */
+function computeOverlapGroups(events: RenderedEvent[], maxCols: number): Map<string, EventLayout> {
+  const result = new Map<string, EventLayout>();
+  if (events.length === 0) return result;
+
+  const intervals = events.map(e => ({
+    id: e.event.id,
+    start: e.startHour * 60 + e.startMinute,
+    end: e.endHour * 60 + e.endMinute,
+    event: e,
+  })).sort((a, b) => a.start - b.start || b.end - a.end);
+
+  const clusters: typeof intervals[] = [];
+  let currentCluster = [intervals[0]];
+  let clusterEnd = intervals[0].end;
+
+  for (let i = 1; i < intervals.length; i++) {
+    const iv = intervals[i];
+    if (iv.start < clusterEnd) {
+      currentCluster.push(iv);
+      clusterEnd = Math.max(clusterEnd, iv.end);
+    } else {
+      clusters.push(currentCluster);
+      currentCluster = [iv];
+      clusterEnd = iv.end;
+    }
+  }
+  clusters.push(currentCluster);
+
+  for (const cluster of clusters) {
+    const totalColumns = Math.min(cluster.length, maxCols);
+    for (let i = 0; i < cluster.length; i++) {
+      const col = Math.min(i, maxCols - 1);
+      result.set(cluster[i].id, { column: col, totalColumns });
+    }
+  }
+
+  return result;
+}
+
 export default function CalendarPage() {
   const [view, setView] = useState<'Day' | 'Week'>('Week');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -43,7 +102,7 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>(undefined);
   const [editingIsRecurring, setEditingIsRecurring] = useState(false);
   const [editingInstanceDate, setEditingInstanceDate] = useState<string | undefined>(undefined);
-  const [defaultStartHour, setDefaultStartHour] = useState<number | undefined>(undefined); // Feature 5
+  const [defaultStartHour, setDefaultStartHour] = useState<number | undefined>(undefined);
 
   const handlePrev = () => {
     if (view === 'Week') setCurrentDate(subWeeks(currentDate, 1));
@@ -55,13 +114,12 @@ export default function CalendarPage() {
     if (view === 'Day') setCurrentDate(addDays(currentDate, 1));
   };
 
-  // Feature 5: Accept optional hour from clicked slot
   const handleAddEvent = (dateStr?: string, hour?: number) => {
     setEditingEvent(undefined);
     setEditingIsRecurring(false);
     setEditingInstanceDate(undefined);
     setSelectedDateForEvent(dateStr || format(currentDate, 'yyyy-MM-dd'));
-    setDefaultStartHour(hour); // undefined when clicking + button
+    setDefaultStartHour(hour);
     setShowEventModal(true);
   };
 
@@ -179,13 +237,11 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
     return customEventTypes.find(t => t.id === typeId)?.color || 'var(--accent-primary)';
   };
 
-  // Check if day is past recurrence end
   const isPastRecurrenceEnd = (day: Date, endDateStr?: string): boolean => {
     if (!endDateStr) return false;
     return isAfter(day, parseISO(endDateStr));
   };
 
-  // Feature 8: month-day matching
   const matchesMonthDay = (day: Date, monthDays: number[]): boolean => {
     const dayOfMonth = getDate(day);
     const lastDay = getDate(lastDayOfMonth(day));
@@ -194,17 +250,6 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
       return dayOfMonth === md;
     });
   };
-
-  interface RenderedEvent {
-    event: CalendarEvent;
-    isRecurringInstance: boolean;
-    startHour: number;
-    startMinute: number;
-    endHour: number;
-    endMinute: number;
-    title?: string;
-    color: string;
-  }
 
   const renderedEvents: RenderedEvent[] = [];
 
@@ -261,6 +306,9 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
     }
   });
 
+  // Precompute persistent column layout (max 4 for day view)
+  const layout = computeOverlapGroups(renderedEvents, 4);
+
   const getEventsAtHour = (hour: number) => renderedEvents.filter(re => {
     const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
     return coverage !== null;
@@ -274,9 +322,6 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
           const eventsHere = getEventsAtHour(hour);
           const startsHere = getStartsAtHour(hour);
           const hasEvent = eventsHere.length > 0;
-
-          // Feature 3: Max 4 overlapping events in day view
-          const displayEvents = eventsHere.slice(0, 4);
 
           return (
             <div key={hour} className="flex min-h-[44px] border-b border-[rgba(255,255,255,0.05)]">
@@ -292,7 +337,6 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
                     const re = eventsHere[0];
                     onEditEvent(re.event, re.isRecurringInstance, dateStr);
                   } else {
-                    // Feature 5: pass clicked hour
                     onAddEvent(dateStr, hour);
                   }
                 }}
@@ -303,15 +347,15 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
                   </div>
                 )}
 
-                {/* Feature 3+4: Overlapping events with partial hour fills */}
-                {hasEvent && displayEvents.map((re, eIdx) => {
+                {/* Event color blocks — persistent columns + partial hour */}
+                {hasEvent && eventsHere.map(re => {
                   const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
                   if (!coverage) return null;
 
-                  const totalSlots = displayEvents.length;
-                  const slotWidth = 100 / totalSlots;
-                  const sorted = [...displayEvents].sort((a, b) => (a.startHour * 60 + a.startMinute) - (b.startHour * 60 + b.startMinute));
-                  const sortedIdx = sorted.indexOf(re);
+                  const evLayout = layout.get(re.event.id);
+                  const col = evLayout?.column ?? 0;
+                  const totalCols = evLayout?.totalColumns ?? 1;
+                  const slotWidth = 100 / totalCols;
 
                   return (
                     <div
@@ -321,11 +365,11 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
                         backgroundColor: re.color,
                         top: `${coverage.top * 100}%`,
                         height: `${coverage.height * 100}%`,
-                        left: totalSlots > 1 ? `${sortedIdx * slotWidth}%` : '0',
-                        width: totalSlots > 1 ? `${slotWidth}%` : '100%',
+                        left: totalCols > 1 ? `${col * slotWidth}%` : '0',
+                        width: totalCols > 1 ? `${slotWidth}%` : '100%',
                       }}
                       onClick={(e) => {
-                        if (totalSlots > 1) {
+                        if (totalCols > 1) {
                           e.stopPropagation();
                           onEditEvent(re.event, re.isRecurringInstance, dateStr);
                         }
@@ -334,14 +378,30 @@ function DayView({ currentDate, onAddEvent, onEditEvent }: {
                   );
                 })}
 
-                {startsHere.map(re => (
-                  <div 
-                    key={re.event.id}
-                    className="relative z-10 p-2 text-sm font-bold text-white truncate"
-                  >
-                    {re.title || '(No title)'}
-                  </div>
-                ))}
+                {/* Titles — positioned inside event block at actual start */}
+                {startsHere.map(re => {
+                  const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
+                  if (!coverage) return null;
+
+                  const evLayout = layout.get(re.event.id);
+                  const col = evLayout?.column ?? 0;
+                  const totalCols = evLayout?.totalColumns ?? 1;
+                  const slotWidth = 100 / totalCols;
+
+                  return (
+                    <div 
+                      key={re.event.id}
+                      className="absolute z-10 p-1.5 text-sm font-bold text-white truncate pointer-events-none"
+                      style={{
+                        top: `${coverage.top * 100}%`,
+                        left: totalCols > 1 ? `${col * slotWidth}%` : '0',
+                        width: totalCols > 1 ? `${slotWidth}%` : '100%',
+                      }}
+                    >
+                      {re.title || '(No title)'}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

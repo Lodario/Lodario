@@ -24,6 +24,7 @@ export function analyzeTrainingLoad(
 
   let numSessionsLast7 = 0;
   let numSessionsLast14 = 0;
+  let oldestDaysAgoInWindow = 0;
 
   trainingLogs.forEach((log) => {
     const daysAgo = differenceInDays(today, parseISO(log.date));
@@ -38,16 +39,22 @@ export function analyzeTrainingLoad(
     }
     if (daysAgo <= 28) {
       chronicLoad += load;
+      if (daysAgo > oldestDaysAgoInWindow) {
+        oldestDaysAgoInWindow = daysAgo;
+      }
     }
   });
 
   // Calculate ratio
-  // Chronic load is usually expressed as a weekly average (divide by 4)
-  const chronicWeeklyAvg = chronicLoad / 4;
+  // Chronic load is expressed as a weekly average, divided by the actual
+  // number of weeks of data available (capped between 1 and 4) so that
+  // new users with less than 28 days of logs aren't falsely flagged as spiking.
+  const activeWeeks = Math.max(1, Math.min(4, (oldestDaysAgoInWindow + 1) / 7));
+  const chronicWeeklyAvg = chronicLoad / activeWeeks;
   const ratio = chronicWeeklyAvg > 0 ? acuteLoad / chronicWeeklyAvg : 1.0;
 
   const isSpike = ratio > 1.5;
-  
+
   // Low Workload: < 3.5 sessions/week for 2+ weeks (numSessionsLast14 < 7)
   const isLowWorkload = numSessionsLast14 < 7;
 
@@ -74,7 +81,7 @@ export function analyzeTrainingLoad(
   if (recentWellness.length >= 2) {
     const day1 = recentWellness[0];
     const day2 = recentWellness[1];
-    
+
     if (day1.painActive && day2.painActive && (day1.painLevel || 0) > 3.5 && (day2.painLevel || 0) > 3.5) {
       hasAutoInjury = true;
     } else if ((day1.painLevel || 0) < 2.5 && (day2.painLevel || 0) < 2.5) {

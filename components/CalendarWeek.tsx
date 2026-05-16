@@ -18,9 +18,14 @@ interface RenderedEvent {
   color: string;
 }
 
+interface EventLayout {
+  column: number;
+  totalColumns: number;
+}
+
 interface CalendarWeekProps {
   currentDate: Date;
-  onAddEvent: (dateStr: string, hour?: number) => void; // Feature 5: optional hour
+  onAddEvent: (dateStr: string, hour?: number) => void;
   onEditEvent: (event: CalendarEvent, isRecurringInstance: boolean, instanceDate: string) => void;
 }
 
@@ -31,7 +36,6 @@ function parseTime(timeStr: string): { hour: number; minute: number } {
 }
 
 // Compute what fraction of an hour cell (0-23) this event covers
-// Returns { top: fraction from top, height: fraction of cell }
 function getHourCellCoverage(
   cellHour: number,
   startHour: number, startMinute: number,
@@ -42,7 +46,6 @@ function getHourCellCoverage(
   const evStart = startHour * 60 + startMinute;
   const evEnd = endHour * 60 + endMinute;
 
-  // No overlap
   if (evEnd <= cellStart || evStart >= cellEnd) return null;
 
   const overlapStart = Math.max(evStart, cellStart);
@@ -51,6 +54,61 @@ function getHourCellCoverage(
   const height = (overlapEnd - overlapStart) / 60;
 
   return { top, height };
+}
+
+/**
+ * Sweep-line overlap detection + persistent column assignment.
+ * Groups events into clusters of mutually-overlapping events,
+ * then assigns each event a stable column index.
+ *
+ * Non-overlapping events (e.g. 9:00–9:30 and 9:30–10:30) get
+ * separate clusters and render full-width independently.
+ *
+ * @param maxCols Cap the number of columns (2 for weekly, 4 for daily)
+ */
+function computeOverlapGroups(events: RenderedEvent[], maxCols: number): Map<string, EventLayout> {
+  const result = new Map<string, EventLayout>();
+  if (events.length === 0) return result;
+
+  // Convert to intervals sorted by start, then by end descending
+  const intervals = events.map(e => ({
+    id: e.event.id,
+    start: e.startHour * 60 + e.startMinute,
+    end: e.endHour * 60 + e.endMinute,
+    event: e,
+  })).sort((a, b) => a.start - b.start || b.end - a.end);
+
+  // Build clusters of overlapping events
+  const clusters: typeof intervals[] = [];
+  let currentCluster = [intervals[0]];
+  let clusterEnd = intervals[0].end;
+
+  for (let i = 1; i < intervals.length; i++) {
+    const iv = intervals[i];
+    if (iv.start < clusterEnd) {
+      // Overlaps with current cluster
+      currentCluster.push(iv);
+      clusterEnd = Math.max(clusterEnd, iv.end);
+    } else {
+      // No overlap — start new cluster
+      clusters.push(currentCluster);
+      currentCluster = [iv];
+      clusterEnd = iv.end;
+    }
+  }
+  clusters.push(currentCluster);
+
+  // Assign columns within each cluster
+  for (const cluster of clusters) {
+    const totalColumns = Math.min(cluster.length, maxCols);
+    // Already sorted by start time — assign columns in order
+    for (let i = 0; i < cluster.length; i++) {
+      const col = Math.min(i, maxCols - 1); // cap at maxCols-1
+      result.set(cluster[i].id, { column: col, totalColumns });
+    }
+  }
+
+  return result;
 }
 
 export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarWeekProps) {
@@ -75,8 +133,7 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
     return isAfter(day, parseISO(endDateStr));
   };
 
-  // Feature 8: Check if day-of-month matches any of the monthDays config
-  // Handles months with fewer days (e.g., 31 -> last day of Feb)
+  // Check if day-of-month matches any of the monthDays config
   const matchesMonthDay = (day: Date, monthDays: number[]): boolean => {
     const dayOfMonth = getDate(day);
     const lastDay = getDate(lastDayOfMonth(day));
@@ -86,7 +143,7 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
     });
   };
 
-  // Expand all events (including recurring) for a given day, returning rendered events
+  // Expand all events (including recurring) for a given day
   const getRenderedEventsForDay = (day: Date): RenderedEvent[] => {
     const dateStr = format(day, 'yyyy-MM-dd');
     const dayOfWeek = jsDateToRecurrenceDay(getDay(day));
@@ -99,17 +156,14 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
       const parsedStart = parseTime(startTime);
       const parsedEnd = parseTime(endTime);
 
-      // Check if this date is excluded
       if (event.excludedDates?.includes(dateStr)) return;
 
-      // Check for per-date overrides
       const override = event.overrides?.[dateStr];
 
       let matches = false;
       let isRecurringInstance = false;
 
       if (event.recurrence === 'none') {
-        // Single event: match by date
         if (eventStartDate === dateStr) {
           matches = true;
         }
@@ -134,7 +188,6 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
       }
 
       if (matches) {
-        // Apply overrides if they exist for this date
         const finalTitle = override?.title !== undefined ? override.title : event.title;
         const finalStartTime = override?.start ? override.start.split('T')[1] || startTime : startTime;
         const finalEndTime = override?.end ? override.end.split('T')[1] || endTime : endTime;
@@ -159,7 +212,7 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
     return results;
   };
 
-  // Get events that cover a specific hour cell (using minute-level precision)
+  // Get events that cover a specific hour cell
   const getEventsAtHour = (renderedEvents: RenderedEvent[], hour: number) => {
     return renderedEvents.filter(re => {
       const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
@@ -167,13 +220,14 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
     });
   };
 
-  // Check if this hour is the start hour of any event
-  const isStartHour = (renderedEvents: RenderedEvent[], hour: number) => {
+  // Events that start in this hour cell
+  const getStartsAtHour = (renderedEvents: RenderedEvent[], hour: number) => {
     return renderedEvents.filter(re => re.startHour === hour);
   };
 
-  // Pre-compute events for all days
+  // Pre-compute events and layout for all days
   const dayEvents = weekDays.map(day => getRenderedEventsForDay(day));
+  const dayLayouts = dayEvents.map(evts => computeOverlapGroups(evts, 2)); // Weekly: max 2 cols
 
   return (
     <div className="glass-card animate-fade-in overflow-hidden relative">
@@ -207,12 +261,10 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
             <div className="flex-1 grid grid-cols-7 relative">
               {weekDays.map((day, dIdx) => {
                 const eventsHere = getEventsAtHour(dayEvents[dIdx], hour);
-                const startsHere = isStartHour(dayEvents[dIdx], hour);
+                const startsHere = getStartsAtHour(dayEvents[dIdx], hour);
                 const hasEvent = eventsHere.length > 0;
                 const dateStr = format(day, 'yyyy-MM-dd');
-
-                // Feature 3: Max 2 overlapping events in weekly view
-                const displayEvents = eventsHere.slice(0, 2);
+                const layout = dayLayouts[dIdx];
 
                 return (
                   <div 
@@ -222,12 +274,10 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
                     }`}
                     onClick={(e) => {
                       if (hasEvent) {
-                        // Click existing event -> edit
                         e.stopPropagation();
                         const re = eventsHere[0];
                         onEditEvent(re.event, re.isRecurringInstance, re.instanceDate);
                       } else {
-                        // Click empty slot -> add with hour (Feature 5)
                         onAddEvent(dateStr, hour);
                       }
                     }}
@@ -239,16 +289,15 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
                       </div>
                     )}
 
-                    {/* Feature 3+4: Event fills with overlap and partial hour support */}
-                    {hasEvent && displayEvents.map((re, eIdx) => {
+                    {/* Event color blocks with correct overlap + partial hour */}
+                    {hasEvent && eventsHere.map(re => {
                       const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
                       if (!coverage) return null;
                       
-                      const totalSlots = displayEvents.length;
-                      const slotWidth = 100 / totalSlots;
-                      // Sort by start time: earlier starts go left
-                      const sorted = [...displayEvents].sort((a, b) => (a.startHour * 60 + a.startMinute) - (b.startHour * 60 + b.startMinute));
-                      const sortedIdx = sorted.indexOf(re);
+                      const evLayout = layout.get(re.event.id);
+                      const col = evLayout?.column ?? 0;
+                      const totalCols = evLayout?.totalColumns ?? 1;
+                      const slotWidth = 100 / totalCols;
 
                       return (
                         <div
@@ -258,11 +307,11 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
                             backgroundColor: re.color,
                             top: `${coverage.top * 100}%`,
                             height: `${coverage.height * 100}%`,
-                            left: totalSlots > 1 ? `${sortedIdx * slotWidth}%` : '0',
-                            width: totalSlots > 1 ? `${slotWidth}%` : '100%',
+                            left: totalCols > 1 ? `${col * slotWidth}%` : '0',
+                            width: totalCols > 1 ? `${slotWidth}%` : '100%',
                           }}
                           onClick={(e) => {
-                            if (totalSlots > 1) {
+                            if (totalCols > 1) {
                               e.stopPropagation();
                               onEditEvent(re.event, re.isRecurringInstance, re.instanceDate);
                             }
@@ -271,15 +320,35 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent }: CalendarW
                       );
                     })}
 
-                    {/* Event title label only on start hour */}
-                    {startsHere.map(re => (
-                      <div 
-                        key={re.event.id}
-                        className="absolute inset-x-0 top-0 text-[8px] p-0.5 leading-tight font-bold text-white z-10 truncate"
-                      >
-                        {re.title || ''}
-                      </div>
-                    ))}
+                    {/* Event titles — positioned at actual start, stacked vertically */}
+                    {startsHere
+                      .sort((a, b) => (a.startHour * 60 + a.startMinute) - (b.startHour * 60 + b.startMinute))
+                      .map((re, idx) => {
+                        const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
+                        if (!coverage) return null;
+                        
+                        const evLayout = layout.get(re.event.id);
+                        const col = evLayout?.column ?? 0;
+                        const totalCols = evLayout?.totalColumns ?? 1;
+                        const slotWidth = 100 / totalCols;
+
+                        // Stack titles: use coverage.top + index offset (10px per stacked title)
+                        const topPx = `calc(${coverage.top * 100}% + ${idx * 10}px)`;
+
+                        return (
+                          <div 
+                            key={re.event.id}
+                            className="absolute text-[8px] p-0.5 leading-tight font-bold text-white z-10 truncate pointer-events-none"
+                            style={{
+                              top: topPx,
+                              left: totalCols > 1 ? `${col * slotWidth}%` : '0',
+                              width: totalCols > 1 ? `${slotWidth}%` : '100%',
+                            }}
+                          >
+                            {re.title || ''}
+                          </div>
+                        );
+                      })}
                   </div>
                 );
               })}
