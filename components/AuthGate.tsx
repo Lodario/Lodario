@@ -31,8 +31,8 @@ export function AuthGate({ children }: AuthGateProps) {
 }
 
 function AuthScreen() {
-  const { signIn, signUp } = useAuth();
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const { signIn, signUp, resetPassword } = useAuth();
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -40,13 +40,14 @@ function AuthScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!email.trim() || !password.trim()) {
-      setError('Please fill in all fields.');
+    if (!email.trim() || (mode !== 'forgot' && !password.trim())) {
+      setError('Please fill in all required fields.');
       return;
     }
 
@@ -66,12 +67,19 @@ function AuthScreen() {
       if (mode === 'signin') {
         const result = await signIn(email, password);
         if (result.error) setError(result.error);
-      } else {
+      } else if (mode === 'signup') {
         const result = await signUp(email, password);
         if (result.error) {
           setError(result.error);
         } else {
           setSignUpSuccess(true);
+        }
+      } else if (mode === 'forgot') {
+        const result = await resetPassword(email);
+        if (result.error) {
+          setError(result.error);
+        } else {
+          setResetSuccess(true);
         }
       }
     } catch {
@@ -85,10 +93,11 @@ function AuthScreen() {
     setMode(mode === 'signin' ? 'signup' : 'signin');
     setError(null);
     setSignUpSuccess(false);
+    setResetSuccess(false);
     setConfirmPassword('');
   };
 
-  if (signUpSuccess) {
+  if (signUpSuccess || resetSuccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
         <div className="w-full max-w-sm">
@@ -98,12 +107,13 @@ function AuthScreen() {
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Check Your Email</h2>
             <p className="text-sm text-gray-400 mb-6 leading-relaxed">
-              We&apos;ve sent a confirmation link to <span className="text-white font-medium">{email}</span>. 
-              Click the link to activate your account.
+              We&apos;ve sent a {resetSuccess ? 'password reset link' : 'confirmation link'} to <span className="text-white font-medium">{email}</span>. 
+              Click the link to {resetSuccess ? 'reset your password' : 'activate your account'}.
             </p>
             <button
               onClick={() => {
                 setSignUpSuccess(false);
+                setResetSuccess(false);
                 setMode('signin');
               }}
               className="w-full py-3 rounded-xl text-sm font-bold text-[var(--accent-primary)] border border-[var(--accent-primary)] hover:bg-[rgba(0,212,170,0.1)] transition-colors"
@@ -131,12 +141,14 @@ function AuthScreen() {
         {/* Auth Card */}
         <div className="glass-card p-6 animate-slide-up">
           <h2 className="text-lg font-bold text-white mb-1">
-            {mode === 'signin' ? 'Welcome Back' : 'Create Account'}
+            {mode === 'signin' && 'Welcome Back'}
+            {mode === 'signup' && 'Create Account'}
+            {mode === 'forgot' && 'Reset Password'}
           </h2>
           <p className="text-xs text-gray-400 mb-6">
-            {mode === 'signin' 
-              ? 'Sign in to access your training data' 
-              : 'Start tracking your athletic journey'}
+            {mode === 'signin' && 'Sign in to access your training data'}
+            {mode === 'signup' && 'Start tracking your athletic journey'}
+            {mode === 'forgot' && 'Enter your email to reset your password'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -158,28 +170,41 @@ function AuthScreen() {
             </div>
 
             {/* Password */}
-            <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                <input
-                  id="auth-password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl py-3 pl-10 pr-12 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-colors"
-                  autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
+            {mode !== 'forgot' && (
+              <div>
+                <label className="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
+                  <input
+                    id="auth-password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl py-3 pl-10 pr-12 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-[var(--accent-primary)] focus:ring-1 focus:ring-[var(--accent-primary)] transition-colors"
+                    autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                {mode === 'signin' && (
+                  <div className="mt-2 text-right">
+                    <button
+                      type="button"
+                      onClick={() => setMode('forgot')}
+                      className="text-xs text-[var(--accent-secondary)] hover:text-[var(--accent-primary)] transition-colors"
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
+                )}
               </div>
-            </div>
+            )}
 
             {/* Confirm Password (sign-up only) */}
             {mode === 'signup' && (
@@ -219,7 +244,9 @@ function AuthScreen() {
                 <Loader2 className="animate-spin" size={20} />
               ) : (
                 <>
-                  {mode === 'signin' ? 'Sign In' : 'Create Account'}
+                  {mode === 'signin' && 'Sign In'}
+                  {mode === 'signup' && 'Create Account'}
+                  {mode === 'forgot' && 'Send Reset Link'}
                   <ArrowRight className="ml-2" size={18} />
                 </>
               )}
@@ -228,16 +255,29 @@ function AuthScreen() {
 
           {/* Toggle */}
           <div className="mt-6 text-center">
-            <p className="text-xs text-gray-500">
-              {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
-              <button
-                id="auth-toggle-mode"
-                onClick={switchMode}
-                className="ml-1 text-[var(--accent-secondary)] font-bold hover:underline"
-              >
-                {mode === 'signin' ? 'Sign Up' : 'Sign In'}
-              </button>
-            </p>
+            {mode === 'forgot' ? (
+              <p className="text-xs text-gray-500">
+                Remember your password?
+                <button
+                  id="auth-toggle-mode"
+                  onClick={() => setMode('signin')}
+                  className="ml-1 text-[var(--accent-secondary)] font-bold hover:underline"
+                >
+                  Sign In
+                </button>
+              </p>
+            ) : (
+              <p className="text-xs text-gray-500">
+                {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
+                <button
+                  id="auth-toggle-mode"
+                  onClick={switchMode}
+                  className="ml-1 text-[var(--accent-secondary)] font-bold hover:underline"
+                >
+                  {mode === 'signin' ? 'Sign Up' : 'Sign In'}
+                </button>
+              </p>
+            )}
           </div>
         </div>
 
