@@ -2,14 +2,14 @@
 
 import React, { useState } from 'react';
 import { useAuth } from '@/lib/AuthContext';
-import { Shield, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, ArrowRight } from 'lucide-react';
+import { Shield, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle, ArrowRight, User, ClipboardList } from 'lucide-react';
 
 interface AuthGateProps {
   children: React.ReactNode;
 }
 
 export function AuthGate({ children }: AuthGateProps) {
-  const { user, isLoading } = useAuth();
+  const { user, userRole, isLoading, signOut } = useAuth();
 
   if (isLoading) {
     return (
@@ -27,6 +27,30 @@ export function AuthGate({ children }: AuthGateProps) {
     return <AuthScreen />;
   }
 
+  if (userRole === 'coach') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
+        <div className="w-full max-w-sm">
+          <div className="glass-card p-8 text-center animate-slide-up">
+            <div className="w-16 h-16 rounded-full bg-[rgba(0,212,170,0.15)] flex items-center justify-center mx-auto mb-4">
+              <Shield className="text-[var(--accent-primary)]" size={32} />
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">Coach Dashboard</h2>
+            <p className="text-sm text-gray-400 mb-6 leading-relaxed">
+              Coach tools are coming soon.
+            </p>
+            <button
+              onClick={signOut}
+              className="w-full py-3 rounded-xl text-sm font-bold text-[var(--accent-primary)] border border-[var(--accent-primary)] hover:bg-[rgba(0,212,170,0.1)] transition-colors"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return <>{children}</>;
 }
 
@@ -41,6 +65,8 @@ function AuthScreen() {
   const [loading, setLoading] = useState(false);
   const [signUpSuccess, setSignUpSuccess] = useState(false);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [showRoleStep, setShowRoleStep] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'player' | 'coach'>('player');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,6 +87,11 @@ function AuthScreen() {
       return;
     }
 
+    if (mode === 'signup' && !showRoleStep) {
+      setShowRoleStep(true);
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -68,7 +99,7 @@ function AuthScreen() {
         const result = await signIn(email, password);
         if (result.error) setError(result.error);
       } else if (mode === 'signup') {
-        const result = await signUp(email, password);
+        const result = await signUp(email, password, selectedRole);
         if (result.error) {
           setError(result.error);
         } else {
@@ -94,7 +125,9 @@ function AuthScreen() {
     setError(null);
     setSignUpSuccess(false);
     setResetSuccess(false);
+    setShowRoleStep(false);
     setConfirmPassword('');
+    setSelectedRole('player');
   };
 
   if (signUpSuccess || resetSuccess) {
@@ -142,16 +175,48 @@ function AuthScreen() {
         <div className="glass-card p-6 animate-slide-up">
           <h2 className="text-lg font-bold text-white mb-1">
             {mode === 'signin' && 'Welcome Back'}
-            {mode === 'signup' && 'Create Account'}
+            {mode === 'signup' && (showRoleStep ? 'Choose Role' : 'Create Account')}
             {mode === 'forgot' && 'Reset Password'}
           </h2>
           <p className="text-xs text-gray-400 mb-6">
             {mode === 'signin' && 'Sign in to access your training data'}
-            {mode === 'signup' && 'Start tracking your athletic journey'}
+            {mode === 'signup' && (showRoleStep ? 'Select how you will use Prolaesio' : 'Start tracking your athletic journey')}
             {mode === 'forgot' && 'Enter your email to reset your password'}
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {mode === 'signup' && showRoleStep ? (
+              <div className="space-y-3 animate-fade-in">
+                <button
+                  type="button"
+                  onClick={() => setSelectedRole('player')}
+                  className={`w-full p-4 rounded-xl border text-left flex items-center space-x-3 transition-colors ${
+                    selectedRole === 'player'
+                      ? 'border-[var(--accent-primary)] bg-[rgba(0,212,170,0.12)]'
+                      : 'border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.05)] hover:border-[rgba(0,212,170,0.45)]'
+                  }`}
+                >
+                  <User className="text-[var(--accent-primary)] flex-shrink-0" size={22} />
+                  <div>
+                    <p className="text-sm font-bold text-white">Player</p>
+                    <p className="text-xs text-gray-400">Continue to the current training dashboard</p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  disabled
+                  className="w-full p-4 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] text-left flex items-center space-x-3 opacity-50 cursor-not-allowed"
+                >
+                  <ClipboardList className="text-gray-400 flex-shrink-0" size={22} />
+                  <div>
+                    <p className="text-sm font-bold text-white">Coach</p>
+                    <p className="text-xs text-gray-400">Coming soon</p>
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <>
             {/* Email */}
             <div>
               <label className="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
@@ -224,6 +289,8 @@ function AuthScreen() {
                 </div>
               </div>
             )}
+              </>
+            )}
 
             {/* Error */}
             {error && (
@@ -245,7 +312,7 @@ function AuthScreen() {
               ) : (
                 <>
                   {mode === 'signin' && 'Sign In'}
-                  {mode === 'signup' && 'Create Account'}
+                  {mode === 'signup' && (showRoleStep ? 'Continue as Player' : 'Continue')}
                   {mode === 'forgot' && 'Send Reset Link'}
                   <ArrowRight className="ml-2" size={18} />
                 </>
@@ -271,10 +338,10 @@ function AuthScreen() {
                 {mode === 'signin' ? "Don't have an account?" : 'Already have an account?'}
                 <button
                   id="auth-toggle-mode"
-                  onClick={switchMode}
+                  onClick={showRoleStep ? () => setShowRoleStep(false) : switchMode}
                   className="ml-1 text-[var(--accent-secondary)] font-bold hover:underline"
                 >
-                  {mode === 'signin' ? 'Sign Up' : 'Sign In'}
+                  {mode === 'signin' ? 'Sign Up' : showRoleStep ? 'Back' : 'Sign In'}
                 </button>
               </p>
             )}
