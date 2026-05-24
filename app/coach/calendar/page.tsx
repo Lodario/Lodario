@@ -1,11 +1,5 @@
-import { CoachPlaceholderPage } from '@/components/coach/CoachPlaceholderPage';
+import { CoachCalendarPage as CoachCalendarPageView } from '@/components/coach/calendar/CoachCalendarPage';
 
 export default function CoachCalendarPage() {
-  return (
-    <CoachPlaceholderPage
-      title="Calendar"
-      description="Calendar shell is staged for team schedule management and event/task creation."
-      teamScoped
-    />
-  );
+  return <CoachCalendarPageView />;
 }
