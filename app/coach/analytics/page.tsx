@@ -1,11 +1,5 @@
-import { CoachPlaceholderPage } from '@/components/coach/CoachPlaceholderPage';
+import { CoachAnalyticsPage as CoachAnalyticsPageView } from '@/components/coach/analytics/CoachAnalyticsPage';
 
 export default function CoachAnalyticsPage() {
-  return (
-    <CoachPlaceholderPage
-      title="Analytics"
-      description="Analytics foundation is ready for team averages, individual comparisons, and chart modules."
-      teamScoped
-    />
-  );
+  return <CoachAnalyticsPageView />;
 }
