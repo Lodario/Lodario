@@ -19,7 +19,7 @@ export function RootAppShell({ children }: RootAppShellProps) {
 
   if (coachRoute) {
     return (
-      <AuthGate>
+      <AuthGate requiredRole="coach">
         <div className="min-h-screen bg-[var(--background)]">
           {children}
         </div>
