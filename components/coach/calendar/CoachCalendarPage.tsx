@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { EventCreatorPanel } from '@/components/coach/calendar/EventCreatorPanel';
 import { getTeamCalendarData } from '@/components/coach/calendar/mockData';
 import { TeamAveragesPanel } from '@/components/coach/calendar/TeamAveragesPanel';
@@ -10,7 +10,34 @@ import { useCoachTeam } from '@/lib/coach/selectedTeam';
 export function CoachCalendarPage() {
   const { selectedTeam } = useCoachTeam();
   const teamData = useMemo(() => getTeamCalendarData(selectedTeam.id), [selectedTeam.id]);
-  const desktopCardHeightClass = 'xl:h-[760px]';
+  const teamAveragesContainerRef = useRef<HTMLDivElement>(null);
+  const [desktopScheduleHeight, setDesktopScheduleHeight] = useState<number | null>(null);
+
+  useEffect(() => {
+    const averagesContainer = teamAveragesContainerRef.current;
+    if (!averagesContainer) return;
+
+    const syncScheduleHeight = () => {
+      if (window.innerWidth >= 1280) {
+        setDesktopScheduleHeight(Math.round(averagesContainer.getBoundingClientRect().height));
+      } else {
+        setDesktopScheduleHeight(null);
+      }
+    };
+
+    syncScheduleHeight();
+
+    const resizeObserver = new ResizeObserver(() => {
+      syncScheduleHeight();
+    });
+    resizeObserver.observe(averagesContainer);
+    window.addEventListener('resize', syncScheduleHeight);
+
+    return () => {
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', syncScheduleHeight);
+    };
+  }, []);
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -21,9 +48,15 @@ export function CoachCalendarPage() {
       </header>
 
       <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_340px] xl:items-stretch">
-        <TeamAveragesPanel metrics={teamData.averages} className={desktopCardHeightClass} />
-        <TeamCalendar items={teamData.items} className={desktopCardHeightClass} />
-        <EventCreatorPanel teamName={selectedTeam.name} className={desktopCardHeightClass} />
+        <div ref={teamAveragesContainerRef} className="xl:self-start">
+          <TeamAveragesPanel metrics={teamData.averages} />
+        </div>
+        <TeamCalendar
+          items={teamData.items}
+          className="xl:self-start"
+          style={desktopScheduleHeight ? { height: `${desktopScheduleHeight}px` } : undefined}
+        />
+        <EventCreatorPanel teamName={selectedTeam.name} className="xl:self-start" />
       </div>
     </div>
   );

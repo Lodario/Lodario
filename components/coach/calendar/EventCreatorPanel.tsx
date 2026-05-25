@@ -28,7 +28,7 @@ export function EventCreatorPanel({ teamName, className }: EventCreatorPanelProp
   };
 
   return (
-    <section className={`glass-card flex h-full min-h-0 flex-col p-4 sm:p-5 ${className ?? ''}`}>
+    <section className={`glass-card flex min-h-0 flex-col p-4 sm:p-5 ${className ?? ''}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h3 className="text-sm font-semibold text-white">Create Team Event</h3>
@@ -38,7 +38,7 @@ export function EventCreatorPanel({ teamName, className }: EventCreatorPanelProp
       </div>
 
       <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+        <div className="space-y-4">
           <TaskToggle checked={isTask} onChange={setIsTask} />
 
           {isTask ? (

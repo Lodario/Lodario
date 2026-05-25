@@ -7,9 +7,9 @@ interface TeamAveragesPanelProps {
 
 export function TeamAveragesPanel({ metrics, className }: TeamAveragesPanelProps) {
   return (
-    <section className={`glass-card flex h-full min-h-0 flex-col p-4 sm:p-5 ${className ?? ''}`}>
+    <section className={`glass-card flex min-h-0 flex-col p-4 sm:p-5 ${className ?? ''}`}>
       <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-300">Team Averages</h2>
-      <div className="mt-4 grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-1">
+      <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
         {metrics.map((metric) => (
           <article
             key={metric.label}

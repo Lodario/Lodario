@@ -1,11 +1,13 @@
 import { addDays, addWeeks, format, isSameDay, parseISO, startOfWeek, subDays, subWeeks } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TeamCalendarItem } from '@/components/coach/calendar/types';
 
 interface TeamCalendarProps {
   items: TeamCalendarItem[];
   className?: string;
+  style?: CSSProperties;
 }
 
 interface ParsedCalendarItem extends TeamCalendarItem {
@@ -337,7 +339,7 @@ function WeekSchedule({ currentDate, items }: { currentDate: Date; items: TeamCa
   );
 }
 
-export function TeamCalendar({ items, className }: TeamCalendarProps) {
+export function TeamCalendar({ items, className, style }: TeamCalendarProps) {
   const firstItemDate = items[0]?.date ?? new Date().toISOString().slice(0, 10);
   const [view, setView] = useState<'Day' | 'Week'>('Week');
   const [currentDate, setCurrentDate] = useState<Date>(() => parseISO(firstItemDate));
@@ -353,7 +355,7 @@ export function TeamCalendar({ items, className }: TeamCalendarProps) {
       : format(currentDate, 'MMM d, yyyy');
 
   return (
-    <section className={`glass-card flex min-h-[620px] flex-col p-4 sm:p-5 ${className ?? ''}`}>
+    <section className={`glass-card flex min-h-[620px] flex-col p-4 sm:p-5 xl:min-h-0 ${className ?? ''}`} style={style}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="inline-flex rounded-full border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] p-1">
           {(['Day', 'Week'] as const).map((mode) => (
