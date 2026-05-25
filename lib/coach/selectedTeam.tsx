@@ -1,17 +1,13 @@
 'use client';
 
 import React, { createContext, useContext, useMemo, useState } from 'react';
-
-export interface CoachTeam {
-  id: string;
-  name: string;
-  code: string;
-}
+import type { CoachTeam, SelectedTeam } from '@/lib/types';
+export type { CoachTeam, SelectedTeam } from '@/lib/types';
 
 interface CoachTeamContextValue {
   teams: CoachTeam[];
   selectedTeamId: string;
-  selectedTeam: CoachTeam;
+  selectedTeam: SelectedTeam;
   setSelectedTeamId: (teamId: string) => void;
 }
 

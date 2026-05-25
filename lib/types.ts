@@ -26,6 +26,7 @@ export type WeeklyAvailability = Record<number, number[]>;
 export interface UserProfile {
   age: number; // 1-99 (computed from dateOfBirth)
   dateOfBirth?: string; // YYYY-MM-DD
+  role?: 'player' | 'coach';
   positions: Position[];
   priorities: Priority[];
   // --- Onboarding additions (all optional so existing profiles keep working) ---
@@ -35,6 +36,89 @@ export interface UserProfile {
   availability?: WeeklyAvailability;
   trainingResources?: TrainingResource[];
   onboardingCompleted?: boolean;
+}
+
+export type TeamMembershipRole = 'coach' | 'player';
+export type TeamMembershipStatus = 'active' | 'pending' | 'removed';
+
+export interface Team {
+  id: string;
+  name: string;
+  inviteCode: string;
+  coachId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamMembership {
+  id: string;
+  teamId: string;
+  userId: string;
+  role: TeamMembershipRole;
+  status: TeamMembershipStatus;
+  joinedAt: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamRow {
+  id: string;
+  name: string;
+  invite_code: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TeamMembershipRow {
+  id: string;
+  team_id: string;
+  user_id: string;
+  role: TeamMembershipRole;
+  status: TeamMembershipStatus;
+  joined_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CoachTeam {
+  id: string;
+  name: string;
+  code: string;
+}
+
+export type SelectedTeam = CoachTeam;
+
+export function toCoachTeam(team: Pick<Team, 'id' | 'name' | 'inviteCode'>): CoachTeam {
+  return {
+    id: team.id,
+    name: team.name,
+    code: team.inviteCode,
+  };
+}
+
+export function toTeam(row: TeamRow): Team {
+  return {
+    id: row.id,
+    name: row.name,
+    inviteCode: row.invite_code,
+    coachId: row.created_by,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+export function toTeamMembership(row: TeamMembershipRow): TeamMembership {
+  return {
+    id: row.id,
+    teamId: row.team_id,
+    userId: row.user_id,
+    role: row.role,
+    status: row.status,
+    joinedAt: row.joined_at,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
 }
 
 export interface WellnessLog {

@@ -25,6 +25,7 @@ export class StorageService {
     return {
       age: data.age,
       dateOfBirth: data.date_of_birth ?? undefined,
+      role: data.role ?? undefined,
       positions: data.positions || [],
       priorities: data.priorities || [],
       heightCm: data.height_cm != null ? Number(data.height_cm) : undefined,
