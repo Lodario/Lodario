@@ -1,11 +1,5 @@
-import { CoachPlaceholderPage } from '@/components/coach/CoachPlaceholderPage';
+import { CoachOverviewPage as CoachOverviewPageView } from '@/components/coach/overview/CoachOverviewPage';
 
 export default function CoachOverviewPage() {
-  return (
-    <CoachPlaceholderPage
-      title="Overview"
-      description="Team overview structure is staged for future readiness cards and summary widgets."
-      teamScoped
-    />
-  );
+  return <CoachOverviewPageView />;
 }
