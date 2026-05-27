@@ -10,6 +10,7 @@ import { useCoachTeam } from '@/lib/coach/selectedTeam';
 export function CoachCalendarPage() {
   const { selectedTeam } = useCoachTeam();
   const teamData = useMemo(() => getTeamCalendarData(selectedTeam.id), [selectedTeam.id]);
+  const hasCalendarData = teamData.items.length > 0 || teamData.averages.length > 0;
   const teamAveragesContainerRef = useRef<HTMLDivElement>(null);
   const [desktopScheduleHeight, setDesktopScheduleHeight] = useState<number | null>(null);
 
@@ -45,6 +46,7 @@ export function CoachCalendarPage() {
         <h1 className="text-2xl font-bold tracking-tight text-white">Calendar</h1>
         <p className="mt-2 text-sm text-gray-400">Manage events, tasks, and schedule windows for {selectedTeam.name}.</p>
         <p className="mt-3 text-xs font-medium text-[var(--accent-secondary)]">Selected team: {selectedTeam.name}</p>
+        {!hasCalendarData ? <p className="mt-2 text-xs text-gray-400">No team calendar data yet.</p> : null}
       </header>
 
       <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_340px] xl:items-stretch">
@@ -54,7 +56,7 @@ export function CoachCalendarPage() {
         <TeamCalendar
           items={teamData.items}
           className="xl:self-start"
-          style={desktopScheduleHeight ? { height: `${desktopScheduleHeight}px` } : undefined}
+          style={desktopScheduleHeight && teamData.averages.length > 0 ? { height: `${desktopScheduleHeight}px` } : undefined}
         />
         <EventCreatorPanel teamName={selectedTeam.name} className="xl:self-start" />
       </div>

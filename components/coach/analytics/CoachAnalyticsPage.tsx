@@ -230,6 +230,7 @@ export function CoachAnalyticsPage() {
   const [viewMode, setViewMode] = useState<AnalyticsViewMode>('averages');
 
   const teamAnalytics = useMemo(() => getTeamAnalyticsData(selectedTeam.id), [selectedTeam.id]);
+  const hasAnalyticsData = teamAnalytics.labels.length > 0;
   const [selectedDayLabel, setSelectedDayLabel] = useState<string>('');
 
   useEffect(() => {
@@ -260,18 +261,24 @@ export function CoachAnalyticsPage() {
       </header>
 
       {viewMode === 'averages' ? (
-        <AveragesView
-          legendItems={teamAnalytics.legendItems}
-          teamAveragesMetrics={teamAnalytics.teamAveragesMetrics}
-          averages={teamAnalytics.averages}
-        />
-      ) : (
+        hasAnalyticsData ? (
+          <AveragesView
+            legendItems={teamAnalytics.legendItems}
+            teamAveragesMetrics={teamAnalytics.teamAveragesMetrics}
+            averages={teamAnalytics.averages}
+          />
+        ) : (
+          <section className="glass-card p-6 text-sm text-gray-300">No analytics data available for this team yet.</section>
+        )
+      ) : hasAnalyticsData ? (
         <IndividualsView
           labels={teamAnalytics.labels}
           selectedDayLabel={selectedDayLabel}
           onSelectDayLabel={setSelectedDayLabel}
           playersForDay={playersForSelectedDay}
         />
+      ) : (
+        <section className="glass-card p-6 text-sm text-gray-300">No individual player data available for this team yet.</section>
       )}
     </div>
   );

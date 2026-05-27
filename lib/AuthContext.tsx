@@ -16,6 +16,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: string | null }>;
   updatePassword: (password: string) => Promise<{ error: string | null }>;
+  updateDisplayName: (fullName: string) => Promise<{ error: string | null }>;
+  updateEmail: (email: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -29,6 +31,8 @@ const AuthContext = createContext<AuthContextType>({
   signOut: async () => {},
   resetPassword: async () => ({ error: null }),
   updatePassword: async () => ({ error: null }),
+  updateDisplayName: async () => ({ error: null }),
+  updateEmail: async () => ({ error: null }),
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -193,8 +197,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return { error: null };
   };
 
+  const updateDisplayName = async (fullName: string): Promise<{ error: string | null }> => {
+    if (!user) return { error: 'You must be signed in to update your name.' };
+
+    const trimmedName = fullName.trim();
+    if (!trimmedName) return { error: 'Name cannot be empty.' };
+
+    const { data, error } = await supabase.auth.updateUser({
+      data: {
+        ...(user.user_metadata ?? {}),
+        full_name: trimmedName,
+      },
+    });
+
+    if (error) return { error: error.message };
+    if (data.user) setUser(data.user);
+    return { error: null };
+  };
+
+  const updateEmail = async (email: string): Promise<{ error: string | null }> => {
+    if (!user) return { error: 'You must be signed in to update your email.' };
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return { error: 'Email cannot be empty.' };
+
+    const { data, error } = await supabase.auth.updateUser({ email: trimmedEmail });
+    if (error) return { error: error.message };
+    if (data.user) setUser(data.user);
+    return { error: null };
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, userRole, isLoading, signUp, signIn, setUserRole, signOut, resetPassword, updatePassword }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        userRole,
+        isLoading,
+        signUp,
+        signIn,
+        setUserRole,
+        signOut,
+        resetPassword,
+        updatePassword,
+        updateDisplayName,
+        updateEmail,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

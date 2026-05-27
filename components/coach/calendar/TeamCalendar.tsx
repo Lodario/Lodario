@@ -23,6 +23,10 @@ interface EventLayout {
 }
 
 const hours = Array.from({ length: 24 }).map((_, index) => index);
+const initialVisibleHour = 6;
+const visibleHourCount = 18;
+const dayHourRowHeight = 44;
+const weekHourRowHeight = 40;
 
 function parseTime(timeStr: string): { hour: number; minute: number } {
   const [hourValue = '0', minuteValue = '0'] = timeStr.split(':');
@@ -139,9 +143,9 @@ function DaySchedule({ date, items }: { date: Date; items: TeamCalendarItem[] })
   useEffect(() => {
     const container = scheduleRef.current;
     if (!container) return;
-    const sixAmRow = container.querySelector<HTMLElement>('[data-hour="6"]');
-    if (sixAmRow) {
-      container.scrollTop = sixAmRow.offsetTop;
+    const initialVisibleRow = container.querySelector<HTMLElement>(`[data-hour="${initialVisibleHour}"]`);
+    if (initialVisibleRow) {
+      container.scrollTop = initialVisibleRow.offsetTop;
     }
   }, [dateKey]);
 
@@ -152,7 +156,11 @@ function DaySchedule({ date, items }: { date: Date; items: TeamCalendarItem[] })
         <p className="text-sm font-semibold text-white">{format(date, 'EEEE, MMM d')}</p>
       </div>
 
-      <div ref={scheduleRef} className="min-h-0 flex-1 overflow-y-auto">
+      <div
+        ref={scheduleRef}
+        className="min-h-0 overflow-y-auto"
+        style={{ height: `${visibleHourCount * dayHourRowHeight}px` }}
+      >
         {hours.map((hour) => {
           const itemsHere = dayItems.filter((item) =>
             getHourCellCoverage(hour, item.startHour, item.startMinute, item.endHour, item.endMinute)
@@ -235,9 +243,9 @@ function WeekSchedule({ currentDate, items }: { currentDate: Date; items: TeamCa
   useEffect(() => {
     const container = scheduleRef.current;
     if (!container) return;
-    const sixAmRow = container.querySelector<HTMLElement>('[data-hour="6"]');
-    if (sixAmRow) {
-      container.scrollTop = sixAmRow.offsetTop;
+    const initialVisibleRow = container.querySelector<HTMLElement>(`[data-hour="${initialVisibleHour}"]`);
+    if (initialVisibleRow) {
+      container.scrollTop = initialVisibleRow.offsetTop;
     }
   }, [currentDate]);
 
@@ -263,7 +271,11 @@ function WeekSchedule({ currentDate, items }: { currentDate: Date; items: TeamCa
           </div>
         </div>
 
-        <div ref={scheduleRef} className="min-h-0 flex-1 overflow-y-auto">
+        <div
+          ref={scheduleRef}
+          className="min-h-0 overflow-y-auto"
+          style={{ height: `${visibleHourCount * weekHourRowHeight}px` }}
+        >
           {hours.map((hour) => (
             <div key={hour} data-hour={hour} className="flex min-h-[40px] border-b border-[rgba(255,255,255,0.05)]">
               <div className="w-10 shrink-0 pr-1 pt-1 text-right text-[10px] font-medium text-gray-500">

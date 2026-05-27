@@ -130,14 +130,18 @@ export function CoachOverviewPage() {
 
       <section>
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">Key Team Metrics</h2>
-        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
-          {overviewData.keyMetrics.map((metric) => (
-            <article key={metric.label} className="glass-card p-3.5">
-              <p className="text-[10px] uppercase tracking-wide text-gray-400">{metric.label}</p>
-              <p className={`mt-1.5 text-xl font-bold ${metric.toneClass}`}>{metric.value}</p>
-            </article>
-          ))}
-        </div>
+        {overviewData.keyMetrics.length === 0 ? (
+          <div className="mt-3 glass-card p-4 text-sm text-gray-300">No team metrics available yet.</div>
+        ) : (
+          <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            {overviewData.keyMetrics.map((metric) => (
+              <article key={metric.label} className="glass-card p-3.5">
+                <p className="text-[10px] uppercase tracking-wide text-gray-400">{metric.label}</p>
+                <p className={`mt-1.5 text-xl font-bold ${metric.toneClass}`}>{metric.value}</p>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
@@ -158,7 +162,7 @@ export function CoachOverviewPage() {
 
           {overviewData.playersNeedingAttention.length === 0 ? (
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-5">
-              <p className="text-sm text-gray-300">No players are currently flagged by the mock thresholds.</p>
+              <p className="text-sm text-gray-300">No players are currently flagged.</p>
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -212,41 +216,51 @@ export function CoachOverviewPage() {
             </Link>
           </div>
 
-          <div className="space-y-2.5">
-            {overviewData.upcomingActivities.map((activity) => (
-              <article
-                key={activity.id}
-                className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-white">{activity.title}</p>
-                    <p className="mt-0.5 text-xs text-gray-400">
-                      {format(parseISO(activity.date), 'EEE, MMM d')} · {activity.startTime} - {activity.endTime}
-                    </p>
+          {overviewData.upcomingActivities.length === 0 ? (
+            <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-5">
+              <p className="text-sm text-gray-300">No upcoming activities yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {overviewData.upcomingActivities.map((activity) => (
+                <article
+                  key={activity.id}
+                  className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-white">{activity.title}</p>
+                      <p className="mt-0.5 text-xs text-gray-400">
+                        {format(parseISO(activity.date), 'EEE, MMM d')} - {activity.startTime} - {activity.endTime}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className="rounded-full border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.05)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-200">
+                        {activity.kind}
+                      </span>
+                      <span className="rounded-full border border-[rgba(74,158,255,0.35)] bg-[rgba(74,158,255,0.12)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-secondary)]">
+                        {activity.type}
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1.5">
-                    <span className="rounded-full border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.05)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-200">
-                      {activity.kind}
-                    </span>
-                    <span className="rounded-full border border-[rgba(74,158,255,0.35)] bg-[rgba(74,158,255,0.12)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-secondary)]">
-                      {activity.type}
-                    </span>
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
       <section>
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">Recent Trends</h2>
-        <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
-          {overviewData.trends.map((trend) => (
-            <TrendCard key={trend.label} trend={trend} />
-          ))}
-        </div>
+        {overviewData.trends.length === 0 ? (
+          <div className="mt-3 glass-card p-4 text-sm text-gray-300">No trend data available yet.</div>
+        ) : (
+          <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
+            {overviewData.trends.map((trend) => (
+              <TrendCard key={trend.label} trend={trend} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section>
