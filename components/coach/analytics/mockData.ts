@@ -8,9 +8,6 @@ import type {
   TeamPlayerComparisonPoint,
 } from '@/components/coach/analytics/types';
 
-const fallbackChartLabels = ['May 12', 'May 13', 'May 14', 'May 15', 'May 16', 'May 17', 'May 18', 'May 19'];
-const fallbackTeamId = 'whitby-u19';
-
 export const analyticsLegendItems = [
   'Team Readiness Score trend',
   'Team Energy vs Team Fatigue vs Team Acute Training Load',
@@ -114,7 +111,7 @@ function minutesToHHmm(totalMinutes: number): string {
 
 function getChartLabels(players: TeamPlayerDataset[]) {
   const labels = players[0]?.analytics.readinessTrend.map((point) => point.label);
-  return labels?.length ? labels : fallbackChartLabels;
+  return labels?.length ? labels : [];
 }
 
 function buildTeamAverageSeries(players: TeamPlayerDataset[]) {
@@ -205,17 +202,14 @@ function buildIndividualsByLabel(players: TeamPlayerDataset[]) {
 }
 
 export function getTeamAnalyticsData(teamId: string): TeamAnalyticsDataset {
-  const requestedPlayers = getTeamPlayers(teamId);
-  const fallbackPlayers = getTeamPlayers(fallbackTeamId);
-  const players = requestedPlayers.length ? requestedPlayers : fallbackPlayers;
-  const resolvedTeamId = requestedPlayers.length ? teamId : fallbackTeamId;
+  const players = getTeamPlayers(teamId);
 
   const { labels, averages } = buildTeamAverageSeries(players);
   const individualsByLabel = buildIndividualsByLabel(players);
-  const teamAveragesMetrics = getTeamCalendarData(resolvedTeamId).averages;
+  const teamAveragesMetrics = getTeamCalendarData(teamId).averages;
 
   return {
-    teamId: resolvedTeamId,
+    teamId,
     labels,
     averages,
     teamAveragesMetrics,

@@ -125,7 +125,7 @@ export function PlayersPage() {
       <div className="mx-auto w-full max-w-6xl">
         <header className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight text-white">Players</h1>
-          <p className="mt-2 text-sm text-gray-400">No mock players are configured for this team yet.</p>
+          <p className="mt-2 text-sm text-gray-400">No players are available for this team yet.</p>
         </header>
       </div>
     );

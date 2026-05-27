@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { AlertTriangle, Bell, Eye, Lock, Settings2, Shield, Users } from 'lucide-react';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
+import { useAuth } from '@/lib/AuthContext';
 
 interface ToggleRowProps {
   label: string;
@@ -39,6 +40,7 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
 
 export function CoachSettingsPage() {
   const { teams, selectedTeamId, setSelectedTeamId } = useCoachTeam();
+  const { user, updatePassword } = useAuth();
 
   const [emailDigestEnabled, setEmailDigestEnabled] = useState(true);
   const [pushAlertsEnabled, setPushAlertsEnabled] = useState(true);
@@ -53,6 +55,52 @@ export function CoachSettingsPage() {
 
   const [profileVisibilityTeamOnly, setProfileVisibilityTeamOnly] = useState(true);
   const [allowDataExport, setAllowDataExport] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+
+  const displayName =
+    typeof user?.user_metadata?.full_name === 'string' && user.user_metadata.full_name.trim()
+      ? user.user_metadata.full_name.trim()
+      : (user?.email?.split('@')[0] ?? 'Coach');
+  const accountEmail = user?.email ?? '--';
+  const browserLanguage = typeof navigator !== 'undefined' ? navigator.language : '--';
+  const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const handleUpdatePassword = async () => {
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (!newPassword.trim()) {
+      setPasswordError('Please enter a new password.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('Password must be at least 6 characters.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match.');
+      return;
+    }
+
+    setIsUpdatingPassword(true);
+    const result = await updatePassword(newPassword);
+    setIsUpdatingPassword(false);
+
+    if (result.error) {
+      setPasswordError(result.error);
+      return;
+    }
+
+    setNewPassword('');
+    setConfirmPassword('');
+    setPasswordSuccess('Password updated successfully.');
+  };
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -70,7 +118,7 @@ export function CoachSettingsPage() {
           </span>
           <div>
             <h2 className="text-sm font-semibold text-white">Account Settings</h2>
-            <p className="mt-1 text-xs text-gray-400">Editable-ready account fields using mock values.</p>
+            <p className="mt-1 text-xs text-gray-400">Live account values from your signed-in session.</p>
           </div>
         </div>
 
@@ -78,28 +126,29 @@ export function CoachSettingsPage() {
           <div>
             <p className="mb-1.5 text-[11px] uppercase tracking-wide text-gray-400">Display Name</p>
             <div className="rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)] px-3 py-2.5 text-sm text-white">
-              Jordan Williams
+              {displayName}
             </div>
           </div>
           <div>
             <p className="mb-1.5 text-[11px] uppercase tracking-wide text-gray-400">Email</p>
             <div className="rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)] px-3 py-2.5 text-sm text-white">
-              coach.email@prolaesio.app
+              {accountEmail}
             </div>
           </div>
           <div>
             <p className="mb-1.5 text-[11px] uppercase tracking-wide text-gray-400">Language</p>
             <div className="rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)] px-3 py-2.5 text-sm text-white">
-              English (US)
+              {browserLanguage}
             </div>
           </div>
           <div>
             <p className="mb-1.5 text-[11px] uppercase tracking-wide text-gray-400">Timezone</p>
             <div className="rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.03)] px-3 py-2.5 text-sm text-white">
-              Pacific Time (PT)
+              {browserTimezone}
             </div>
           </div>
         </div>
+        <p className="mt-3 text-xs text-gray-400">To edit your name or email, open the Profile page and save your updates.</p>
       </section>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -218,13 +267,33 @@ export function CoachSettingsPage() {
 
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3">
               <p className="text-sm font-medium text-white">Session Security</p>
-              <p className="mt-0.5 text-xs text-gray-400">Authentication and session policy placeholders.</p>
-              <button
-                type="button"
-                className="mt-3 rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.05)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[rgba(255,255,255,0.1)]"
-              >
-                Review Active Sessions
-              </button>
+              <p className="mt-0.5 text-xs text-gray-400">Update your account password.</p>
+              <div className="mt-3 grid gap-2">
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                  placeholder="New password"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+                />
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                  placeholder="Confirm new password"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+                />
+                <button
+                  type="button"
+                  onClick={handleUpdatePassword}
+                  disabled={isUpdatingPassword}
+                  className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.05)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[rgba(255,255,255,0.1)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isUpdatingPassword ? 'Updating...' : 'Update Password'}
+                </button>
+                {passwordError ? <p className="text-xs text-[var(--status-red)]">{passwordError}</p> : null}
+                {passwordSuccess ? <p className="text-xs text-[var(--accent-primary)]">{passwordSuccess}</p> : null}
+              </div>
             </div>
           </div>
         </section>
@@ -254,13 +323,11 @@ export function CoachSettingsPage() {
           </button>
         </div>
 
-        <p className="mt-3 text-xs text-gray-400">
-          Supabase-ready note: connect these actions to secure backend flows when account lifecycle features are enabled.
-        </p>
+        <p className="mt-3 text-xs text-gray-400">Destructive account actions are disabled until backend lifecycle flows are added.</p>
       </section>
 
       <section className="rounded-xl border border-[rgba(74,158,255,0.28)] bg-[rgba(74,158,255,0.08)] px-4 py-3 text-xs text-[var(--accent-secondary)]">
-        Settings on this page use local mock state only and do not persist to backend services yet.
+        Notification, display, and privacy toggles currently save in local page state only.
       </section>
     </div>
   );

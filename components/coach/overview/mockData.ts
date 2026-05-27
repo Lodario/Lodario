@@ -56,13 +56,6 @@ export interface TeamOverviewData {
   trends: OverviewTrend[];
 }
 
-const rosterCountByTeamId: Record<string, number> = {
-  'whitby-u19': 24,
-  'whitby-u17': 22,
-  'seattle-u23': 26,
-  'ridgeview-w': 23,
-};
-
 const STATUS_CLASS_BY_LABEL: Record<OverviewAttentionItem['statusLabel'], string> = {
   'Needs Attention': 'text-[var(--status-red)] border-[rgba(255,107,107,0.4)] bg-[rgba(255,107,107,0.12)]',
   Monitor: 'text-[var(--status-yellow)] border-[rgba(255,212,59,0.4)] bg-[rgba(255,212,59,0.12)]',
@@ -85,12 +78,21 @@ function getSummaryStatus({
   fatigue,
   stress,
   loadScore,
+  hasData,
 }: {
   averageReadiness: number;
   fatigue: number;
   stress: number;
   loadScore: number;
+  hasData: boolean;
 }): OverviewSummaryStatus {
+  if (!hasData) {
+    return {
+      label: 'Stable',
+      className: 'text-[var(--accent-primary)] border-[rgba(0,212,170,0.4)] bg-[rgba(0,212,170,0.12)]',
+    };
+  }
+
   if (averageReadiness < 78 || stress >= 58 || fatigue >= 7.2) {
     return {
       label: 'Needs Attention',
@@ -188,6 +190,10 @@ export function getTeamOverviewData(teamId: string): TeamOverviewData {
   const analyticsData = getTeamAnalyticsData(teamId);
   const calendarData = getTeamCalendarData(teamId);
   const players = getTeamPlayers(teamId);
+  const hasAnalyticsData = analyticsData.labels.length > 0;
+  const hasPlayerData = players.length > 0;
+  const hasCalendarData = calendarData.items.length > 0 || calendarData.averages.length > 0;
+  const hasData = hasAnalyticsData || hasPlayerData || hasCalendarData;
 
   const latestReadiness = analyticsData.averages.readinessTrend[analyticsData.averages.readinessTrend.length - 1];
   const latestEnergyFatigueLoad = analyticsData.averages.energyFatigueLoad[analyticsData.averages.energyFatigueLoad.length - 1];
@@ -204,9 +210,10 @@ export function getTeamOverviewData(teamId: string): TeamOverviewData {
     fatigue: latestEnergyFatigueLoad?.fatigue ?? 0,
     stress: latestStressSleep?.stress ?? 0,
     loadScore: latestMultiFactor?.loadScore ?? 0,
+    hasData,
   });
 
-  const keyMetrics: OverviewMetric[] = [
+  const keyMetrics: OverviewMetric[] = hasData ? [
     {
       label: 'Readiness Score',
       value: rounded(latestReadiness?.readinessScore ?? 0),
@@ -237,7 +244,7 @@ export function getTeamOverviewData(teamId: string): TeamOverviewData {
       value: toRange100From10(latestEnergyFatigueLoad?.energy ?? 0),
       toneClass: 'text-white',
     },
-  ];
+  ] : [];
 
   const playersNeedingAttention = players
     .map((dataset) => {
@@ -288,7 +295,7 @@ export function getTeamOverviewData(teamId: string): TeamOverviewData {
   const loadTrendPoints = analyticsData.averages.energyFatigueLoad.map((point) => point.acuteTrainingLoad);
   const fatigueTrendPoints = analyticsData.averages.energyFatigueLoad.map((point) => toRange100From10(point.fatigue));
 
-  const trends: OverviewTrend[] = [
+  const trends: OverviewTrend[] = hasData ? [
     {
       label: 'Readiness Trend',
       points: readinessTrendPoints,
@@ -310,11 +317,11 @@ export function getTeamOverviewData(teamId: string): TeamOverviewData {
       delta: rounded((fatigueTrendPoints[fatigueTrendPoints.length - 1] ?? 0) - (fatigueTrendPoints[0] ?? 0)),
       toneClass: 'text-[var(--status-red)]',
     },
-  ];
+  ] : [];
 
   return {
     summary: {
-      playerCount: rosterCountByTeamId[teamId] ?? players.length,
+      playerCount: players.length,
       averageReadiness,
       averageLoad,
       status: summaryStatus,
