@@ -410,15 +410,23 @@ export function TeamCalendar({ items, className, style }: TeamCalendarProps) {
       </div>
 
       <div className="min-h-0 flex-1">
-        {view === 'Day' ? <DaySchedule date={currentDate} items={items} /> : null}
-        {view === 'Week' ? (
+        {items.length === 0 ? (
+          <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-5 text-sm text-gray-300">
+            No activities scheduled for this team.
+          </div>
+        ) : (
           <>
-            <div className="md:hidden">
-              <DaySchedule date={currentDate} items={items} />
-            </div>
-            <WeekSchedule currentDate={currentDate} items={items} />
+            {view === 'Day' ? <DaySchedule date={currentDate} items={items} /> : null}
+            {view === 'Week' ? (
+              <>
+                <div className="md:hidden">
+                  <DaySchedule date={currentDate} items={items} />
+                </div>
+                <WeekSchedule currentDate={currentDate} items={items} />
+              </>
+            ) : null}
           </>
-        ) : null}
+        )}
       </div>
     </section>
   );

@@ -100,7 +100,10 @@ function computeOverlapGroups(events: ParsedEvent[], maxCols: number): Map<strin
 }
 
 function getEventColor(type: PlayerCalendarEvent['type']) {
-  return type === 'gym' ? 'var(--accent-primary)' : 'var(--accent-secondary)';
+  if (type === 'training' || type === 'game' || type === 'gym') {
+    return 'var(--accent-primary)';
+  }
+  return 'var(--accent-secondary)';
 }
 
 function parseDayEvents(events: PlayerCalendarEvent[], dateString: string): ParsedEvent[] {
@@ -381,15 +384,23 @@ export function PlayerCalendar({ events, className }: PlayerCalendarProps) {
       </div>
 
       <div className="min-h-0 flex-1">
-        {view === 'Day' ? <DaySchedule date={currentDate} events={events} /> : null}
-        {view === 'Week' ? (
+        {events.length === 0 ? (
+          <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-5 text-sm text-gray-300">
+            No activities scheduled for this player.
+          </div>
+        ) : (
           <>
-            <div className="md:hidden">
-              <DaySchedule date={currentDate} events={events} />
-            </div>
-            <WeekSchedule currentDate={currentDate} events={events} />
+            {view === 'Day' ? <DaySchedule date={currentDate} events={events} /> : null}
+            {view === 'Week' ? (
+              <>
+                <div className="md:hidden">
+                  <DaySchedule date={currentDate} events={events} />
+                </div>
+                <WeekSchedule currentDate={currentDate} events={events} />
+              </>
+            ) : null}
           </>
-        ) : null}
+        )}
       </div>
     </section>
   );

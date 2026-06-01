@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
-import { IndividualSessionCreator } from '@/components/coach/players/IndividualSessionCreator';
 import { PlayerAnalyticsChart } from '@/components/coach/players/PlayerAnalyticsChart';
 import { PlayerAnalyticsLegend } from '@/components/coach/players/PlayerAnalyticsLegend';
 import { PlayerCalendar } from '@/components/coach/players/PlayerCalendar';
@@ -11,7 +10,75 @@ import { PlayerSelectorDropdown } from '@/components/coach/players/PlayerSelecto
 import { PlayerViewToggle } from '@/components/coach/players/PlayerViewToggle';
 import { WellnessMetricsPanel } from '@/components/coach/players/WellnessMetricsPanel';
 import { loadRealTeamPlayerDatasets } from '@/components/coach/players/realData';
-import type { PlayerViewMode, TeamPlayerDataset } from '@/components/coach/players/types';
+import type { PlayerInjuryStatus, PlayerNoteItem, PlayerViewMode, TeamPlayerDataset } from '@/components/coach/players/types';
+
+function NotesSection({
+  title,
+  emptyLabel,
+  notes,
+}: {
+  title: string;
+  emptyLabel: string;
+  notes: PlayerNoteItem[];
+}) {
+  return (
+    <section className="glass-card p-4 sm:p-5">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-300">{title}</h3>
+      {notes.length === 0 ? (
+        <p className="mt-3 text-sm text-gray-400">{emptyLabel}</p>
+      ) : (
+        <ul className="mt-3 space-y-2.5">
+          {notes.map((note) => (
+            <li key={note.id} className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3 py-2.5">
+              <p className="text-[11px] uppercase tracking-wide text-gray-400">{note.date}</p>
+              <p className="mt-1 text-sm text-gray-200">{note.note}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+function InjuryStatusCard({ injuryStatus }: { injuryStatus: PlayerInjuryStatus }) {
+  const label =
+    injuryStatus.state === 'active'
+      ? 'Active'
+      : injuryStatus.state === 'recovering'
+        ? 'Recovering'
+        : injuryStatus.state === 'resolved'
+          ? 'Resolved'
+          : injuryStatus.state === 'unavailable'
+            ? 'Unavailable'
+            : 'Healthy';
+
+  const toneClass =
+    injuryStatus.state === 'active'
+      ? 'border-[rgba(255,107,107,0.4)] bg-[rgba(255,107,107,0.12)] text-[var(--status-red)]'
+      : injuryStatus.state === 'recovering'
+        ? 'border-[rgba(255,146,43,0.4)] bg-[rgba(255,146,43,0.12)] text-[var(--status-orange)]'
+        : injuryStatus.state === 'unavailable'
+          ? 'border-[rgba(255,212,59,0.3)] bg-[rgba(255,212,59,0.1)] text-[var(--status-yellow)]'
+          : 'border-[rgba(0,212,170,0.3)] bg-[rgba(0,212,170,0.1)] text-[var(--accent-primary)]';
+
+  return (
+    <section className="glass-card p-4 sm:p-5">
+      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-300">Injury Status</h3>
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <span className="text-sm text-gray-200">Current state</span>
+        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${toneClass}`}>
+          {label}
+        </span>
+      </div>
+      {injuryStatus.description ? <p className="mt-2 text-sm text-gray-300">{injuryStatus.description}</p> : null}
+      {injuryStatus.expectedReturn ? <p className="mt-1 text-xs text-gray-400">Expected return: {injuryStatus.expectedReturn}</p> : null}
+      {injuryStatus.state === 'healthy' ? <p className="mt-2 text-sm text-gray-400">No injuries recorded.</p> : null}
+      {injuryStatus.state === 'unavailable' ? (
+        <p className="mt-2 text-sm text-gray-400">{injuryStatus.message ?? 'Injury data is not available for this player.'}</p>
+      ) : null}
+    </section>
+  );
+}
 
 function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) {
   const latestSleep = playerDataset.analytics.sleepQualityAndTiming[playerDataset.analytics.sleepQualityAndTiming.length - 1];
@@ -88,7 +155,12 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
         </div>
       </div>
 
-      <PlayerAnalyticsLegend items={analyticsLegendItems} />
+      <div className="grid h-fit gap-4">
+        <PlayerAnalyticsLegend items={analyticsLegendItems} />
+        <NotesSection title="Wellness Notes" emptyLabel="No wellness notes yet." notes={playerDataset.wellnessNotes} />
+        <NotesSection title="Training Notes" emptyLabel="No training notes yet." notes={playerDataset.trainingNotes} />
+        <InjuryStatusCard injuryStatus={playerDataset.injuryStatus} />
+      </div>
     </div>
   );
 }
@@ -103,10 +175,7 @@ const analyticsLegendItems = [
 
 function CalendarView({ playerDataset }: { playerDataset: TeamPlayerDataset }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] xl:items-stretch">
-      <PlayerCalendar events={playerDataset.calendarEvents} className="xl:h-[760px]" />
-      <IndividualSessionCreator player={playerDataset.player} className="xl:h-[760px]" />
-    </div>
+    <PlayerCalendar events={playerDataset.calendarEvents} className="xl:h-[760px]" />
   );
 }
 

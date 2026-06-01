@@ -91,3 +91,70 @@ export interface TeamAnalyticsDataset {
   legendItems: string[];
   individualsByLabel: Record<string, TeamPlayerComparisonPoint[]>;
 }
+
+export const analyticsLegendItems = [
+  'Team Readiness Score trend',
+  'Team Energy vs Team Fatigue vs Team Acute Training Load',
+  'Team Sleep Time vs Team Sleep Quality vs Team Sleep Score, including average sleep and wake times',
+  'Team Stress vs Team Sleep Score',
+  'Team Sleep Score + Team Energy + Team Fatigue + Team Stress + Team Load Score vs Team Readiness Score',
+  'Team Averages Panel',
+];
+
+export const comparisonMetricDefinitions: ComparisonMetricDefinition[] = [
+  {
+    key: 'readinessScore',
+    label: 'Readiness Score',
+    shortLabel: 'Readiness',
+    color: 'var(--accent-primary)',
+    goodDirection: 'higher',
+    domain: [0, 100],
+  },
+  {
+    key: 'fatigue',
+    label: 'Fatigue',
+    shortLabel: 'Fatigue',
+    color: '#ff6b6b',
+    goodDirection: 'lower',
+    domain: [0, 10],
+  },
+  {
+    key: 'energy',
+    label: 'Energy',
+    shortLabel: 'Energy',
+    color: '#ffd43b',
+    goodDirection: 'higher',
+    domain: [0, 10],
+  },
+  {
+    key: 'stress',
+    label: 'Stress',
+    shortLabel: 'Stress',
+    color: '#ff922b',
+    goodDirection: 'lower',
+    domain: [0, 100],
+  },
+  {
+    key: 'sleepScore',
+    label: 'Sleep Score',
+    shortLabel: 'Sleep',
+    color: 'var(--accent-secondary)',
+    goodDirection: 'higher',
+    domain: [0, 100],
+  },
+  {
+    key: 'acuteTrainingLoad',
+    label: 'Acute Training Load',
+    shortLabel: 'Acute Load',
+    color: '#b197fc',
+    goodDirection: 'lower',
+  },
+  {
+    key: 'loadScore',
+    label: 'Load Score',
+    shortLabel: 'Load',
+    color: '#63e6be',
+    goodDirection: 'lower',
+    domain: [0, 100],
+  },
+];

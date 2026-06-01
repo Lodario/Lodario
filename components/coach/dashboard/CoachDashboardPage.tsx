@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Layers,
   LineChart,
-  ShieldAlert,
   Users,
 } from 'lucide-react';
 import { TeamCalendar } from '@/components/coach/calendar/TeamCalendar';
@@ -39,6 +38,13 @@ interface UpcomingActivity {
   title: string;
   type: string;
   startsAt: string;
+}
+
+interface DashboardAlert {
+  id: string;
+  teamName: string;
+  message: string;
+  toneClass: string;
 }
 
 const stableStatusBadge: TeamStatusBadge = {
@@ -129,7 +135,6 @@ export function CoachDashboardPage() {
       hasUnknownPlayerCounts,
       averageReadiness,
       averageLoad,
-      attentionCount: 0,
     };
   }, [teamCards]);
 
@@ -149,6 +154,32 @@ export function CoachDashboardPage() {
         startsAt: `${item.date}T${item.startTime}:00`,
       }));
   }, [allTeamsCalendarItems]);
+
+  const recentAlerts = useMemo<DashboardAlert[]>(() => {
+    const alerts: DashboardAlert[] = [];
+
+    teamCards.forEach((team) => {
+      if (team.averageReadiness != null && team.averageReadiness < 78) {
+        alerts.push({
+          id: `${team.id}-readiness`,
+          teamName: team.name,
+          message: `Low readiness average (${Math.round(team.averageReadiness)}%).`,
+          toneClass: 'text-[var(--status-red)]',
+        });
+      }
+
+      if (team.averageLoad != null && team.averageLoad > 700) {
+        alerts.push({
+          id: `${team.id}-load`,
+          teamName: team.name,
+          message: `High acute load (${Math.round(team.averageLoad)}).`,
+          toneClass: 'text-[var(--status-orange)]',
+        });
+      }
+    });
+
+    return alerts.slice(0, 8);
+  }, [teamCards]);
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -269,8 +300,7 @@ export function CoachDashboardPage() {
         )}
       </section>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.75fr)] xl:items-stretch">
-        <section className="space-y-3">
+      <section className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-white">All Teams Calendar</h2>
@@ -289,22 +319,7 @@ export function CoachDashboardPage() {
 
           <TeamCalendar items={allTeamsCalendarItems} className="min-h-[560px] xl:h-[760px]" />
           {isLoadingCalendarItems ? <p className="text-xs text-gray-400">Loading cross-team calendar...</p> : null}
-        </section>
-
-        <section className="glass-card p-4 sm:p-5">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-white">Recent Alerts</h2>
-              <p className="mt-1 text-xs text-gray-400">Coach-wide flags from readiness, load, attendance, and sleep trends.</p>
-            </div>
-            <ShieldAlert size={16} className="text-[var(--status-red)]" />
-          </div>
-
-          <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3 text-sm text-gray-300">
-            No alerts yet.
-          </div>
-        </section>
-      </div>
+      </section>
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.92fr)] xl:items-start">
         <section className="glass-card p-4 sm:p-5">
@@ -385,21 +400,27 @@ export function CoachDashboardPage() {
       </div>
 
       <section className="glass-card p-4 sm:p-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold text-white">Continue Where You Left Off</h2>
-            <p className="mt-1 text-xs text-gray-400">
-              Last selected team: {selectedTeam.name} - Last viewed page: Team Analytics
-            </p>
-          </div>
-          <Link
-            href="/coach/analytics"
-            className="inline-flex w-fit items-center gap-1 rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.05)] px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-[rgba(255,255,255,0.1)]"
-          >
-            Return to Team Analytics
-            <ChevronRight size={14} />
-          </Link>
+        <div className="mb-3">
+          <h2 className="text-sm font-semibold text-white">Recent Alerts</h2>
+          <p className="mt-1 text-xs text-gray-400">Real signals generated from current readiness and load data.</p>
         </div>
+        {recentAlerts.length === 0 ? (
+          <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3 text-sm text-gray-300">
+            No alerts triggered from current team data.
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            {recentAlerts.map((alert) => (
+              <article
+                key={alert.id}
+                className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3"
+              >
+                <p className="text-sm font-semibold text-white">{alert.teamName}</p>
+                <p className={`mt-1 text-xs ${alert.toneClass}`}>{alert.message}</p>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );

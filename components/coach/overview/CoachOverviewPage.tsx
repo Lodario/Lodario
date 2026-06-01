@@ -5,7 +5,7 @@ import { format, parseISO } from 'date-fns';
 import { ArrowUpRight, CalendarPlus, CalendarRange, ChevronRight, ClipboardList, LineChart } from 'lucide-react';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
 import { useCoachSelectedTeamInsights } from '@/lib/coach/teamInsights';
-import type { OverviewTrend } from '@/components/coach/overview/mockData';
+import type { OverviewTrend } from '@/components/coach/overview/buildFromInsights';
 
 interface SparklineProps {
   points: number[];

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AnalyticsLegend } from '@/components/coach/analytics/AnalyticsLegend';
 import { AnalyticsViewToggle } from '@/components/coach/analytics/AnalyticsViewToggle';
-import { comparisonMetricDefinitions } from '@/components/coach/analytics/mockData';
+import { comparisonMetricDefinitions } from '@/components/coach/analytics/types';
 import { IndividualPlayerAnalyticsCard } from '@/components/coach/analytics/IndividualPlayerAnalyticsCard';
 import { MetricsGrid } from '@/components/coach/analytics/MetricsGrid';
 import { PlayerComparisonChart } from '@/components/coach/analytics/PlayerComparisonChart';

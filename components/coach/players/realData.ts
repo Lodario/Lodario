@@ -1,6 +1,12 @@
 import { format } from 'date-fns';
 import { supabase } from '@/lib/supabase';
-import type { CoachPlayer, TeamPlayerDataset } from '@/components/coach/players/types';
+import type {
+  CoachPlayer,
+  PlayerInjuryStatus,
+  PlayerNoteItem,
+  PlayerSessionType,
+  TeamPlayerDataset,
+} from '@/components/coach/players/types';
 
 interface TeamPlayerRpcRow {
   user_id: string;
@@ -23,13 +29,18 @@ interface WellnessRow {
   sleep_duration: number | string;
   sleep_time: string;
   wake_time: string;
+  notes: string | null;
+  pain_notes: string | null;
 }
 
 interface TrainingRow {
+  id: string;
   user_id: string;
   date: string;
   duration: number;
   intensity: number;
+  notes: string | null;
+  pain_notes: string | null;
 }
 
 interface CalendarRow {
@@ -39,6 +50,15 @@ interface CalendarRow {
   event_type_id: string;
   start_time: string;
   end_time: string;
+}
+
+interface InjuryRow {
+  id: string;
+  user_id: string;
+  description: string;
+  expected_return: string | null;
+  status: 'active' | 'recovering' | 'resolved';
+  created_at: string;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -72,13 +92,115 @@ function toDateAndTime(isoValue: string): { date: string; time: string } {
   };
 }
 
+function normalizeText(value: string | null | undefined): string | null {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function mapEventTypeIdToPlayerSessionType(rawType: string): PlayerSessionType {
+  const normalized = rawType.trim().toLowerCase();
+  if (normalized.includes('match') || normalized.includes('game')) return 'game';
+  if (normalized.includes('train')) return 'training';
+  if (normalized.includes('recover')) return 'recovery';
+  if (normalized.includes('gym') || normalized.includes('lift')) return 'gym';
+  if (normalized.includes('meeting')) return 'meeting';
+  if (normalized.includes('solo') || normalized.includes('individual')) return 'solo';
+  return 'other';
+}
+
+function buildWellnessNotes(wellnessRows: WellnessRow[]): PlayerNoteItem[] {
+  const notes: PlayerNoteItem[] = [];
+
+  wellnessRows.forEach((row) => {
+    const generalNote = normalizeText(row.notes);
+    if (generalNote) {
+      notes.push({
+        id: `wellness-note-${row.user_id}-${row.date}`,
+        date: row.date,
+        note: generalNote,
+      });
+    }
+
+    const painNote = normalizeText(row.pain_notes);
+    if (painNote) {
+      notes.push({
+        id: `wellness-pain-note-${row.user_id}-${row.date}`,
+        date: row.date,
+        note: `Pain note: ${painNote}`,
+      });
+    }
+  });
+
+  return notes
+    .sort((first, second) => second.date.localeCompare(first.date))
+    .slice(0, 6);
+}
+
+function buildTrainingNotes(trainingRows: TrainingRow[]): PlayerNoteItem[] {
+  const notes: PlayerNoteItem[] = [];
+
+  trainingRows.forEach((row) => {
+    const generalNote = normalizeText(row.notes);
+    if (generalNote) {
+      notes.push({
+        id: `training-note-${row.id}`,
+        date: row.date,
+        note: generalNote,
+      });
+    }
+
+    const painNote = normalizeText(row.pain_notes);
+    if (painNote) {
+      notes.push({
+        id: `training-pain-note-${row.id}`,
+        date: row.date,
+        note: `Pain note: ${painNote}`,
+      });
+    }
+  });
+
+  return notes
+    .sort((first, second) => second.date.localeCompare(first.date))
+    .slice(0, 6);
+}
+
+function resolveInjuryStatus(rows: InjuryRow[] | undefined, injuryQueryError: string | null): PlayerInjuryStatus {
+  if (injuryQueryError) {
+    return {
+      state: 'unavailable',
+      message: injuryQueryError,
+    };
+  }
+
+  const injuries = rows ?? [];
+  const activeOrRecovering = injuries
+    .filter((row) => row.status === 'active' || row.status === 'recovering')
+    .sort((first, second) => second.created_at.localeCompare(first.created_at));
+
+  if (activeOrRecovering.length > 0) {
+    const latest = activeOrRecovering[0];
+    return {
+      state: latest.status,
+      description: latest.description,
+      expectedReturn: latest.expected_return ?? undefined,
+    };
+  }
+
+  return {
+    state: 'healthy',
+  };
+}
+
 function buildDatasetForPlayer(params: {
   player: CoachPlayer;
   wellnessRows: WellnessRow[];
   trainingRows: TrainingRow[];
   calendarRows: CalendarRow[];
+  injuryRows: InjuryRow[] | undefined;
+  injuryQueryError: string | null;
 }): TeamPlayerDataset {
-  const { player, wellnessRows, trainingRows, calendarRows } = params;
+  const { player, wellnessRows, trainingRows, calendarRows, injuryRows, injuryQueryError } = params;
   const latestWellness = wellnessRows[wellnessRows.length - 1];
 
   const loadByDate = trainingRows.reduce<Record<string, number>>((accumulator, row) => {
@@ -107,7 +229,7 @@ function buildDatasetForPlayer(params: {
     const loadScore = clamp(Math.round(load / 10), 0, 100);
     const sleepScore = clamp(Math.round(((sleepQuality * 10) + (sleepHours * 10)) / 2), 0, 100);
     const readinessScore = clamp(
-      Math.round((energy * 10) * 0.35 + sleepScore * 0.35 + (100 - fatigue * 10) * 0.2 + (100 - stress * 1.2) * 0.1 - loadScore * 0.1),
+      Math.round((energy * 10) * 0.35 + sleepScore * 0.35 + (100 - fatigue * 10) * 0.2 + (100 - stress * 10) * 0.1 - loadScore * 0.1),
       0,
       100
     );
@@ -140,16 +262,19 @@ function buildDatasetForPlayer(params: {
     },
     analytics: {
       readinessTrend: analyticsRows.map((row) => ({
+        date: row.dateValue,
         label: row.label,
         readinessScore: row.readinessScore,
       })),
       energyFatigueLoad: analyticsRows.map((row) => ({
+        date: row.dateValue,
         label: row.label,
         energy: row.energy,
         fatigue: row.fatigue,
         acuteTrainingLoad: Math.round(row.load),
       })),
       sleepQualityAndTiming: analyticsRows.map((row) => ({
+        date: row.dateValue,
         label: row.label,
         sleepHours: row.sleepHours,
         sleepQualityScore: row.sleepQuality * 10,
@@ -158,11 +283,13 @@ function buildDatasetForPlayer(params: {
         wakeTime: row.wakeTime,
       })),
       stressVsSleepScore: analyticsRows.map((row) => ({
+        date: row.dateValue,
         label: row.label,
         stress: row.stress * 10,
         sleepScore: row.sleepScore,
       })),
       multiFactorReadiness: analyticsRows.map((row) => ({
+        date: row.dateValue,
         label: row.label,
         readinessScore: row.readinessScore,
         sleepScore: row.sleepScore,
@@ -175,19 +302,22 @@ function buildDatasetForPlayer(params: {
     calendarEvents: sortedCalendarRows.map((row) => {
       const start = toDateAndTime(row.start_time);
       const end = toDateAndTime(row.end_time);
-      const eventType = row.event_type_id.toLowerCase();
+      const sessionType = mapEventTypeIdToPlayerSessionType(row.event_type_id);
 
       return {
         id: row.id,
         playerId: row.user_id,
         teamId: player.teamId,
         title: row.title || row.event_type_id || 'Session',
-        type: eventType.includes('gym') ? 'gym' : 'solo',
+        type: sessionType,
         date: start.date,
         startTime: start.time,
         endTime: end.time,
       } as const;
     }),
+    wellnessNotes: buildWellnessNotes(wellnessRows),
+    trainingNotes: buildTrainingNotes(trainingRows),
+    injuryStatus: resolveInjuryStatus(injuryRows, injuryQueryError),
   };
 }
 
@@ -208,15 +338,15 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
 
   const playerIds = playerRows.map((row) => row.user_id);
 
-  const [wellnessResult, trainingResult, calendarResult] = await Promise.all([
+  const [wellnessResult, trainingResult, calendarResult, injuriesResult] = await Promise.all([
     supabase
       .from('wellness_logs')
-      .select('user_id, date, energy, fatigue, stress, sleep_quality, sleep_duration, sleep_time, wake_time')
+      .select('user_id, date, energy, fatigue, stress, sleep_quality, sleep_duration, sleep_time, wake_time, notes, pain_notes')
       .in('user_id', playerIds)
       .order('date', { ascending: true }),
     supabase
       .from('training_logs')
-      .select('user_id, date, duration, intensity')
+      .select('id, user_id, date, duration, intensity, notes, pain_notes')
       .in('user_id', playerIds)
       .order('date', { ascending: true }),
     supabase
@@ -224,6 +354,11 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
       .select('id, user_id, title, event_type_id, start_time, end_time')
       .in('user_id', playerIds)
       .order('start_time', { ascending: true }),
+    supabase
+      .from('injuries')
+      .select('id, user_id, description, expected_return, status, created_at')
+      .in('user_id', playerIds)
+      .order('created_at', { ascending: false }),
   ]);
 
   if (wellnessResult.error) {
@@ -241,9 +376,24 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
     return { data: [], error: calendarResult.error.message || 'Unable to load calendar events.' };
   }
 
+  let injuryQueryError: string | null = null;
+  if (injuriesResult.error) {
+    console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading injuries for team players:', injuriesResult.error, { teamId, playerCount: playerIds.length });
+    injuryQueryError = injuriesResult.error.message || 'Unable to load injury records.';
+  }
+
   const wellnessRows = (wellnessResult.data ?? []) as WellnessRow[];
   const trainingRows = (trainingResult.data ?? []) as TrainingRow[];
   const calendarRows = (calendarResult.data ?? []) as CalendarRow[];
+  const injuryRows = ((injuriesResult.data ?? []) as InjuryRow[]);
+
+  const injuryRowsByUserId = injuryRows.reduce<Record<string, InjuryRow[]>>((accumulator, row) => {
+    if (!accumulator[row.user_id]) {
+      accumulator[row.user_id] = [];
+    }
+    accumulator[row.user_id].push(row);
+    return accumulator;
+  }, {});
 
   const teamPlayers = playerRows.map((row, index) => {
     const coachPlayer: CoachPlayer = {
@@ -262,6 +412,8 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
       wellnessRows: wellnessRows.filter((wellnessRow) => wellnessRow.user_id === row.user_id),
       trainingRows: trainingRows.filter((trainingRow) => trainingRow.user_id === row.user_id),
       calendarRows: calendarRows.filter((calendarRow) => calendarRow.user_id === row.user_id),
+      injuryRows: injuryRowsByUserId[row.user_id],
+      injuryQueryError,
     });
   });
 
