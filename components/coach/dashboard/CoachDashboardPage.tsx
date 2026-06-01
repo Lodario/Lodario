@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import { TeamCalendar } from '@/components/coach/calendar/TeamCalendar';
 import type { TeamCalendarItem } from '@/components/coach/calendar/types';
-import { useCoachAllTeamsCalendarItems, useCoachTeamProfileAverages } from '@/lib/coach/teamInsights';
+import { useCoachAllTeamsCalendarItems, useCoachTeamInjuryAlerts, useCoachTeamProfileAverages } from '@/lib/coach/teamInsights';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
 
 interface TeamStatusBadge {
@@ -45,6 +45,7 @@ interface DashboardAlert {
   teamName: string;
   message: string;
   toneClass: string;
+  sortKey: number;
 }
 
 const stableStatusBadge: TeamStatusBadge = {
@@ -95,6 +96,7 @@ export function CoachDashboardPage() {
   const teamIds = useMemo(() => teams.map((team) => team.id), [teams]);
   const { averagesByTeamId: profileAveragesByTeamId, isLoading: isLoadingPlayerCounts, error: playerCountError } = useCoachTeamProfileAverages(teamIds);
   const { items: allTeamsCalendarItems, isLoading: isLoadingCalendarItems, error: calendarItemsError } = useCoachAllTeamsCalendarItems(teams);
+  const { alerts: injuryAlerts, isLoading: isLoadingInjuryAlerts, error: injuryAlertsError } = useCoachTeamInjuryAlerts(teams);
 
   const teamCards = useMemo<TeamCardData[]>(() => {
     return teams.map((team) => ({
@@ -158,6 +160,17 @@ export function CoachDashboardPage() {
   const recentAlerts = useMemo<DashboardAlert[]>(() => {
     const alerts: DashboardAlert[] = [];
 
+    injuryAlerts.forEach((injuryAlert) => {
+      const statusLabel = injuryAlert.status === 'active' ? 'Active injury' : 'Recovering injury';
+      alerts.push({
+        id: `${injuryAlert.id}-injury`,
+        teamName: teamNameById.get(injuryAlert.teamId) ?? 'Unknown Team',
+        message: `${statusLabel}: ${injuryAlert.playerName} - ${injuryAlert.description}`,
+        toneClass: injuryAlert.status === 'active' ? 'text-[var(--status-red)]' : 'text-[var(--status-orange)]',
+        sortKey: new Date(injuryAlert.createdAt).getTime(),
+      });
+    });
+
     teamCards.forEach((team) => {
       if (team.averageReadiness != null && team.averageReadiness < 78) {
         alerts.push({
@@ -165,6 +178,7 @@ export function CoachDashboardPage() {
           teamName: team.name,
           message: `Low readiness average (${Math.round(team.averageReadiness)}%).`,
           toneClass: 'text-[var(--status-red)]',
+          sortKey: Number.MAX_SAFE_INTEGER - 1,
         });
       }
 
@@ -174,12 +188,15 @@ export function CoachDashboardPage() {
           teamName: team.name,
           message: `High acute load (${Math.round(team.averageLoad)}).`,
           toneClass: 'text-[var(--status-orange)]',
+          sortKey: Number.MAX_SAFE_INTEGER - 2,
         });
       }
     });
 
-    return alerts.slice(0, 8);
-  }, [teamCards]);
+    return alerts
+      .sort((first, second) => second.sortKey - first.sortKey)
+      .slice(0, 8);
+  }, [injuryAlerts, teamCards, teamNameById]);
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -300,27 +317,6 @@ export function CoachDashboardPage() {
         )}
       </section>
 
-      <section className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-white">All Teams Calendar</h2>
-              <p className="mt-1 text-xs text-gray-400">
-                Coach-wide schedule across all teams with daily and weekly views.
-              </p>
-            </div>
-            <Link
-              href="/coach/calendar"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:text-white"
-            >
-              Open full calendar
-              <ChevronRight size={14} />
-            </Link>
-          </div>
-
-          <TeamCalendar items={allTeamsCalendarItems} className="min-h-[560px] xl:h-[760px]" />
-          {isLoadingCalendarItems ? <p className="text-xs text-gray-400">Loading cross-team calendar...</p> : null}
-      </section>
-
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.92fr)] xl:items-start">
         <section className="glass-card p-4 sm:p-5">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -368,59 +364,82 @@ export function CoachDashboardPage() {
           )}
         </section>
 
-        <section>
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">Quick Actions</h2>
-          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-1">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              return (
-                <Link
-                  key={action.label}
-                  href={action.href}
-                  className="glass-card group flex min-h-[96px] items-center justify-between gap-3 p-4 transition-colors hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(25,33,73,0.72)]"
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="shrink-0 rounded-lg border border-[rgba(0,212,170,0.24)] bg-[rgba(0,212,170,0.1)] p-2 text-[var(--accent-primary)]">
-                      <Icon size={16} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-white">{action.label}</p>
-                      <p className="mt-1 text-xs text-gray-400">{action.description}</p>
-                    </div>
-                  </div>
-                  <ArrowUpRight
-                    size={14}
-                    className="shrink-0 text-gray-500 transition-colors group-hover:text-[var(--accent-secondary)]"
-                  />
-                </Link>
-              );
-            })}
+        <section className="glass-card p-4 sm:p-5">
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold text-white">Recent Alerts</h2>
+            <p className="mt-1 text-xs text-gray-400">Real signals generated from current readiness, load, and injury data.</p>
           </div>
+          {injuryAlertsError ? <p className="mb-2 text-xs text-[var(--status-red)]">Unable to load injury alerts: {injuryAlertsError}</p> : null}
+          {isLoadingInjuryAlerts ? <p className="mb-2 text-xs text-gray-400">Loading injury alerts...</p> : null}
+          {recentAlerts.length === 0 ? (
+            <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3 text-sm text-gray-300">
+              No alerts triggered from current team data.
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {recentAlerts.map((alert) => (
+                <article
+                  key={alert.id}
+                  className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3"
+                >
+                  <p className="text-sm font-semibold text-white">{alert.teamName}</p>
+                  <p className={`mt-1 text-xs ${alert.toneClass}`}>{alert.message}</p>
+                </article>
+              ))}
+            </div>
+          )}
         </section>
       </div>
 
-      <section className="glass-card p-4 sm:p-5">
-        <div className="mb-3">
-          <h2 className="text-sm font-semibold text-white">Recent Alerts</h2>
-          <p className="mt-1 text-xs text-gray-400">Real signals generated from current readiness and load data.</p>
-        </div>
-        {recentAlerts.length === 0 ? (
-          <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3 text-sm text-gray-300">
-            No alerts triggered from current team data.
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {recentAlerts.map((alert) => (
-              <article
-                key={alert.id}
-                className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3"
+      <section>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">Quick Actions</h2>
+        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          {quickActions.map((action) => {
+            const Icon = action.icon;
+            return (
+              <Link
+                key={action.label}
+                href={action.href}
+                className="glass-card group flex min-h-[96px] items-center justify-between gap-3 p-4 transition-colors hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(25,33,73,0.72)]"
               >
-                <p className="text-sm font-semibold text-white">{alert.teamName}</p>
-                <p className={`mt-1 text-xs ${alert.toneClass}`}>{alert.message}</p>
-              </article>
-            ))}
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="shrink-0 rounded-lg border border-[rgba(0,212,170,0.24)] bg-[rgba(0,212,170,0.1)] p-2 text-[var(--accent-primary)]">
+                    <Icon size={16} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-white">{action.label}</p>
+                    <p className="mt-1 text-xs text-gray-400">{action.description}</p>
+                  </div>
+                </div>
+                <ArrowUpRight
+                  size={14}
+                  className="shrink-0 text-gray-500 transition-colors group-hover:text-[var(--accent-secondary)]"
+                />
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-semibold text-white">All Teams Calendar</h2>
+            <p className="mt-1 text-xs text-gray-400">
+              Coach-wide schedule across all teams with daily and weekly views.
+            </p>
           </div>
-        )}
+          <Link
+            href="/coach/calendar"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:text-white"
+          >
+            Open full calendar
+            <ChevronRight size={14} />
+          </Link>
+        </div>
+
+        <TeamCalendar items={allTeamsCalendarItems} className="min-h-[560px] xl:h-[760px]" />
+        {isLoadingCalendarItems ? <p className="text-xs text-gray-400">Loading cross-team calendar...</p> : null}
       </section>
     </div>
   );

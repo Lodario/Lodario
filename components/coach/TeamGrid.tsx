@@ -6,6 +6,9 @@ interface TeamGridProps {
   selectedTeamId: string;
   onSelectTeam: (teamId: string) => void;
   averagesByTeamId: Record<string, TeamAverages>;
+  onUpdateTeam: (input: { teamId: string; name: string; code?: string }) => Promise<{ error: string | null }>;
+  onDeleteTeam: (teamId: string) => Promise<{ error: string | null }>;
+  canDeleteTeam: (team: CoachTeam) => boolean;
 }
 
 export function TeamGrid({
@@ -13,6 +16,9 @@ export function TeamGrid({
   selectedTeamId,
   onSelectTeam,
   averagesByTeamId,
+  onUpdateTeam,
+  onDeleteTeam,
+  canDeleteTeam,
 }: TeamGridProps) {
   return (
     <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -30,6 +36,9 @@ export function TeamGrid({
             averages={averages}
             selected={team.id === selectedTeamId}
             onSelect={onSelectTeam}
+            onUpdateTeam={onUpdateTeam}
+            onDeleteTeam={onDeleteTeam}
+            canDelete={canDeleteTeam(team)}
           />
         );
       })}

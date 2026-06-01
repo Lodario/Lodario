@@ -186,6 +186,22 @@ function parseMetricNumber(value: string): number | null {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function getMetricToneClass(value: number | null, isInverse = false): string {
+  if (value == null || !Number.isFinite(value)) {
+    return 'text-gray-300';
+  }
+
+  const clamped = clamp(value, 0, 100);
+  const effectiveScore = isInverse ? 100 - clamped : clamped;
+
+  if (effectiveScore >= 85) return 'text-[#22c55e]';
+  if (effectiveScore >= 70) return 'text-[#84cc16]';
+  if (effectiveScore >= 60) return 'text-[#facc15]';
+  if (effectiveScore >= 50) return 'text-[#f97316]';
+  if (effectiveScore >= 40) return 'text-[#dc2626]';
+  return 'text-[#991b1b]';
+}
+
 interface BuildTeamOverviewDataParams {
   analyticsData: TeamAnalyticsDataset;
   calendarData: TeamCalendarDataset;
@@ -229,36 +245,54 @@ export function buildTeamOverviewData({
   });
 
   const keyMetrics: OverviewMetric[] = hasAnalyticsData ? [
-    {
-      label: 'Readiness Score',
-      value: latestReadiness ? rounded(latestReadiness.readinessScore) : null,
-      toneClass: 'text-[var(--accent-primary)]',
-    },
-    {
-      label: 'Fatigue',
-      value: latestEnergyFatigueLoad ? toRange100From10(latestEnergyFatigueLoad.fatigue) : null,
-      toneClass: 'text-[var(--status-red)]',
-    },
-    {
-      label: 'Load Score',
-      value: latestMultiFactor ? rounded(latestMultiFactor.loadScore) : null,
-      toneClass: 'text-[var(--accent-secondary)]',
-    },
-    {
-      label: 'Sleep Score',
-      value: latestSleep ? rounded(latestSleep.sleepScore) : null,
-      toneClass: 'text-[var(--status-yellow)]',
-    },
-    {
-      label: 'Stress',
-      value: latestStressSleep ? rounded(latestStressSleep.stress) : null,
-      toneClass: 'text-[var(--status-orange)]',
-    },
-    {
-      label: 'Energy',
-      value: latestEnergyFatigueLoad ? toRange100From10(latestEnergyFatigueLoad.energy) : null,
-      toneClass: 'text-white',
-    },
+    (() => {
+      const value = latestReadiness ? rounded(latestReadiness.readinessScore) : null;
+      return {
+        label: 'Readiness Score',
+        value,
+        toneClass: getMetricToneClass(value),
+      };
+    })(),
+    (() => {
+      const value = latestEnergyFatigueLoad ? toRange100From10(latestEnergyFatigueLoad.fatigue) : null;
+      return {
+        label: 'Fatigue',
+        value,
+        toneClass: getMetricToneClass(value, true),
+      };
+    })(),
+    (() => {
+      const value = latestMultiFactor ? rounded(latestMultiFactor.loadScore) : null;
+      return {
+        label: 'Load Score',
+        value,
+        toneClass: getMetricToneClass(value, true),
+      };
+    })(),
+    (() => {
+      const value = latestSleep ? rounded(latestSleep.sleepScore) : null;
+      return {
+        label: 'Sleep Score',
+        value,
+        toneClass: getMetricToneClass(value),
+      };
+    })(),
+    (() => {
+      const value = latestStressSleep ? rounded(latestStressSleep.stress) : null;
+      return {
+        label: 'Stress',
+        value,
+        toneClass: getMetricToneClass(value, true),
+      };
+    })(),
+    (() => {
+      const value = latestEnergyFatigueLoad ? toRange100From10(latestEnergyFatigueLoad.energy) : null;
+      return {
+        label: 'Energy',
+        value,
+        toneClass: getMetricToneClass(value),
+      };
+    })(),
   ] : [];
 
   const playersNeedingAttention = players

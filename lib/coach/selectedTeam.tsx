@@ -17,12 +17,15 @@ interface CoachTeamContextValue {
   setSelectedTeamId: (teamId: string) => void;
   reloadTeams: () => Promise<void>;
   createTeam: (input: { name: string; code?: string }) => Promise<{ error: string | null }>;
+  updateTeam: (input: { teamId: string; name: string; code?: string }) => Promise<{ error: string | null }>;
+  deleteTeam: (teamId: string) => Promise<{ error: string | null }>;
 }
 
 const emptySelectedTeam: CoachTeam = {
   id: '',
   name: 'No Team Selected',
   code: '--',
+  createdBy: '',
 };
 
 const CoachTeamContext = createContext<CoachTeamContextValue>({
@@ -35,6 +38,8 @@ const CoachTeamContext = createContext<CoachTeamContextValue>({
   setSelectedTeamId: () => {},
   reloadTeams: async () => {},
   createTeam: async () => ({ error: null }),
+  updateTeam: async () => ({ error: null }),
+  deleteTeam: async () => ({ error: null }),
 });
 
 function generateTeamCode(name: string): string {
@@ -64,6 +69,20 @@ function getCreateTeamErrorMessage(error: { code?: string | null; message?: stri
   }
 
   return error.message ?? 'Unable to create team right now.';
+}
+
+function getTeamMutationErrorMessage(error: { code?: string | null; message?: string | null; details?: string | null }): string {
+  const errorText = `${error.message ?? ''} ${error.details ?? ''}`.toLowerCase();
+  const isDuplicateInviteCode =
+    error.code === '23505' ||
+    errorText.includes('teams_invite_code_key') ||
+    errorText.includes('duplicate key value');
+
+  if (isDuplicateInviteCode) {
+    return 'This code is already taken.';
+  }
+
+  return error.message ?? 'Unable to update team right now.';
 }
 
 export function CoachTeamProvider({ children }: { children: React.ReactNode }) {
@@ -244,6 +263,57 @@ export function CoachTeamProvider({ children }: { children: React.ReactNode }) {
     [loadTeams, user]
   );
 
+  const updateTeam = useCallback(
+    async ({ teamId, name, code }: { teamId: string; name: string; code?: string }) => {
+      if (!user) {
+        return { error: 'You must be signed in to update a team.' };
+      }
+
+      const trimmedName = name.trim();
+      if (!trimmedName) {
+        return { error: 'Team name is required.' };
+      }
+
+      const trimmedCode = code?.trim().toUpperCase();
+      const { error: updateError } = await supabase
+        .from('teams')
+        .update({
+          name: trimmedName,
+          ...(trimmedCode ? { invite_code: trimmedCode } : {}),
+        })
+        .eq('id', teamId);
+
+      if (updateError) {
+        return { error: getTeamMutationErrorMessage(updateError) };
+      }
+
+      await loadTeams(teamId);
+      return { error: null };
+    },
+    [loadTeams, user]
+  );
+
+  const deleteTeam = useCallback(
+    async (teamId: string) => {
+      if (!user) {
+        return { error: 'You must be signed in to delete a team.' };
+      }
+
+      const { error: deleteError } = await supabase
+        .from('teams')
+        .delete()
+        .eq('id', teamId);
+
+      if (deleteError) {
+        return { error: deleteError.message || 'Unable to delete this team right now.' };
+      }
+
+      await loadTeams();
+      return { error: null };
+    },
+    [loadTeams, user]
+  );
+
   const selectedTeam = teams.find((team) => team.id === selectedTeamId) ?? teams[0] ?? emptySelectedTeam;
 
   const value = useMemo(
@@ -257,8 +327,10 @@ export function CoachTeamProvider({ children }: { children: React.ReactNode }) {
       setSelectedTeamId,
       reloadTeams: loadTeams,
       createTeam,
+      updateTeam,
+      deleteTeam,
     }),
-    [teams, selectedTeamId, selectedTeam, isLoadingTeams, usingMockTeams, teamsError, loadTeams, createTeam]
+    [teams, selectedTeamId, selectedTeam, isLoadingTeams, usingMockTeams, teamsError, loadTeams, createTeam, updateTeam, deleteTeam]
   );
 
   return (

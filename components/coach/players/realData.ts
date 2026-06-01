@@ -1,5 +1,9 @@
-import { format } from 'date-fns';
+import { format, getDay, isBefore, parseISO } from 'date-fns';
 import { supabase } from '@/lib/supabase';
+import { calculateReadiness } from '@/lib/readiness';
+import { generateRecommendation } from '@/lib/recommendations';
+import { analyzeTrainingLoad } from '@/lib/training-load';
+import type { CalendarEvent, InjuryRecord, TrainingLog, UserProfile, WellnessLog } from '@/lib/types';
 import type {
   CoachPlayer,
   PlayerInjuryStatus,
@@ -31,6 +35,8 @@ interface WellnessRow {
   wake_time: string;
   notes: string | null;
   pain_notes: string | null;
+  pain_active: boolean;
+  pain_level: number | null;
 }
 
 interface TrainingRow {
@@ -39,6 +45,11 @@ interface TrainingRow {
   date: string;
   duration: number;
   intensity: number;
+  session_type: string;
+  sprinting: string;
+  performance: number;
+  pain_active: boolean;
+  pain_level: number | null;
   notes: string | null;
   pain_notes: string | null;
 }
@@ -50,6 +61,11 @@ interface CalendarRow {
   event_type_id: string;
   start_time: string;
   end_time: string;
+  recurrence: string | null;
+  recurrence_config: unknown;
+  excluded_dates: unknown;
+  overrides: unknown;
+  anticipated_intensity: 'Low' | 'Moderate' | 'High' | null;
 }
 
 interface InjuryRow {
@@ -57,7 +73,7 @@ interface InjuryRow {
   user_id: string;
   description: string;
   expected_return: string | null;
-  status: 'active' | 'recovering' | 'resolved';
+  status: string | null;
   created_at: string;
 }
 
@@ -96,6 +112,52 @@ function normalizeText(value: string | null | undefined): string | null {
   if (typeof value !== 'string') return null;
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+}
+
+function getLocalDateKey(now = new Date()): string {
+  return format(now, 'yyyy-MM-dd');
+}
+
+function normalizeInjuryState(status: string | null | undefined): 'active' | 'recovering' | 'resolved' | 'unknown' {
+  const normalized = (status ?? '').trim().toLowerCase();
+  if (normalized === 'active' || normalized === 'injured') return 'active';
+  if (normalized === 'recovering') return 'recovering';
+  if (normalized === 'resolved' || normalized === 'healthy') return 'resolved';
+  return 'unknown';
+}
+
+function asObject(value: unknown): Record<string, unknown> | null {
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {}
+  }
+
+  return null;
+}
+
+function asStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string');
+  }
+
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      if (Array.isArray(parsed)) {
+        return parsed.filter((item): item is string => typeof item === 'string');
+      }
+    } catch {}
+  }
+
+  return [];
 }
 
 function mapEventTypeIdToPlayerSessionType(rawType: string): PlayerSessionType {
@@ -173,15 +235,17 @@ function resolveInjuryStatus(rows: InjuryRow[] | undefined, injuryQueryError: st
     };
   }
 
-  const injuries = rows ?? [];
-  const activeOrRecovering = injuries
-    .filter((row) => row.status === 'active' || row.status === 'recovering')
-    .sort((first, second) => second.created_at.localeCompare(first.created_at));
+  const injuries = [...(rows ?? [])].sort((first, second) => second.created_at.localeCompare(first.created_at));
+  const activeOrRecovering = injuries.filter((row) => {
+    const state = normalizeInjuryState(row.status);
+    return state === 'active' || state === 'recovering' || state === 'unknown';
+  });
 
   if (activeOrRecovering.length > 0) {
     const latest = activeOrRecovering[0];
+    const normalizedState = normalizeInjuryState(latest.status);
     return {
-      state: latest.status,
+      state: normalizedState === 'recovering' ? 'recovering' : 'active',
       description: latest.description,
       expectedReturn: latest.expected_return ?? undefined,
     };
@@ -190,6 +254,185 @@ function resolveInjuryStatus(rows: InjuryRow[] | undefined, injuryQueryError: st
   return {
     state: 'healthy',
   };
+}
+
+function toSessionType(value: string): TrainingLog['sessionType'] {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'team') return 'Team';
+  if (normalized === 'match') return 'Match';
+  if (normalized === 'gym') return 'Gym';
+  if (normalized === 'solo') return 'Solo';
+  if (normalized === 'partner') return 'Partner';
+  return 'Other';
+}
+
+function toSprintingOption(value: string): TrainingLog['sprinting'] {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'yes-90-95') return 'yes-90-95';
+  if (normalized === 'yes-100') return 'yes-100';
+  return 'no';
+}
+
+function mapWellnessRowsToWellnessLogs(rows: WellnessRow[]): WellnessLog[] {
+  return rows.map((row) => ({
+    date: row.date,
+    sleepTime: row.sleep_time,
+    wakeTime: row.wake_time,
+    sleepDuration: toNumber(row.sleep_duration),
+    sleepQuality: row.sleep_quality,
+    energy: row.energy,
+    fatigue: row.fatigue,
+    stress: row.stress,
+    painActive: Boolean(row.pain_active),
+    painLevel: row.pain_level == null ? undefined : toNumber(row.pain_level),
+    painNotes: row.pain_notes ?? undefined,
+    notes: row.notes ?? undefined,
+  }));
+}
+
+function mapTrainingRowsToTrainingLogs(rows: TrainingRow[]): TrainingLog[] {
+  return rows.map((row) => ({
+    id: row.id,
+    date: row.date,
+    sessionType: toSessionType(row.session_type),
+    duration: toNumber(row.duration),
+    intensity: toNumber(row.intensity),
+    sprinting: toSprintingOption(row.sprinting),
+    performance: toNumber(row.performance, 5),
+    painActive: Boolean(row.pain_active),
+    painLevel: row.pain_level == null ? undefined : toNumber(row.pain_level),
+    painNotes: row.pain_notes ?? undefined,
+    notes: row.notes ?? undefined,
+  }));
+}
+
+function mapInjuryRowsToInjuryRecords(rows: InjuryRow[]): InjuryRecord[] {
+  return rows
+    .filter((row) => {
+      const state = normalizeInjuryState(row.status);
+      return state === 'active' || state === 'recovering' || state === 'resolved';
+    })
+    .map((row) => {
+      const state = normalizeInjuryState(row.status);
+      return {
+        id: row.id,
+        description: row.description,
+        expectedReturn: row.expected_return ?? undefined,
+        status: state === 'recovering' ? 'recovering' : state === 'resolved' ? 'resolved' : 'active',
+        createdAt: row.created_at,
+      };
+    });
+}
+
+function buildTodaysCalendarEventsForRecommendation(rows: CalendarRow[]): CalendarEvent[] {
+  const today = new Date();
+  const todayKey = getLocalDateKey(today);
+  const dayOfWeek = getDay(today) === 0 ? 7 : getDay(today);
+
+  const events: CalendarEvent[] = [];
+
+  rows.forEach((row) => {
+    const start = row.start_time;
+    const end = row.end_time;
+    const recurrence = (row.recurrence ?? 'none').trim().toLowerCase();
+    const recurrenceConfig = asObject(row.recurrence_config) ?? {};
+    const excludedDates = asStringArray(row.excluded_dates);
+    const overrides = asObject(row.overrides) ?? {};
+    const eventStartDate = start.split('T')[0];
+    const parsedStart = parseISO(eventStartDate);
+    const hasValidStart = !Number.isNaN(parsedStart.getTime());
+
+    if (excludedDates.includes(todayKey)) return;
+
+    let matches = false;
+    if (recurrence === 'none') {
+      matches = eventStartDate === todayKey;
+    } else if (recurrence === 'daily') {
+      matches = hasValidStart && !isBefore(today, parsedStart);
+    } else if (recurrence === 'weekly') {
+      const days = Array.isArray((recurrenceConfig as { days?: unknown }).days)
+        ? ((recurrenceConfig as { days?: unknown }).days as unknown[]).filter((value): value is number => typeof value === 'number')
+        : [];
+      matches = hasValidStart && !isBefore(today, parsedStart) && days.includes(dayOfWeek);
+    }
+
+    if (!matches) return;
+
+    const override = asObject(overrides[todayKey]);
+    const anticipatedIntensity =
+      (override?.anticipatedIntensity as CalendarEvent['anticipatedIntensity'] | undefined) ??
+      row.anticipated_intensity ??
+      undefined;
+
+    events.push({
+      id: row.id,
+      eventTypeId: row.event_type_id,
+      title: row.title ?? undefined,
+      start,
+      end,
+      recurrence: recurrence === 'daily' || recurrence === 'weekly' || recurrence === 'monthly' ? recurrence : 'none',
+      recurrenceConfig: {
+        days: Array.isArray((recurrenceConfig as { days?: unknown }).days)
+          ? ((recurrenceConfig as { days?: unknown }).days as unknown[]).filter((value): value is number => typeof value === 'number')
+          : undefined,
+        monthDays: Array.isArray((recurrenceConfig as { monthDays?: unknown }).monthDays)
+          ? ((recurrenceConfig as { monthDays?: unknown }).monthDays as unknown[]).filter((value): value is number => typeof value === 'number')
+          : undefined,
+      },
+      excludedDates,
+      overrides: undefined,
+      anticipatedIntensity,
+    });
+  });
+
+  return events;
+}
+
+function resolveTodaysGuidance(params: {
+  player: CoachPlayer;
+  wellnessRows: WellnessRow[];
+  trainingRows: TrainingRow[];
+  calendarRows: CalendarRow[];
+  injuryRows: InjuryRow[];
+}): string | null {
+  const { player, wellnessRows, trainingRows, calendarRows, injuryRows } = params;
+  const todayKey = getLocalDateKey();
+  const wellnessLogs = mapWellnessRowsToWellnessLogs(wellnessRows);
+  const trainingLogs = mapTrainingRowsToTrainingLogs(trainingRows);
+  const todaysLog = wellnessLogs.find((log) => log.date === todayKey);
+
+  if (!todaysLog) {
+    return null;
+  }
+
+  const load = analyzeTrainingLoad(trainingLogs, wellnessLogs);
+  const readiness = calculateReadiness(
+    todaysLog,
+    wellnessLogs,
+    load.loadScore,
+    load.hasAcuteData,
+    load.hasChronicData
+  );
+
+  const activeInjuries = mapInjuryRowsToInjuryRecords(injuryRows).filter((injury) => injury.status === 'active');
+  const playerProfile: UserProfile = {
+    age: player.age > 0 ? player.age : 18,
+    positions: [],
+    priorities: [],
+  };
+
+  const recommendation = generateRecommendation(
+    readiness,
+    load,
+    activeInjuries,
+    playerProfile,
+    buildTodaysCalendarEventsForRecommendation(calendarRows)
+  );
+
+  if (recommendation.intensity === 'Intense') return 'High-intensity session';
+  if (recommendation.intensity === 'Moderate') return 'Moderate session';
+  if (recommendation.intensity === 'Light') return 'Light session';
+  return 'Recovery session';
 }
 
 function buildDatasetForPlayer(params: {
@@ -318,6 +561,13 @@ function buildDatasetForPlayer(params: {
     wellnessNotes: buildWellnessNotes(wellnessRows),
     trainingNotes: buildTrainingNotes(trainingRows),
     injuryStatus: resolveInjuryStatus(injuryRows, injuryQueryError),
+    todaysGuidance: resolveTodaysGuidance({
+      player,
+      wellnessRows,
+      trainingRows,
+      calendarRows,
+      injuryRows: injuryRows ?? [],
+    }),
   };
 }
 
@@ -341,17 +591,17 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
   const [wellnessResult, trainingResult, calendarResult, injuriesResult] = await Promise.all([
     supabase
       .from('wellness_logs')
-      .select('user_id, date, energy, fatigue, stress, sleep_quality, sleep_duration, sleep_time, wake_time, notes, pain_notes')
+      .select('user_id, date, energy, fatigue, stress, sleep_quality, sleep_duration, sleep_time, wake_time, notes, pain_notes, pain_active, pain_level')
       .in('user_id', playerIds)
       .order('date', { ascending: true }),
     supabase
       .from('training_logs')
-      .select('id, user_id, date, duration, intensity, notes, pain_notes')
+      .select('id, user_id, date, duration, intensity, session_type, sprinting, performance, pain_active, pain_level, notes, pain_notes')
       .in('user_id', playerIds)
       .order('date', { ascending: true }),
     supabase
       .from('calendar_events')
-      .select('id, user_id, title, event_type_id, start_time, end_time')
+      .select('id, user_id, title, event_type_id, start_time, end_time, recurrence, recurrence_config, excluded_dates, overrides, anticipated_intensity')
       .in('user_id', playerIds)
       .order('start_time', { ascending: true }),
     supabase

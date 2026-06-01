@@ -87,4 +87,5 @@ export interface TeamPlayerDataset {
   wellnessNotes: PlayerNoteItem[];
   trainingNotes: PlayerNoteItem[];
   injuryStatus: PlayerInjuryStatus;
+  todaysGuidance: string | null;
 }
