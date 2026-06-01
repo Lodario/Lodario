@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { EventCreatorPanel } from '@/components/coach/calendar/EventCreatorPanel';
 import { TeamAveragesPanel } from '@/components/coach/calendar/TeamAveragesPanel';
 import { TeamCalendar } from '@/components/coach/calendar/TeamCalendar';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
@@ -62,7 +61,7 @@ export function CoachCalendarPage() {
         {!isLoading && !error && !hasCalendarData ? <p className="mt-2 text-xs text-gray-400">No team calendar data yet.</p> : null}
       </header>
 
-      <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_340px] xl:items-stretch">
+      <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)] xl:items-stretch">
         <div ref={teamAveragesContainerRef} className="xl:self-start">
           <TeamAveragesPanel metrics={teamData.averages} />
         </div>
@@ -71,7 +70,6 @@ export function CoachCalendarPage() {
           className="xl:self-start"
           style={desktopScheduleHeight && teamData.averages.length > 0 ? { height: `${desktopScheduleHeight}px` } : undefined}
         />
-        <EventCreatorPanel teamName={selectedTeam.name} className="xl:self-start" />
       </div>
     </div>
   );

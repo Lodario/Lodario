@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { BadgeCheck, LogOut, Mail, ShieldCheck, UserCircle2, Users } from 'lucide-react';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
+import { useCoachTeamProfileAverages } from '@/lib/coach/teamInsights';
 import { useAuth } from '@/lib/AuthContext';
 
 function resolveDisplayName(userEmail: string | undefined, metadataName: unknown): string {
@@ -28,12 +29,20 @@ function formatMemberSince(createdAt?: string): string {
 
 export function CoachProfilePage() {
   const { teams } = useCoachTeam();
+  const teamIds = useMemo(() => teams.map((team) => team.id), [teams]);
+  const { averagesByTeamId } = useCoachTeamProfileAverages(teamIds);
   const { user, userRole, signOut, updateDisplayName, updateEmail } = useAuth();
 
   const accountEmail = user?.email ?? '';
   const accountName = resolveDisplayName(accountEmail, user?.user_metadata?.full_name);
   const connectedTeams = teams.length;
-  const totalPlayersCoached = 0;
+  const totalPlayersCoached = useMemo(
+    () =>
+      teamIds.reduce((total, teamId) => {
+        return total + (averagesByTeamId[teamId]?.players ?? 0);
+      }, 0),
+    [averagesByTeamId, teamIds]
+  );
   const initials = accountName
     .split(' ')
     .map((part) => part[0])

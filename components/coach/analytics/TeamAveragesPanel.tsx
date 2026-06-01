@@ -16,17 +16,21 @@ export function TeamAveragesPanel({ metrics, graphNumber = 6, className }: TeamA
         </span>
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 xl:grid-flow-col xl:grid-rows-3 xl:auto-cols-fr">
-        {metrics.map((metric) => (
-          <article
-            key={metric.label}
-            className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2.5 py-2"
-          >
-            <p className="text-[10px] uppercase tracking-wide text-gray-400">{metric.label}</p>
-            <p className="mt-0.5 text-xs font-semibold text-white">{metric.value}</p>
-          </article>
-        ))}
-      </div>
+      {metrics.length === 0 ? (
+        <p className="text-sm text-gray-400">No team averages available yet.</p>
+      ) : (
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-flow-col xl:grid-rows-3 xl:auto-cols-fr">
+          {metrics.map((metric) => (
+            <article
+              key={metric.label}
+              className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2.5 py-2"
+            >
+              <p className="text-[10px] uppercase tracking-wide text-gray-400">{metric.label}</p>
+              <p className="mt-0.5 text-xs font-semibold text-white">{metric.value}</p>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { buildTeamAnalyticsDataFromPlayers } from '@/components/coach/analytics/mockData';
+import { buildTeamAnalyticsDataFromPlayers } from '@/components/coach/analytics/buildFromPlayers';
 import type { TeamAnalyticsDataset } from '@/components/coach/analytics/types';
 import type { TeamCalendarDataset, TeamCalendarItem, TeamCalendarItemStatus, TeamEventType } from '@/components/coach/calendar/types';
 import { loadRealTeamPlayerDatasets } from '@/components/coach/players/realData';
 import type { TeamPlayerDataset } from '@/components/coach/players/types';
-import { buildTeamOverviewData, type TeamOverviewData } from '@/components/coach/overview/mockData';
+import { buildTeamOverviewData, type TeamOverviewData } from '@/components/coach/overview/buildFromInsights';
 import { supabase } from '@/lib/supabase';
 
 interface TeamMembershipRow {
@@ -208,9 +208,15 @@ function resolveCalendarStatus(date: string, endTime: string): TeamCalendarItemS
   return parsedEnd.getTime() < Date.now() ? 'completed' : 'upcoming';
 }
 
-function mapPlayerEventTypeToTeamEventType(type: 'gym' | 'solo'): TeamEventType {
-  if (type === 'gym') return 'gym';
-  return 'solo';
+function mapPlayerEventTypeToTeamEventType(type: string): TeamEventType {
+  const normalized = type.trim().toLowerCase();
+  if (normalized === 'training') return 'training';
+  if (normalized === 'game') return 'game';
+  if (normalized === 'gym') return 'gym';
+  if (normalized === 'recovery') return 'recovery';
+  if (normalized === 'solo') return 'solo';
+  if (normalized === 'meeting') return 'meeting';
+  return 'other';
 }
 
 function mapEventTypeIdToTeamEventType(rawType: string): TeamEventType {
@@ -394,7 +400,7 @@ export async function loadTeamProfileAveragesByTeamIds(teamIds: string[]): Promi
 
   if (membershipError) {
     console.error('[teamInsights/loadTeamProfileAveragesByTeamIds] Error loading active player memberships:', membershipError, { teamIds: normalizedTeamIds });
-    return { averagesByTeamId: emptyAveragesByTeamId, error: membershipError.message || 'Unable to load team memberships.' };
+    return { averagesByTeamId: emptyAveragesByTeamId, error: membershipError.message || 'Unable to load team player memberships.' };
   }
 
   const membershipPairs = (membershipRows ?? [])
@@ -417,7 +423,7 @@ export async function loadTeamProfileAveragesByTeamIds(teamIds: string[]): Promi
 
   if (profilesError) {
     console.error('[teamInsights/loadTeamProfileAveragesByTeamIds] Error loading player profiles:', profilesError, { teamIds: normalizedTeamIds, userCount: userIds.length });
-    return { averagesByTeamId: emptyAveragesByTeamId, error: profilesError.message || 'Unable to load player profiles.' };
+    return { averagesByTeamId: emptyAveragesByTeamId, error: profilesError.message || 'Unable to load team player profiles.' };
   }
 
   const [wellnessResult, trainingResult] = await Promise.all([
@@ -589,7 +595,7 @@ export async function loadCoachCalendarItemsForTeams(teams: TeamReference[]): Pr
 
   if (membershipError) {
     console.error('[teamInsights/loadCoachCalendarItemsForTeams] Error loading team memberships:', membershipError, { teamIds });
-    return { items: [], error: membershipError.message || 'Unable to load team memberships.' };
+    return { items: [], error: membershipError.message || 'Unable to load team memberships for calendar items.' };
   }
 
   const memberships = (membershipRows ?? []) as TeamMembershipRow[];

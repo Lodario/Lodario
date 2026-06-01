@@ -1,6 +1,3 @@
-import { getTeamAnalyticsData } from '@/components/coach/analytics/mockData';
-import { getTeamCalendarData } from '@/components/coach/calendar/mockData';
-import { getTeamPlayers } from '@/components/coach/players/mockData';
 import type { TeamAnalyticsDataset } from '@/components/coach/analytics/types';
 import type { TeamCalendarDataset } from '@/components/coach/calendar/types';
 import type { TeamPlayerDataset } from '@/components/coach/players/types';
@@ -353,16 +350,4 @@ export function buildTeamOverviewData({
     upcomingActivities,
     trends,
   };
-}
-
-export function getTeamOverviewData(teamId: string): TeamOverviewData {
-  const analyticsData = getTeamAnalyticsData(teamId);
-  const calendarData = getTeamCalendarData(teamId);
-  const players = getTeamPlayers(teamId);
-
-  return buildTeamOverviewData({
-    analyticsData,
-    calendarData,
-    players,
-  });
 }
