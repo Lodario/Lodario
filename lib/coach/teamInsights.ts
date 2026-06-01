@@ -53,6 +53,42 @@ interface TeamReference {
   name: string;
 }
 
+interface InjuryAlertMembershipRow {
+  team_id: string | null;
+  user_id: string | null;
+}
+
+interface InjuryAlertRow {
+  id: string;
+  user_id: string;
+  description: string;
+  status: 'active' | 'recovering' | 'resolved';
+  expected_return: string | null;
+  created_at: string;
+}
+
+interface ProfileIdentityRow {
+  id: string;
+  full_name: string | null;
+}
+
+interface TeamPlayerNameRpcRow {
+  user_id: string;
+  display_name: string | null;
+  email: string | null;
+}
+
+export interface CoachTeamInjuryAlert {
+  id: string;
+  teamId: string;
+  playerId: string;
+  playerName: string;
+  description: string;
+  status: 'active' | 'recovering';
+  expectedReturn: string | null;
+  createdAt: string;
+}
+
 export interface CoachTeamProfileAverages {
   players: number;
   averageAge: number | null;
@@ -219,6 +255,13 @@ function mapPlayerEventTypeToTeamEventType(type: string): TeamEventType {
   return 'other';
 }
 
+function getLocalDateKey(now = new Date()): string {
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function mapEventTypeIdToTeamEventType(rawType: string): TeamEventType {
   const normalized = rawType.trim().toLowerCase();
   if (normalized.includes('match') || normalized.includes('game')) return 'game';
@@ -230,52 +273,37 @@ function mapEventTypeIdToTeamEventType(rawType: string): TeamEventType {
   return 'other';
 }
 
-function getLatestWellnessSnapshot(dataset: TeamPlayerDataset): {
+function getTodayWellnessSnapshot(dataset: TeamPlayerDataset, todayDateKey: string): {
   readinessScore: number;
   fatigue: number;
   sleepScore: number;
   stress: number;
 } | null {
-  const { readinessTrend, energyFatigueLoad, sleepQualityAndTiming, stressVsSleepScore } = dataset.analytics;
-  const maxLength = Math.max(
-    readinessTrend.length,
-    energyFatigueLoad.length,
-    sleepQualityAndTiming.length,
-    stressVsSleepScore.length
-  );
+  const readiness = dataset.analytics.readinessTrend.find((point) => point.date === todayDateKey);
+  const energyFatigue = dataset.analytics.energyFatigueLoad.find((point) => point.date === todayDateKey);
+  const sleep = dataset.analytics.sleepQualityAndTiming.find((point) => point.date === todayDateKey);
+  const stress = dataset.analytics.stressVsSleepScore.find((point) => point.date === todayDateKey);
 
-  for (let index = maxLength - 1; index >= 0; index -= 1) {
-    const readiness = readinessTrend[index];
-    const energyFatigue = energyFatigueLoad[index];
-    const sleep = sleepQualityAndTiming[index];
-    const stress = stressVsSleepScore[index];
+  const hasWellnessSignal =
+    Boolean(sleep && (sleep.sleepHours > 0 || sleep.sleepQualityScore > 0 || sleep.sleepScore > 0)) ||
+    Boolean(energyFatigue && (energyFatigue.energy > 0 || energyFatigue.fatigue > 0)) ||
+    Boolean(stress && stress.stress > 0);
 
-    const hasWellnessSignal =
-      Boolean(sleep && (sleep.sleepHours > 0 || sleep.sleepQualityScore > 0 || sleep.sleepScore > 0)) ||
-      Boolean(energyFatigue && (energyFatigue.energy > 0 || energyFatigue.fatigue > 0)) ||
-      Boolean(stress && stress.stress > 0);
-
-    if (!hasWellnessSignal) continue;
-
-    return {
-      readinessScore: readiness?.readinessScore ?? 0,
-      fatigue: energyFatigue?.fatigue ?? 0,
-      sleepScore: sleep?.sleepScore ?? 0,
-      stress: stress?.stress ?? 0,
-    };
+  if (!hasWellnessSignal) {
+    return null;
   }
 
-  return null;
+  return {
+    readinessScore: readiness?.readinessScore ?? 0,
+    fatigue: energyFatigue?.fatigue ?? 0,
+    sleepScore: sleep?.sleepScore ?? 0,
+    stress: stress?.stress ?? 0,
+  };
 }
 
-function getLatestTrainingLoad(dataset: TeamPlayerDataset): number | null {
-  for (let index = dataset.analytics.energyFatigueLoad.length - 1; index >= 0; index -= 1) {
-    const load = dataset.analytics.energyFatigueLoad[index]?.acuteTrainingLoad ?? 0;
-    if (load > 0) {
-      return load;
-    }
-  }
-  return null;
+function getTodayTrainingLoad(dataset: TeamPlayerDataset, todayDateKey: string): number | null {
+  const todayLoad = dataset.analytics.energyFatigueLoad.find((point) => point.date === todayDateKey)?.acuteTrainingLoad ?? 0;
+  return todayLoad > 0 ? todayLoad : null;
 }
 
 function formatMetricValue(value: number | null, suffix = ''): string {
@@ -288,15 +316,16 @@ function buildCalendarAverages(players: TeamPlayerDataset[]): TeamCalendarDatase
     return [];
   }
 
+  const todayDateKey = getLocalDateKey();
   const wellnessSnapshots = players
-    .map((dataset) => getLatestWellnessSnapshot(dataset))
+    .map((dataset) => getTodayWellnessSnapshot(dataset, todayDateKey))
     .filter((snapshot): snapshot is NonNullable<typeof snapshot> => Boolean(snapshot));
   const readiness = wellnessSnapshots.map((snapshot) => snapshot.readinessScore);
   const fatigue = wellnessSnapshots.map((snapshot) => snapshot.fatigue);
   const sleepScore = wellnessSnapshots.map((snapshot) => snapshot.sleepScore);
   const stress = wellnessSnapshots.map((snapshot) => snapshot.stress);
   const load = players
-    .map((dataset) => getLatestTrainingLoad(dataset))
+    .map((dataset) => getTodayTrainingLoad(dataset, todayDateKey))
     .filter((value): value is number => value != null && Number.isFinite(value));
 
   return [
@@ -426,17 +455,19 @@ export async function loadTeamProfileAveragesByTeamIds(teamIds: string[]): Promi
     return { averagesByTeamId: emptyAveragesByTeamId, error: profilesError.message || 'Unable to load team player profiles.' };
   }
 
+  const todayDateKey = getLocalDateKey();
+
   const [wellnessResult, trainingResult] = await Promise.all([
     supabase
       .from('wellness_logs')
       .select('user_id, date, sleep_duration, sleep_quality, energy, fatigue, stress')
       .in('user_id', userIds)
-      .order('date', { ascending: false }),
+      .eq('date', todayDateKey),
     supabase
       .from('training_logs')
       .select('user_id, date, duration, intensity')
       .in('user_id', userIds)
-      .order('date', { ascending: false }),
+      .eq('date', todayDateKey),
   ]);
 
   let partialError: string | null = null;
@@ -460,34 +491,24 @@ export async function loadTeamProfileAveragesByTeamIds(teamIds: string[]): Promi
     ((profileRows ?? []) as PlayerProfileRow[]).map((row) => [row.id, row])
   );
 
-  const latestWellnessByUserId = new Map<string, WellnessSummaryRow>();
+  const todayWellnessByUserId = new Map<string, WellnessSummaryRow>();
   if (!wellnessResult.error) {
     for (const row of (wellnessResult.data ?? []) as WellnessSummaryRow[]) {
-      if (!latestWellnessByUserId.has(row.user_id)) {
-        latestWellnessByUserId.set(row.user_id, row);
+      if (!todayWellnessByUserId.has(row.user_id)) {
+        todayWellnessByUserId.set(row.user_id, row);
       }
     }
   }
 
-  const latestTrainingLoadByUserId = new Map<string, number>();
+  const todayTrainingLoadByUserId = new Map<string, number>();
   if (!trainingResult.error) {
-    const latestTrainingDateByUserId = new Map<string, string>();
     for (const row of (trainingResult.data ?? []) as TrainingSummaryRow[]) {
-      const latestDate = latestTrainingDateByUserId.get(row.user_id);
-      if (!latestDate) {
-        latestTrainingDateByUserId.set(row.user_id, row.date);
-      }
-
-      if (latestTrainingDateByUserId.get(row.user_id) !== row.date) {
-        continue;
-      }
-
       const duration = toFiniteNumber(row.duration) ?? 0;
       const intensity = toFiniteNumber(row.intensity) ?? 0;
       const computedLoad = duration > 0 && intensity > 0 ? duration * intensity : 0;
-      latestTrainingLoadByUserId.set(
+      todayTrainingLoadByUserId.set(
         row.user_id,
-        (latestTrainingLoadByUserId.get(row.user_id) ?? 0) + computedLoad
+        (todayTrainingLoadByUserId.get(row.user_id) ?? 0) + computedLoad
       );
     }
   }
@@ -519,14 +540,14 @@ export async function loadTeamProfileAveragesByTeamIds(teamIds: string[]): Promi
 
     teamAccumulator.players += 1;
 
-    const latestWellness = latestWellnessByUserId.get(pair.userId);
-    if (latestWellness) {
-      teamAccumulator.readinessScores.push(computeReadinessFromWellnessRow(latestWellness));
+    const todayWellness = todayWellnessByUserId.get(pair.userId);
+    if (todayWellness) {
+      teamAccumulator.readinessScores.push(computeReadinessFromWellnessRow(todayWellness));
     }
 
-    const latestLoad = latestTrainingLoadByUserId.get(pair.userId);
-    if (typeof latestLoad === 'number' && Number.isFinite(latestLoad) && latestLoad > 0) {
-      teamAccumulator.loadScores.push(latestLoad);
+    const todayLoad = todayTrainingLoadByUserId.get(pair.userId);
+    if (typeof todayLoad === 'number' && Number.isFinite(todayLoad) && todayLoad > 0) {
+      teamAccumulator.loadScores.push(todayLoad);
     }
 
     const profile = profileByUserId.get(pair.userId);
@@ -651,6 +672,91 @@ export async function loadCoachCalendarItemsForTeams(teams: TeamReference[]): Pr
   });
 
   return { items, error: null };
+}
+
+export async function loadCoachTeamInjuryAlertsForTeams(teams: TeamReference[]): Promise<{
+  alerts: CoachTeamInjuryAlert[];
+  error: string | null;
+}> {
+  const normalizedTeams = teams.filter((team) => team.id.length > 0);
+  if (normalizedTeams.length === 0) {
+    return { alerts: [], error: null };
+  }
+
+  const teamIdsByUserId = new Map<string, string[]>();
+  const playerNameByUserId = new Map<string, string>();
+  let rpcErrorMessage: string | null = null;
+
+  const teamPlayersResults = await Promise.all(
+    normalizedTeams.map(async (team) => {
+      const result = await supabase.rpc('get_team_players', {
+        p_team_id: team.id,
+      });
+      return { teamId: team.id, result };
+    })
+  );
+
+  for (const { teamId, result } of teamPlayersResults) {
+    if (result.error) {
+      console.error('[teamInsights/loadCoachTeamInjuryAlertsForTeams] Error loading team players for injury alerts:', result.error, { teamId });
+      rpcErrorMessage = rpcErrorMessage ?? (result.error.message || 'Unable to load team players for injury alerts.');
+      continue;
+    }
+
+    const rows = (result.data ?? []) as TeamPlayerNameRpcRow[];
+    for (const row of rows) {
+      if (!row.user_id) continue;
+      const existingTeamIds = teamIdsByUserId.get(row.user_id) ?? [];
+      if (!existingTeamIds.includes(teamId)) {
+        existingTeamIds.push(teamId);
+        teamIdsByUserId.set(row.user_id, existingTeamIds);
+      }
+
+      if (!playerNameByUserId.has(row.user_id)) {
+        playerNameByUserId.set(
+          row.user_id,
+          row.display_name?.trim() || row.email?.split('@')[0] || `Player ${row.user_id.slice(0, 8)}`
+        );
+      }
+    }
+  }
+
+  const userIds = Array.from(teamIdsByUserId.keys());
+  if (userIds.length === 0) {
+    return { alerts: [], error: rpcErrorMessage };
+  }
+
+  const { data: injuryRows, error: injuriesError } = await supabase
+    .from('injuries')
+    .select('id, user_id, description, status, expected_return, created_at')
+    .in('user_id', userIds)
+    .in('status', ['active', 'recovering'])
+    .order('created_at', { ascending: false });
+
+  if (injuriesError) {
+    console.error('[teamInsights/loadCoachTeamInjuryAlertsForTeams] Error loading injuries for managed players:', injuriesError, { teamCount: normalizedTeams.length, userCount: userIds.length });
+    return { alerts: [], error: injuriesError.message || 'Unable to load injury alerts.' };
+  }
+
+  const alerts = ((injuryRows ?? []) as InjuryAlertRow[]).flatMap((injuryRow) => {
+    if (injuryRow.status !== 'active' && injuryRow.status !== 'recovering') {
+      return [];
+    }
+
+    const teamIds = teamIdsByUserId.get(injuryRow.user_id) ?? [];
+    return teamIds.map((teamId) => ({
+      id: `${injuryRow.id}-${teamId}`,
+      teamId,
+      playerId: injuryRow.user_id,
+      playerName: playerNameByUserId.get(injuryRow.user_id) ?? `Player ${injuryRow.user_id.slice(0, 8)}`,
+      description: injuryRow.description,
+      status: injuryRow.status as 'active' | 'recovering',
+      expectedReturn: injuryRow.expected_return,
+      createdAt: injuryRow.created_at,
+    }));
+  });
+
+  return { alerts, error: rpcErrorMessage };
 }
 
 export function useCoachTeamPlayerCounts(teamIds: string[]) {
@@ -783,6 +889,51 @@ export function useCoachAllTeamsCalendarItems(teams: TeamReference[]) {
 
   return {
     items,
+    isLoading,
+    error,
+  };
+}
+
+export function useCoachTeamInjuryAlerts(teams: TeamReference[]) {
+  const [alerts, setAlerts] = useState<CoachTeamInjuryAlert[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const stableTeams = useMemo(
+    () => teams.filter((team) => team.id.length > 0),
+    [teams]
+  );
+  const teamsKey = stableTeams.map((team) => `${team.id}:${team.name}`).join('|');
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadAlerts = async () => {
+      if (stableTeams.length === 0) {
+        setAlerts([]);
+        setError(null);
+        setIsLoading(false);
+        return;
+      }
+
+      setIsLoading(true);
+      const result = await loadCoachTeamInjuryAlertsForTeams(stableTeams);
+      if (cancelled) return;
+
+      setAlerts(result.alerts);
+      setError(result.error);
+      setIsLoading(false);
+    };
+
+    void loadAlerts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [stableTeams, teamsKey]);
+
+  return {
+    alerts,
     isLoading,
     error,
   };

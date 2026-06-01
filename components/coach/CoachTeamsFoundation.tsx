@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from 'react';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
+import { useAuth } from '@/lib/AuthContext';
 import { TeamGrid } from '@/components/coach/TeamGrid';
 import type { TeamAverages } from '@/components/coach/TeamCard';
 import { useCoachTeamProfileAverages } from '@/lib/coach/teamInsights';
@@ -31,12 +32,15 @@ function generateInviteCodeSeed(teamName: string): string {
 }
 
 export function CoachTeamsFoundation() {
+  const { user } = useAuth();
   const {
     teams,
     selectedTeamId,
     selectedTeam,
     setSelectedTeamId,
     createTeam,
+    updateTeam,
+    deleteTeam,
     isLoadingTeams,
     teamsError,
   } = useCoachTeam();
@@ -156,6 +160,9 @@ export function CoachTeamsFoundation() {
           selectedTeamId={selectedTeamId}
           onSelectTeam={setSelectedTeamId}
           averagesByTeamId={averagesByTeamId}
+          onUpdateTeam={updateTeam}
+          onDeleteTeam={deleteTeam}
+          canDeleteTeam={(team) => team.createdBy === user?.id}
         />
       )}
     </div>

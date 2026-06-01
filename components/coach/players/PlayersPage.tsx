@@ -40,7 +40,13 @@ function NotesSection({
   );
 }
 
-function InjuryStatusCard({ injuryStatus }: { injuryStatus: PlayerInjuryStatus }) {
+function InjuryStatusCard({
+  injuryStatus,
+  todaysGuidance,
+}: {
+  injuryStatus: PlayerInjuryStatus;
+  todaysGuidance: string | null;
+}) {
   const label =
     injuryStatus.state === 'active'
       ? 'Active'
@@ -62,20 +68,22 @@ function InjuryStatusCard({ injuryStatus }: { injuryStatus: PlayerInjuryStatus }
           : 'border-[rgba(0,212,170,0.3)] bg-[rgba(0,212,170,0.1)] text-[var(--accent-primary)]';
 
   return (
-    <section className="glass-card p-4 sm:p-5">
+    <section className="glass-card p-3.5 sm:p-4">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-300">Injury Status</h3>
-      <div className="mt-3 flex items-center justify-between gap-3">
-        <span className="text-sm text-gray-200">Current state</span>
-        <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-wide ${toneClass}`}>
+      <div className="mt-2.5 flex items-center justify-between gap-3">
+        <span className="text-xs text-gray-300">Current state</span>
+        <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${toneClass}`}>
           {label}
         </span>
       </div>
-      {injuryStatus.description ? <p className="mt-2 text-sm text-gray-300">{injuryStatus.description}</p> : null}
-      {injuryStatus.expectedReturn ? <p className="mt-1 text-xs text-gray-400">Expected return: {injuryStatus.expectedReturn}</p> : null}
-      {injuryStatus.state === 'healthy' ? <p className="mt-2 text-sm text-gray-400">No injuries recorded.</p> : null}
+      {injuryStatus.description ? <p className="mt-2 text-xs text-gray-300">{injuryStatus.description}</p> : null}
+      {injuryStatus.expectedReturn ? <p className="mt-1 text-[11px] text-gray-400">Expected return: {injuryStatus.expectedReturn}</p> : null}
       {injuryStatus.state === 'unavailable' ? (
-        <p className="mt-2 text-sm text-gray-400">{injuryStatus.message ?? 'Injury data is not available for this player.'}</p>
+        <p className="mt-2 text-xs text-gray-400">{injuryStatus.message ?? 'Injury data is not available for this player.'}</p>
       ) : null}
+      <p className="mt-2 text-[11px] text-gray-300">
+        Today&apos;s guidance: {todaysGuidance ?? 'Not available'}
+      </p>
     </section>
   );
 }
@@ -159,7 +167,6 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
         <PlayerAnalyticsLegend items={analyticsLegendItems} />
         <NotesSection title="Wellness Notes" emptyLabel="No wellness notes yet." notes={playerDataset.wellnessNotes} />
         <NotesSection title="Training Notes" emptyLabel="No training notes yet." notes={playerDataset.trainingNotes} />
-        <InjuryStatusCard injuryStatus={playerDataset.injuryStatus} />
       </div>
     </div>
   );
@@ -307,6 +314,12 @@ export function PlayersPage() {
       <div className="grid gap-5 xl:grid-cols-[290px_minmax(0,1fr)]">
         <div className="space-y-4">
           <PlayerProfileCard player={selectedPlayerDataset.player} teamName={selectedTeam.name} />
+          {viewMode === 'analytics' ? (
+            <InjuryStatusCard
+              injuryStatus={selectedPlayerDataset.injuryStatus}
+              todaysGuidance={selectedPlayerDataset.todaysGuidance}
+            />
+          ) : null}
           {viewMode === 'calendar' ? <WellnessMetricsPanel metrics={selectedPlayerDataset.wellness} /> : null}
         </div>
         {viewMode === 'analytics' ? (

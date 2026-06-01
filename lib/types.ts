@@ -85,15 +85,17 @@ export interface CoachTeam {
   id: string;
   name: string;
   code: string;
+  createdBy: string;
 }
 
 export type SelectedTeam = CoachTeam;
 
-export function toCoachTeam(team: Pick<Team, 'id' | 'name' | 'inviteCode'>): CoachTeam {
+export function toCoachTeam(team: Team): CoachTeam {
   return {
     id: team.id,
     name: team.name,
     code: team.inviteCode,
+    createdBy: team.coachId,
   };
 }
 

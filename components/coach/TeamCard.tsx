@@ -1,3 +1,5 @@
+import { FormEvent, useEffect, useRef, useState } from 'react';
+import { MoreVertical } from 'lucide-react';
 import type { CoachTeam } from '@/lib/coach/selectedTeam';
 import { SelectedTeamIndicator } from '@/components/coach/SelectedTeamIndicator';
 
@@ -15,6 +17,9 @@ interface TeamCardProps {
   averages: TeamAverages;
   selected: boolean;
   onSelect: (teamId: string) => void;
+  onUpdateTeam: (input: { teamId: string; name: string; code?: string }) => Promise<{ error: string | null }>;
+  onDeleteTeam: (teamId: string) => Promise<{ error: string | null }>;
+  canDelete: boolean;
 }
 
 function getTeamAvatarLabel(team: CoachTeam): string {
@@ -31,18 +36,75 @@ function getTeamAvatarLabel(team: CoachTeam): string {
     .toUpperCase();
 }
 
-export function TeamCard({ team, averages, selected, onSelect }: TeamCardProps) {
+export function TeamCard({ team, averages, selected, onSelect, onUpdateTeam, onDeleteTeam, canDelete }: TeamCardProps) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [draftName, setDraftName] = useState(team.name);
+  const [draftCode, setDraftCode] = useState(team.code);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
   const cardStateClasses = selected
     ? 'border-[rgba(0,212,170,0.45)] bg-[rgba(0,212,170,0.09)] shadow-[0_10px_24px_rgba(0,212,170,0.14)]'
     : 'hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(25,33,73,0.72)]';
 
+  const handleSave = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setActionError(null);
+    setIsSaving(true);
+    const { error } = await onUpdateTeam({
+      teamId: team.id,
+      name: draftName,
+      code: draftCode,
+    });
+    setIsSaving(false);
+
+    if (error) {
+      setActionError(error);
+      return;
+    }
+
+    setIsEditing(false);
+  };
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    const handleDocumentClick = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleDocumentClick);
+    return () => {
+      document.removeEventListener('mousedown', handleDocumentClick);
+    };
+  }, [isMenuOpen]);
+
+  const handleDelete = async () => {
+    setActionError(null);
+    setIsMenuOpen(false);
+
+    const confirmed = window.confirm(`Delete team "${team.name}"? This cannot be undone.`);
+    if (!confirmed) {
+      return;
+    }
+
+    setIsDeleting(true);
+    const { error } = await onDeleteTeam(team.id);
+    setIsDeleting(false);
+
+    if (error) {
+      setActionError(error);
+    }
+  };
+
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(team.id)}
-      aria-pressed={selected}
-      className={`glass-card w-full p-5 text-left transition-all duration-200 sm:p-6 ${cardStateClasses}`}
-    >
+    <article className={`glass-card w-full p-5 text-left transition-all duration-200 sm:p-6 ${cardStateClasses}`}>
       <div className="mb-4 flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.06)] text-sm font-bold text-white">
@@ -55,7 +117,44 @@ export function TeamCard({ team, averages, selected, onSelect }: TeamCardProps) 
             </p>
           </div>
         </div>
-        <SelectedTeamIndicator selected={selected} />
+        <div className="relative flex items-center gap-2" ref={menuRef}>
+          <SelectedTeamIndicator selected={selected} />
+          <button
+            type="button"
+            aria-label="Team actions"
+            onClick={() => setIsMenuOpen((current) => !current)}
+            className="rounded-md border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] p-1 text-gray-300 transition-colors hover:bg-[rgba(255,255,255,0.1)] hover:text-white"
+          >
+            <MoreVertical size={14} />
+          </button>
+          {isMenuOpen ? (
+            <div className="absolute right-0 top-8 z-20 min-w-[140px] rounded-lg border border-[rgba(255,255,255,0.14)] bg-[rgba(8,11,28,0.98)] p-1.5 shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
+              <button
+                type="button"
+                onClick={() => {
+                  setActionError(null);
+                  setDraftName(team.name);
+                  setDraftCode(team.code);
+                  setIsEditing(true);
+                  setIsMenuOpen(false);
+                }}
+                className="w-full rounded-md px-2.5 py-1.5 text-left text-xs font-semibold text-gray-200 transition-colors hover:bg-[rgba(255,255,255,0.08)]"
+              >
+                Edit Team
+              </button>
+              {canDelete ? (
+                <button
+                  type="button"
+                  disabled={isDeleting}
+                  onClick={handleDelete}
+                  className="mt-1 w-full rounded-md px-2.5 py-1.5 text-left text-xs font-semibold text-[var(--status-red)] transition-colors hover:bg-[rgba(255,107,107,0.14)] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isDeleting ? 'Deleting...' : 'Delete Team'}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <dl className="space-y-2">
@@ -96,6 +195,59 @@ export function TeamCard({ team, averages, selected, onSelect }: TeamCardProps) 
           </dd>
         </div>
       </dl>
-    </button>
+
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => onSelect(team.id)}
+          className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.05)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-[rgba(255,255,255,0.1)]"
+        >
+          {selected ? 'Selected' : 'Select Team'}
+        </button>
+      </div>
+
+      {isEditing ? (
+        <form onSubmit={handleSave} className="mt-3 grid grid-cols-1 gap-2.5">
+          <input
+            type="text"
+            value={draftName}
+            onChange={(event) => setDraftName(event.target.value)}
+            placeholder="Team name"
+            required
+            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+          />
+          <input
+            type="text"
+            value={draftCode}
+            onChange={(event) => setDraftCode(event.target.value.toUpperCase())}
+            placeholder="Invite code"
+            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm uppercase text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="rounded-lg border border-[rgba(0,212,170,0.4)] bg-[rgba(0,212,170,0.14)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-primary)] transition-colors hover:bg-[rgba(0,212,170,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSaving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDraftName(team.name);
+                setDraftCode(team.code);
+                setIsEditing(false);
+                setActionError(null);
+              }}
+              className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.05)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-white transition-colors hover:bg-[rgba(255,255,255,0.1)]"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : null}
+
+      {actionError ? <p className="mt-2 text-xs text-[var(--status-red)]">{actionError}</p> : null}
+    </article>
   );
 }
