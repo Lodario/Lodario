@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
 import { PlayerAnalyticsChart } from '@/components/coach/players/PlayerAnalyticsChart';
 import { PlayerAnalyticsLegend } from '@/components/coach/players/PlayerAnalyticsLegend';
+import { IndividualEventCreator } from '@/components/coach/players/IndividualEventCreator';
 import { PlayerCalendar } from '@/components/coach/players/PlayerCalendar';
 import { PlayerProfileCard } from '@/components/coach/players/PlayerProfileCard';
 import { PlayerSelectorDropdown } from '@/components/coach/players/PlayerSelectorDropdown';
@@ -180,9 +181,23 @@ const analyticsLegendItems = [
   'Multi-factor readiness inputs',
 ];
 
-function CalendarView({ playerDataset }: { playerDataset: TeamPlayerDataset }) {
+function CalendarView({
+  playerDataset,
+  onEventCreated,
+}: {
+  playerDataset: TeamPlayerDataset;
+  onEventCreated: () => void;
+}) {
   return (
-    <PlayerCalendar events={playerDataset.calendarEvents} className="xl:h-[760px]" />
+    <>
+      <PlayerCalendar events={playerDataset.calendarEvents} className="xl:h-[760px]" />
+      <IndividualEventCreator
+        playerId={playerDataset.player.id}
+        playerName={playerDataset.player.name}
+        teamId={playerDataset.player.teamId}
+        onSaved={onEventCreated}
+      />
+    </>
   );
 }
 
@@ -193,6 +208,7 @@ export function PlayersPage() {
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [playersError, setPlayersError] = useState<string | null>(null);
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>(() => teamPlayers[0]?.player.id ?? '');
+  const [refreshVersion, setRefreshVersion] = useState(0);
 
   useEffect(() => {
     let isMounted = true;
@@ -227,7 +243,7 @@ export function PlayersPage() {
     return () => {
       isMounted = false;
     };
-  }, [selectedTeam.id]);
+  }, [selectedTeam.id, refreshVersion]);
 
   useEffect(() => {
     const selectedPlayerStillExists = teamPlayers.some((dataset) => dataset.player.id === selectedPlayerId);
@@ -311,7 +327,13 @@ export function PlayersPage() {
         />
       </section>
 
-      <div className="grid gap-5 xl:grid-cols-[290px_minmax(0,1fr)]">
+      <div
+        className={`grid ${
+          viewMode === 'calendar'
+            ? 'gap-4 xl:grid-cols-[250px_minmax(0,1fr)_340px] xl:items-stretch'
+            : 'gap-5 xl:grid-cols-[290px_minmax(0,1fr)]'
+        }`}
+      >
         <div className="space-y-4">
           <PlayerProfileCard player={selectedPlayerDataset.player} teamName={selectedTeam.name} />
           {viewMode === 'analytics' ? (
@@ -325,7 +347,10 @@ export function PlayersPage() {
         {viewMode === 'analytics' ? (
           <AnalyticsView playerDataset={selectedPlayerDataset} />
         ) : (
-          <CalendarView playerDataset={selectedPlayerDataset} />
+          <CalendarView
+            playerDataset={selectedPlayerDataset}
+            onEventCreated={() => setRefreshVersion((version) => version + 1)}
+          />
         )}
       </div>
     </div>
