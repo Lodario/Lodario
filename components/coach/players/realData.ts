@@ -3,6 +3,13 @@ import { supabase } from '@/lib/supabase';
 import { calculateReadiness } from '@/lib/readiness';
 import { generateRecommendation } from '@/lib/recommendations';
 import { analyzeTrainingLoad } from '@/lib/training-load';
+import {
+  parseCoachCalendarMeta,
+  parseExcludedDates,
+  parseOverrideMap,
+  parseRecurrence,
+  parseRecurrenceConfig,
+} from '@/lib/calendar/events';
 import type { CalendarEvent, InjuryRecord, TrainingLog, UserProfile, WellnessLog } from '@/lib/types';
 import type {
   CoachPlayer,
@@ -58,11 +65,13 @@ interface CalendarRow {
   id: string;
   user_id: string;
   title: string | null;
+  description: string | null;
   event_type_id: string;
   start_time: string;
   end_time: string;
   recurrence: string | null;
   recurrence_config: unknown;
+  recurrence_end_date: string | null;
   excluded_dates: unknown;
   overrides: unknown;
   anticipated_intensity: 'Low' | 'Moderate' | 'High' | null;
@@ -77,8 +86,66 @@ interface InjuryRow {
   created_at: string;
 }
 
+type SupabaseErrorLike = {
+  message?: string | null;
+  details?: string | null;
+};
+
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
+}
+
+function isMissingCalendarDescriptionError(error: SupabaseErrorLike | null | undefined): boolean {
+  const message = `${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase();
+  return message.includes('column calendar_events.description does not exist');
+}
+
+function isMissingCalendarColumnError(error: SupabaseErrorLike | null | undefined): boolean {
+  const message = `${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase();
+  return message.includes('column calendar_events.') && message.includes('does not exist');
+}
+
+async function loadCalendarRowsForPlayers(playerIds: string[]): Promise<{ rows: CalendarRow[]; error: string | null }> {
+  const selectWithDescription =
+    'id, user_id, title, description, event_type_id, start_time, end_time, recurrence, recurrence_config, recurrence_end_date, excluded_dates, overrides, anticipated_intensity';
+  const selectCoreOnly = 'id, user_id, title, event_type_id, start_time, end_time';
+
+  const firstAttempt = await supabase
+    .from('calendar_events')
+    .select(selectWithDescription)
+    .in('user_id', playerIds)
+    .order('start_time', { ascending: true });
+
+  if (!firstAttempt.error) {
+    return { rows: (firstAttempt.data ?? []) as CalendarRow[], error: null };
+  }
+
+  if (!isMissingCalendarDescriptionError(firstAttempt.error) && !isMissingCalendarColumnError(firstAttempt.error)) {
+    return { rows: [], error: firstAttempt.error.message || 'Unable to load calendar events.' };
+  }
+
+  const fallbackAttempt = await supabase
+    .from('calendar_events')
+    .select(selectCoreOnly)
+    .in('user_id', playerIds)
+    .order('start_time', { ascending: true });
+
+  if (fallbackAttempt.error) {
+    return { rows: [], error: fallbackAttempt.error.message || 'Unable to load calendar events.' };
+  }
+
+  const rows = ((fallbackAttempt.data ?? []) as Array<Pick<CalendarRow, 'id' | 'user_id' | 'title' | 'event_type_id' | 'start_time' | 'end_time'>>).map((row) => ({
+    ...row,
+    description: null,
+    recurrence: null,
+    recurrence_config: {},
+    recurrence_end_date: null,
+    excluded_dates: [],
+    overrides: {},
+    anticipated_intensity: null,
+  }));
+
+  return { rows, error: null };
 }
 
 function toNumber(value: number | string | null | undefined, fallback = 0): number {
@@ -141,23 +208,6 @@ function asObject(value: unknown): Record<string, unknown> | null {
   }
 
   return null;
-}
-
-function asStringArray(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === 'string');
-  }
-
-  if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value);
-      if (Array.isArray(parsed)) {
-        return parsed.filter((item): item is string => typeof item === 'string');
-      }
-    } catch {}
-  }
-
-  return [];
 }
 
 function mapEventTypeIdToPlayerSessionType(rawType: string): PlayerSessionType {
@@ -332,12 +382,17 @@ function buildTodaysCalendarEventsForRecommendation(rows: CalendarRow[]): Calend
   const events: CalendarEvent[] = [];
 
   rows.forEach((row) => {
+    const meta = parseCoachCalendarMeta(row.recurrence_config);
+    if (meta?.coachManaged && meta.published === false) {
+      return;
+    }
+
     const start = row.start_time;
     const end = row.end_time;
-    const recurrence = (row.recurrence ?? 'none').trim().toLowerCase();
-    const recurrenceConfig = asObject(row.recurrence_config) ?? {};
-    const excludedDates = asStringArray(row.excluded_dates);
-    const overrides = asObject(row.overrides) ?? {};
+    const recurrence = parseRecurrence(row.recurrence);
+    const recurrenceConfig = parseRecurrenceConfig(row.recurrence_config);
+    const excludedDates = parseExcludedDates(row.excluded_dates);
+    const overrides = parseOverrideMap(row.overrides);
     const eventStartDate = start.split('T')[0];
     const parsedStart = parseISO(eventStartDate);
     const hasValidStart = !Number.isNaN(parsedStart.getTime());
@@ -368,17 +423,11 @@ function buildTodaysCalendarEventsForRecommendation(rows: CalendarRow[]): Calend
       id: row.id,
       eventTypeId: row.event_type_id,
       title: row.title ?? undefined,
+      description: row.description ?? undefined,
       start,
       end,
-      recurrence: recurrence === 'daily' || recurrence === 'weekly' || recurrence === 'monthly' ? recurrence : 'none',
-      recurrenceConfig: {
-        days: Array.isArray((recurrenceConfig as { days?: unknown }).days)
-          ? ((recurrenceConfig as { days?: unknown }).days as unknown[]).filter((value): value is number => typeof value === 'number')
-          : undefined,
-        monthDays: Array.isArray((recurrenceConfig as { monthDays?: unknown }).monthDays)
-          ? ((recurrenceConfig as { monthDays?: unknown }).monthDays as unknown[]).filter((value): value is number => typeof value === 'number')
-          : undefined,
-      },
+      recurrence,
+      recurrenceConfig,
       excludedDates,
       overrides: undefined,
       anticipatedIntensity,
@@ -546,6 +595,9 @@ function buildDatasetForPlayer(params: {
       const start = toDateAndTime(row.start_time);
       const end = toDateAndTime(row.end_time);
       const sessionType = mapEventTypeIdToPlayerSessionType(row.event_type_id);
+      const recurrenceConfig = parseRecurrenceConfig(row.recurrence_config);
+      const meta = parseCoachCalendarMeta(row.recurrence_config);
+      const assignmentScope = meta?.assignmentScope === 'team' || meta?.assignmentScope === 'player' ? meta.assignmentScope : 'player';
 
       return {
         id: row.id,
@@ -553,9 +605,23 @@ function buildDatasetForPlayer(params: {
         teamId: player.teamId,
         title: row.title || row.event_type_id || 'Session',
         type: sessionType,
+        kind: meta?.kind === 'task' ? 'task' : 'event',
+        description: row.description ?? undefined,
+        assignmentScope,
+        coachManaged: meta?.coachManaged === true,
+        recurrence: parseRecurrence(row.recurrence),
+        recurrenceConfig,
+        recurrenceEndDate: row.recurrence_end_date ?? null,
+        anticipatedIntensity: row.anticipated_intensity ?? undefined,
+        overrides: parseOverrideMap(row.overrides),
+        excludedDates: parseExcludedDates(row.excluded_dates),
+        isDraft: meta?.published === false,
+        sourceEventGroupId: meta?.eventGroupId ?? null,
         date: start.date,
         startTime: start.time,
         endTime: end.time,
+        startDate: start.date,
+        endDate: end.date,
       } as const;
     }),
     wellnessNotes: buildWellnessNotes(wellnessRows),
@@ -599,11 +665,7 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
       .select('id, user_id, date, duration, intensity, session_type, sprinting, performance, pain_active, pain_level, notes, pain_notes')
       .in('user_id', playerIds)
       .order('date', { ascending: true }),
-    supabase
-      .from('calendar_events')
-      .select('id, user_id, title, event_type_id, start_time, end_time, recurrence, recurrence_config, excluded_dates, overrides, anticipated_intensity')
-      .in('user_id', playerIds)
-      .order('start_time', { ascending: true }),
+    loadCalendarRowsForPlayers(playerIds),
     supabase
       .from('injuries')
       .select('id, user_id, description, expected_return, status, created_at')
@@ -621,9 +683,11 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
     return { data: [], error: trainingResult.error.message || 'Unable to load training logs.' };
   }
 
+  let calendarRows: CalendarRow[] = [];
   if (calendarResult.error) {
     console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading calendar events for team players:', calendarResult.error, { teamId, playerCount: playerIds.length });
-    return { data: [], error: calendarResult.error.message || 'Unable to load calendar events.' };
+  } else {
+    calendarRows = calendarResult.rows;
   }
 
   let injuryQueryError: string | null = null;
@@ -634,7 +698,6 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
 
   const wellnessRows = (wellnessResult.data ?? []) as WellnessRow[];
   const trainingRows = (trainingResult.data ?? []) as TrainingRow[];
-  const calendarRows = (calendarResult.data ?? []) as CalendarRow[];
   const injuryRows = ((injuriesResult.data ?? []) as InjuryRow[]);
 
   const injuryRowsByUserId = injuryRows.reduce<Record<string, InjuryRow[]>>((accumulator, row) => {

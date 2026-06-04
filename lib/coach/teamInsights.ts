@@ -43,9 +43,16 @@ interface CalendarEventRow {
   id: string;
   user_id: string;
   title: string | null;
+  description: string | null;
   event_type_id: string;
   start_time: string;
   end_time: string;
+  recurrence: string | null;
+  recurrence_config: unknown;
+  recurrence_end_date: string | null;
+  excluded_dates: unknown;
+  overrides: unknown;
+  anticipated_intensity: 'Low' | 'Moderate' | 'High' | null;
 }
 
 interface TeamReference {
@@ -262,6 +269,42 @@ function getLocalDateKey(now = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
+function hhmmToMinutes(value: string): number | null {
+  const [hoursPart = '', minutesPart = ''] = value.split(':');
+  const hours = Number(hoursPart);
+  const minutes = Number(minutesPart);
+
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return null;
+  }
+
+  if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+    return null;
+  }
+
+  return hours * 60 + minutes;
+}
+
+function minutesToHHmm(value: number | null): string | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null;
+  }
+
+  const normalized = ((Math.round(value) % 1440) + 1440) % 1440;
+  const hours = Math.floor(normalized / 60);
+  const minutes = normalized % 60;
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+function formatDecimal(value: number | null, precision = 1): string {
+  if (value == null || !Number.isFinite(value)) {
+    return '--';
+  }
+
+  return value.toFixed(precision);
+}
+
 function mapEventTypeIdToTeamEventType(rawType: string): TeamEventType {
   const normalized = rawType.trim().toLowerCase();
   if (normalized.includes('match') || normalized.includes('game')) return 'game';
@@ -275,14 +318,21 @@ function mapEventTypeIdToTeamEventType(rawType: string): TeamEventType {
 
 function getTodayWellnessSnapshot(dataset: TeamPlayerDataset, todayDateKey: string): {
   readinessScore: number;
+  energy: number;
   fatigue: number;
   sleepScore: number;
+  sleepHours: number;
+  sleepQualityScore: number;
   stress: number;
+  bedTime: string;
+  wakeTime: string;
+  loadScore: number;
 } | null {
   const readiness = dataset.analytics.readinessTrend.find((point) => point.date === todayDateKey);
   const energyFatigue = dataset.analytics.energyFatigueLoad.find((point) => point.date === todayDateKey);
   const sleep = dataset.analytics.sleepQualityAndTiming.find((point) => point.date === todayDateKey);
   const stress = dataset.analytics.stressVsSleepScore.find((point) => point.date === todayDateKey);
+  const multiFactor = dataset.analytics.multiFactorReadiness.find((point) => point.date === todayDateKey);
 
   const hasWellnessSignal =
     Boolean(sleep && (sleep.sleepHours > 0 || sleep.sleepQualityScore > 0 || sleep.sleepScore > 0)) ||
@@ -295,9 +345,15 @@ function getTodayWellnessSnapshot(dataset: TeamPlayerDataset, todayDateKey: stri
 
   return {
     readinessScore: readiness?.readinessScore ?? 0,
+    energy: (energyFatigue?.energy ?? 0) * 10,
     fatigue: energyFatigue?.fatigue ?? 0,
     sleepScore: sleep?.sleepScore ?? 0,
+    sleepHours: sleep?.sleepHours ?? 0,
+    sleepQualityScore: sleep?.sleepQualityScore ?? 0,
     stress: stress?.stress ?? 0,
+    bedTime: sleep?.bedTime ?? '--:--',
+    wakeTime: sleep?.wakeTime ?? '--:--',
+    loadScore: multiFactor?.loadScore ?? 0,
   };
 }
 
@@ -320,41 +376,104 @@ function buildCalendarAverages(players: TeamPlayerDataset[]): TeamCalendarDatase
   const wellnessSnapshots = players
     .map((dataset) => getTodayWellnessSnapshot(dataset, todayDateKey))
     .filter((snapshot): snapshot is NonNullable<typeof snapshot> => Boolean(snapshot));
-  const readiness = wellnessSnapshots.map((snapshot) => snapshot.readinessScore);
-  const fatigue = wellnessSnapshots.map((snapshot) => snapshot.fatigue);
-  const sleepScore = wellnessSnapshots.map((snapshot) => snapshot.sleepScore);
-  const stress = wellnessSnapshots.map((snapshot) => snapshot.stress);
+  const readiness = wellnessSnapshots.map((snapshot) => snapshot.readinessScore).filter((value) => value > 0);
+  const energy = wellnessSnapshots.map((snapshot) => snapshot.energy).filter((value) => value > 0);
+  const fatigue = wellnessSnapshots.map((snapshot) => snapshot.fatigue * 10).filter((value) => value > 0);
+  const sleepScore = wellnessSnapshots.map((snapshot) => snapshot.sleepScore).filter((value) => value > 0);
+  const sleepHours = wellnessSnapshots.map((snapshot) => snapshot.sleepHours).filter((value) => value > 0);
+  const sleepQuality = wellnessSnapshots.map((snapshot) => snapshot.sleepQualityScore).filter((value) => value > 0);
+  const stress = wellnessSnapshots.map((snapshot) => snapshot.stress).filter((value) => value > 0);
+  const loadScore = wellnessSnapshots.map((snapshot) => snapshot.loadScore).filter((value) => value > 0);
+  const sleepTimes = wellnessSnapshots
+    .map((snapshot) => hhmmToMinutes(snapshot.bedTime))
+    .filter((value): value is number => value != null);
+  const wakeTimes = wellnessSnapshots
+    .map((snapshot) => hhmmToMinutes(snapshot.wakeTime))
+    .filter((value): value is number => value != null);
   const load = players
     .map((dataset) => getTodayTrainingLoad(dataset, todayDateKey))
     .filter((value): value is number => value != null && Number.isFinite(value));
 
+  const meanSleepTime = minutesToHHmm(averageOrNull(sleepTimes));
+  const meanWakeTime = minutesToHHmm(averageOrNull(wakeTimes));
+
   return [
     { label: 'Players', value: String(players.length) },
-    { label: 'Readiness Score', value: formatMetricValue(averageOrNull(readiness), '%') },
-    { label: 'Fatigue', value: formatMetricValue(averageOrNull(fatigue) == null ? null : average(fatigue) * 10) },
-    { label: 'Sleep Score', value: formatMetricValue(averageOrNull(sleepScore)) },
+    { label: 'Team Readiness', value: formatMetricValue(averageOrNull(readiness), '%') },
+    { label: 'Team Energy', value: formatMetricValue(averageOrNull(energy)) },
+    { label: 'Team Fatigue', value: formatMetricValue(averageOrNull(fatigue)) },
+    { label: 'Team Stress', value: formatMetricValue(averageOrNull(stress)) },
+    { label: 'Team Sleep Score', value: formatMetricValue(averageOrNull(sleepScore)) },
+    {
+      label: 'Team Sleep Quantity',
+      value: averageOrNull(sleepHours) == null ? '--' : `${formatDecimal(averageOrNull(sleepHours), 1)} h`,
+    },
+    { label: 'Team Sleep Quality', value: formatMetricValue(averageOrNull(sleepQuality)) },
     { label: 'Acute Training Load', value: formatMetricValue(averageOrNull(load)) },
-    { label: 'Stress', value: formatMetricValue(averageOrNull(stress)) },
+    { label: 'Load Score', value: formatMetricValue(averageOrNull(loadScore)) },
+    { label: 'Average Sleep Time', value: meanSleepTime ?? '--' },
+    { label: 'Average Wake Time', value: meanWakeTime ?? '--' },
   ];
 }
 
 export function buildTeamCalendarDataFromPlayers(teamId: string, players: TeamPlayerDataset[]): TeamCalendarDataset {
-  const items: TeamCalendarItem[] = players
-    .flatMap((dataset) =>
-      dataset.calendarEvents.map((event) => ({
-        id: `${event.id}-${dataset.player.id}`,
+  const groupedItems = new Map<string, TeamCalendarItem>();
+
+  players.forEach((dataset) => {
+    dataset.calendarEvents.forEach((event) => {
+      if (!event.coachManaged) {
+        return;
+      }
+
+      const assignmentScope = event.assignmentScope === 'team' ? 'team' : 'player';
+      const groupKey =
+        assignmentScope === 'team'
+          ? `team:${event.sourceEventGroupId ?? event.id}`
+          : `player:${event.id}`;
+      const existing = groupedItems.get(groupKey);
+
+      if (existing) {
+        const eventIds = new Set([...(existing.sourceEventIds ?? []), event.id]);
+        existing.sourceEventIds = Array.from(eventIds);
+        return;
+      }
+
+      const isRecurring = event.recurrence && event.recurrence !== 'none';
+      const status = isRecurring ? 'upcoming' : resolveCalendarStatus(event.date, event.endTime);
+
+      groupedItems.set(groupKey, {
+        id: groupKey,
         teamId,
         title: event.title,
+        eventTypeId: event.type,
         type: mapPlayerEventTypeToTeamEventType(event.type),
-        description: `${dataset.player.name} ${event.type} session`,
-        kind: 'event' as const,
-        status: resolveCalendarStatus(event.date, event.endTime),
+        description: event.description ?? `${dataset.player.name} ${event.type} session`,
+        kind: event.kind === 'task' ? 'task' : 'event',
+        status,
+        assignmentScope,
+        assignedPlayerId: assignmentScope === 'player' ? dataset.player.id : null,
+        assignedPlayerName: assignmentScope === 'player' ? dataset.player.name : null,
+        recurrence: event.recurrence ?? 'none',
+        recurrenceConfig: event.recurrenceConfig,
+        recurrenceEndDate: event.recurrenceEndDate ?? null,
+        anticipatedIntensity: event.anticipatedIntensity ?? null,
+        overrides: event.overrides,
+        excludedDates: event.excludedDates,
+        isDraft: event.isDraft ?? false,
+        sourceEventIds: [event.id],
+        sourceEventGroupId: event.sourceEventGroupId ?? null,
         date: event.date,
         startTime: event.startTime,
         endTime: event.endTime,
-      }))
-    )
-    .sort((first, second) => `${first.date}T${first.startTime}`.localeCompare(`${second.date}T${second.startTime}`));
+        startDate: event.startDate ?? event.date,
+        endDate: event.endDate ?? event.date,
+      });
+    });
+  });
+
+  const items: TeamCalendarItem[] = Array.from(groupedItems.values()).sort((first, second) =>
+    `${first.date}T${first.startTime}`.localeCompare(`${second.date}T${second.startTime}`)
+  );
 
   return {
     averages: buildCalendarAverages(players),
@@ -945,6 +1064,7 @@ export function useCoachSelectedTeamInsights(teamId: string) {
   const [playersError, setPlayersError] = useState<string | null>(null);
   const [summaryError, setSummaryError] = useState<string | null>(null);
   const [selectedTeamProfileAverages, setSelectedTeamProfileAverages] = useState<CoachTeamProfileAverages | null>(null);
+  const [refreshVersion, setRefreshVersion] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -979,7 +1099,7 @@ export function useCoachSelectedTeamInsights(teamId: string) {
     return () => {
       cancelled = true;
     };
-  }, [teamId]);
+  }, [teamId, refreshVersion]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1003,7 +1123,7 @@ export function useCoachSelectedTeamInsights(teamId: string) {
     return () => {
       cancelled = true;
     };
-  }, [teamId]);
+  }, [teamId, refreshVersion]);
 
   const calendarData = useMemo(() => {
     if (!teamId) return emptyCalendarData;
@@ -1014,16 +1134,22 @@ export function useCoachSelectedTeamInsights(teamId: string) {
 
     const metricsByLabel = new Map(baseCalendarData.averages.map((metric) => [metric.label, metric.value]));
     metricsByLabel.set('Players', String(summaryPlayers));
-    metricsByLabel.set('Readiness Score', formatMetricValue(summaryReadiness, '%'));
+    metricsByLabel.set('Team Readiness', formatMetricValue(summaryReadiness, '%'));
     metricsByLabel.set('Acute Training Load', formatMetricValue(summaryLoad));
 
     const orderedLabels = [
       'Players',
-      'Readiness Score',
-      'Fatigue',
-      'Sleep Score',
+      'Team Readiness',
+      'Team Energy',
+      'Team Fatigue',
+      'Team Stress',
+      'Team Sleep Score',
+      'Team Sleep Quantity',
+      'Team Sleep Quality',
       'Acute Training Load',
-      'Stress',
+      'Load Score',
+      'Average Sleep Time',
+      'Average Wake Time',
     ];
 
     const metrics = orderedLabels
@@ -1074,5 +1200,6 @@ export function useCoachSelectedTeamInsights(teamId: string) {
     overviewData,
     isLoading,
     error,
+    reload: () => setRefreshVersion((value) => value + 1),
   };
 }

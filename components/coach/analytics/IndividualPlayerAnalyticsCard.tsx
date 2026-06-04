@@ -7,7 +7,7 @@ interface IndividualPlayerAnalyticsCardProps {
 
 function getStatus(player: TeamPlayerComparisonPoint, teamAverageLoad: number) {
   const overloaded = player.acuteTrainingLoad > teamAverageLoad * 1.08 || player.loadScore >= 85;
-  const underRecovered = player.readinessScore < 78 || player.sleepScore < 75 || player.fatigue >= 7;
+  const underRecovered = player.readinessScore < 70 || player.sleepScore < 70 || player.fatigue >= 7;
 
   if (overloaded || underRecovered) {
     return { label: 'Needs Attention', className: 'text-[var(--status-red)] border-[rgba(255,107,107,0.4)] bg-[rgba(255,107,107,0.12)]' };
