@@ -1,7 +1,8 @@
-import { addDays, addWeeks, format, isSameDay, parseISO, startOfWeek, subDays, subWeeks } from 'date-fns';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { addDays, addWeeks, format, isSameDay, startOfWeek, subDays, subWeeks } from 'date-fns';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { PlayerCalendarEvent } from '@/components/coach/players/types';
+import { resolveCalendarOccurrence } from '@/lib/calendar/events';
 
 interface PlayerCalendarProps {
   events: PlayerCalendarEvent[];
@@ -9,6 +10,11 @@ interface PlayerCalendarProps {
 }
 
 interface ParsedEvent extends PlayerCalendarEvent {
+  layoutId: string;
+  instanceDate: string;
+  renderedTitle: string;
+  renderedDescription?: string;
+  renderedEventTypeId: string;
   startHour: number;
   startMinute: number;
   endHour: number;
@@ -18,6 +24,16 @@ interface ParsedEvent extends PlayerCalendarEvent {
 interface EventLayout {
   column: number;
   totalColumns: number;
+}
+
+interface SelectedOccurrence {
+  event: PlayerCalendarEvent;
+  instanceDate: string;
+  title: string;
+  description?: string;
+  eventTypeId: string;
+  startTime: string;
+  endTime: string;
 }
 
 const hours = Array.from({ length: 24 }).map((_, index) => index);
@@ -65,7 +81,7 @@ function computeOverlapGroups(events: ParsedEvent[], maxCols: number): Map<strin
 
   const intervals = events
     .map((event) => ({
-      id: event.id,
+      id: event.layoutId,
       start: event.startHour * 60 + event.startMinute,
       end: event.endHour * 60 + event.endMinute,
     }))
@@ -107,28 +123,152 @@ function getEventColor(type: PlayerCalendarEvent['type']) {
 }
 
 function parseDayEvents(events: PlayerCalendarEvent[], dateString: string): ParsedEvent[] {
-  return events
-    .filter((event) => event.date === dateString)
-    .map((event) => {
-      const parsedStart = parseTime(event.startTime);
-      const parsedEnd = parseTime(event.endTime);
-      const startTotal = parsedStart.hour * 60 + parsedStart.minute;
-      let endTotal = parsedEnd.hour * 60 + parsedEnd.minute;
-      if (endTotal <= startTotal) {
-        endTotal = startTotal + 60;
-      }
+  const parsedEvents: ParsedEvent[] = [];
 
-      return {
-        ...event,
-        startHour: Math.floor(startTotal / 60),
-        startMinute: startTotal % 60,
-        endHour: Math.floor(endTotal / 60),
-        endMinute: endTotal % 60,
-      };
+  events.forEach((event) => {
+    if (!event.coachManaged) return;
+    if (event.isDraft) return;
+
+    const occurrence = resolveCalendarOccurrence(
+      {
+        date: event.date,
+        startTime: event.startTime,
+        endTime: event.endTime,
+        startDate: event.startDate,
+        endDate: event.endDate,
+        kind: event.kind ?? 'event',
+        title: event.title,
+        description: event.description,
+        eventTypeId: event.type,
+        recurrence: event.recurrence,
+        recurrenceConfig: event.recurrenceConfig,
+        recurrenceEndDate: event.recurrenceEndDate,
+        excludedDates: event.excludedDates,
+        overrides: event.overrides,
+        anticipatedIntensity: event.anticipatedIntensity,
+      },
+      dateString
+    );
+
+    if (!occurrence) return;
+
+    const parsedStart = parseTime(occurrence.startTime);
+    const parsedEnd = parseTime(occurrence.endTime);
+    const startTotal = parsedStart.hour * 60 + parsedStart.minute;
+    let endTotal = parsedEnd.hour * 60 + parsedEnd.minute;
+    if (endTotal <= startTotal) {
+      endTotal = startTotal + 60;
+    }
+
+    parsedEvents.push({
+      ...event,
+      layoutId: `${event.id}::${dateString}`,
+      instanceDate: dateString,
+      renderedTitle: occurrence.title,
+      renderedDescription: occurrence.description,
+      renderedEventTypeId: occurrence.eventTypeId,
+      startHour: Math.floor(startTotal / 60),
+      startMinute: startTotal % 60,
+      endHour: Math.floor(endTotal / 60),
+      endMinute: endTotal % 60,
     });
+  });
+
+  return parsedEvents;
 }
 
-function DaySchedule({ date, events }: { date: Date; events: PlayerCalendarEvent[] }) {
+function getRecurrenceLabel(event: PlayerCalendarEvent): string {
+  const recurrence = event.recurrence ?? 'none';
+  if (recurrence === 'none') return 'Once';
+  if (recurrence === 'daily') return 'Daily';
+  if (recurrence === 'weekly') return `Weekly (${(event.recurrenceConfig?.days ?? []).join(', ') || 'Custom'})`;
+  return `Monthly (${(event.recurrenceConfig?.monthDays ?? []).join(', ') || 'Custom'})`;
+}
+
+function EventDetailsModal({
+  occurrence,
+  onClose,
+}: {
+  occurrence: SelectedOccurrence;
+  onClose: () => void;
+}) {
+  const event = occurrence.event;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[var(--background)] shadow-2xl">
+        <div className="flex items-center justify-between border-b border-[rgba(255,255,255,0.08)] px-4 py-3">
+          <h3 className="text-sm font-semibold text-white">Event Details</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-[rgba(255,255,255,0.05)] p-1.5 text-gray-300 transition-colors hover:text-white"
+            aria-label="Close event details"
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="space-y-3 px-4 py-4 text-sm">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-gray-400">Title</p>
+            <p className="mt-1 font-semibold text-white">{occurrence.title}</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">Type</p>
+              <p className="mt-1 capitalize text-white">{event.type}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">Assignment</p>
+              <p className="mt-1 capitalize text-white">{event.assignmentScope === 'team' ? 'Team' : 'Individual'}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">Date</p>
+              <p className="mt-1 text-white">{occurrence.instanceDate}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">Time</p>
+              <p className="mt-1 text-white">
+                {occurrence.startTime} - {occurrence.endTime}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">Recurrence</p>
+              <p className="mt-1 text-white">{getRecurrenceLabel(event)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-400">Intensity</p>
+              <p className="mt-1 text-white">{event.anticipatedIntensity ?? '--'}</p>
+            </div>
+          </div>
+
+          <div>
+            <p className="text-xs uppercase tracking-wide text-gray-400">Description</p>
+            <p className="mt-1 whitespace-pre-wrap text-gray-200">{occurrence.description || 'No description provided.'}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DaySchedule({
+  date,
+  events,
+  onSelectOccurrence,
+}: {
+  date: Date;
+  events: PlayerCalendarEvent[];
+  onSelectOccurrence: (occurrence: SelectedOccurrence) => void;
+}) {
   const scheduleRef = useRef<HTMLDivElement>(null);
   const dateKey = format(date, 'yyyy-MM-dd');
   const dayEvents = useMemo(() => parseDayEvents(events, dateKey), [dateKey, events]);
@@ -144,11 +284,17 @@ function DaySchedule({ date, events }: { date: Date; events: PlayerCalendarEvent
   }, [dateKey]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)]">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)]">
       <div className="border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] px-4 py-2">
         <p className="text-xs uppercase tracking-wide text-gray-400">Day View</p>
         <p className="text-sm font-semibold text-white">{format(date, 'EEEE, MMM d')}</p>
       </div>
+
+      {dayEvents.length === 0 ? (
+        <p className="pointer-events-none absolute left-1/2 top-16 z-20 -translate-x-1/2 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(10,14,39,0.88)] px-3 py-2 text-center text-xs text-gray-300 shadow-lg">
+          No activities scheduled for this day.
+        </p>
+      ) : null}
 
       <div ref={scheduleRef} className="min-h-0 flex-1 overflow-y-auto">
         {hours.map((hour) => {
@@ -165,15 +311,15 @@ function DaySchedule({ date, events }: { date: Date; events: PlayerCalendarEvent
                 {eventsHere.map((event) => {
                   const coverage = getHourCellCoverage(hour, event.startHour, event.startMinute, event.endHour, event.endMinute);
                   if (!coverage) return null;
-                  const eventLayout = layout.get(event.id);
+                  const eventLayout = layout.get(event.layoutId);
                   const column = eventLayout?.column ?? 0;
                   const totalColumns = eventLayout?.totalColumns ?? 1;
                   const slotWidth = 100 / totalColumns;
 
                   return (
                     <div
-                      key={`${event.id}-${hour}`}
-                      className="absolute rounded-r opacity-75"
+                      key={`${event.layoutId}-${hour}`}
+                      className="absolute cursor-pointer rounded-r opacity-75"
                       style={{
                         backgroundColor: getEventColor(event.type),
                         top: `${coverage.top * 100}%`,
@@ -181,6 +327,17 @@ function DaySchedule({ date, events }: { date: Date; events: PlayerCalendarEvent
                         left: totalColumns > 1 ? `${column * slotWidth}%` : '0',
                         width: totalColumns > 1 ? `${slotWidth}%` : '100%',
                       }}
+                      onClick={() =>
+                        onSelectOccurrence({
+                          event,
+                          instanceDate: event.instanceDate,
+                          title: event.renderedTitle,
+                          description: event.renderedDescription,
+                          eventTypeId: event.renderedEventTypeId,
+                          startTime: `${String(event.startHour).padStart(2, '0')}:${String(event.startMinute).padStart(2, '0')}`,
+                          endTime: `${String(event.endHour).padStart(2, '0')}:${String(event.endMinute).padStart(2, '0')}`,
+                        })
+                      }
                     />
                   );
                 })}
@@ -188,23 +345,35 @@ function DaySchedule({ date, events }: { date: Date; events: PlayerCalendarEvent
                 {startsHere.map((event) => {
                   const coverage = getHourCellCoverage(hour, event.startHour, event.startMinute, event.endHour, event.endMinute);
                   if (!coverage) return null;
-                  const eventLayout = layout.get(event.id);
+                  const eventLayout = layout.get(event.layoutId);
                   const column = eventLayout?.column ?? 0;
                   const totalColumns = eventLayout?.totalColumns ?? 1;
                   const slotWidth = 100 / totalColumns;
 
                   return (
-                    <div
-                      key={`${event.id}-label`}
-                      className="pointer-events-none absolute z-10 truncate px-1.5 text-[10px] font-semibold text-white"
+                    <button
+                      key={`${event.layoutId}-label`}
+                      type="button"
+                      className="absolute z-10 truncate px-1.5 text-left text-[10px] font-semibold text-white"
                       style={{
                         top: `${coverage.top * 100}%`,
                         left: totalColumns > 1 ? `${column * slotWidth}%` : '0',
                         width: totalColumns > 1 ? `${slotWidth}%` : '100%',
                       }}
+                      onClick={() =>
+                        onSelectOccurrence({
+                          event,
+                          instanceDate: event.instanceDate,
+                          title: event.renderedTitle,
+                          description: event.renderedDescription,
+                          eventTypeId: event.renderedEventTypeId,
+                          startTime: `${String(event.startHour).padStart(2, '0')}:${String(event.startMinute).padStart(2, '0')}`,
+                          endTime: `${String(event.endHour).padStart(2, '0')}:${String(event.endMinute).padStart(2, '0')}`,
+                        })
+                      }
                     >
-                      {event.title}
-                    </div>
+                      {event.renderedTitle}
+                    </button>
                   );
                 })}
               </div>
@@ -216,7 +385,15 @@ function DaySchedule({ date, events }: { date: Date; events: PlayerCalendarEvent
   );
 }
 
-function WeekSchedule({ currentDate, events }: { currentDate: Date; events: PlayerCalendarEvent[] }) {
+function WeekSchedule({
+  currentDate,
+  events,
+  onSelectOccurrence,
+}: {
+  currentDate: Date;
+  events: PlayerCalendarEvent[];
+  onSelectOccurrence: (occurrence: SelectedOccurrence) => void;
+}) {
   const scheduleRef = useRef<HTMLDivElement>(null);
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = useMemo(() => Array.from({ length: 7 }).map((_, index) => addDays(weekStart, index)), [weekStart]);
@@ -238,7 +415,7 @@ function WeekSchedule({ currentDate, events }: { currentDate: Date; events: Play
 
   return (
     <div className="hidden h-full min-h-0 md:block">
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)]">
+      <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)]">
         <div className="flex border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)]">
           <div className="w-10 shrink-0" />
           <div className="grid flex-1 grid-cols-7">
@@ -258,6 +435,12 @@ function WeekSchedule({ currentDate, events }: { currentDate: Date; events: Play
           </div>
         </div>
 
+        {parsedByDay.every((dayEvents) => dayEvents.length === 0) ? (
+          <p className="pointer-events-none absolute left-1/2 top-16 z-20 -translate-x-1/2 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(10,14,39,0.88)] px-3 py-2 text-center text-xs text-gray-300 shadow-lg">
+            No activities scheduled for this week.
+          </p>
+        ) : null}
+
         <div ref={scheduleRef} className="min-h-0 flex-1 overflow-y-auto">
           {hours.map((hour) => (
             <div key={hour} data-hour={hour} className="flex min-h-[40px] border-b border-[rgba(255,255,255,0.05)]">
@@ -272,20 +455,21 @@ function WeekSchedule({ currentDate, events }: { currentDate: Date; events: Play
                     getHourCellCoverage(hour, event.startHour, event.startMinute, event.endHour, event.endMinute)
                   );
                   const startsHere = dayEvents.filter((event) => event.startHour === hour);
+
                   return (
                     <div key={`${day.toISOString()}-${hour}`} className="relative border-l border-[rgba(255,255,255,0.06)]">
                       {eventsHere.map((event) => {
                         const coverage = getHourCellCoverage(hour, event.startHour, event.startMinute, event.endHour, event.endMinute);
                         if (!coverage) return null;
-                        const eventLayout = layout.get(event.id);
+                        const eventLayout = layout.get(event.layoutId);
                         const column = eventLayout?.column ?? 0;
                         const totalColumns = eventLayout?.totalColumns ?? 1;
                         const slotWidth = 100 / totalColumns;
 
                         return (
                           <div
-                            key={`${event.id}-${hour}`}
-                            className="absolute opacity-75"
+                            key={`${event.layoutId}-${hour}`}
+                            className="absolute cursor-pointer opacity-75"
                             style={{
                               backgroundColor: getEventColor(event.type),
                               top: `${coverage.top * 100}%`,
@@ -293,6 +477,17 @@ function WeekSchedule({ currentDate, events }: { currentDate: Date; events: Play
                               left: totalColumns > 1 ? `${column * slotWidth}%` : '0',
                               width: totalColumns > 1 ? `${slotWidth}%` : '100%',
                             }}
+                            onClick={() =>
+                              onSelectOccurrence({
+                                event,
+                                instanceDate: event.instanceDate,
+                                title: event.renderedTitle,
+                                description: event.renderedDescription,
+                                eventTypeId: event.renderedEventTypeId,
+                                startTime: `${String(event.startHour).padStart(2, '0')}:${String(event.startMinute).padStart(2, '0')}`,
+                                endTime: `${String(event.endHour).padStart(2, '0')}:${String(event.endMinute).padStart(2, '0')}`,
+                              })
+                            }
                           />
                         );
                       })}
@@ -300,24 +495,36 @@ function WeekSchedule({ currentDate, events }: { currentDate: Date; events: Play
                       {startsHere.map((event, index) => {
                         const coverage = getHourCellCoverage(hour, event.startHour, event.startMinute, event.endHour, event.endMinute);
                         if (!coverage) return null;
-                        const eventLayout = layout.get(event.id);
+                        const eventLayout = layout.get(event.layoutId);
                         const column = eventLayout?.column ?? 0;
                         const totalColumns = eventLayout?.totalColumns ?? 1;
                         const slotWidth = 100 / totalColumns;
                         const stackedTop = `calc(${coverage.top * 100}% + ${index * 9}px)`;
 
                         return (
-                          <div
-                            key={`${event.id}-title`}
-                            className="pointer-events-none absolute z-10 truncate px-1 text-[8px] font-semibold text-white"
+                          <button
+                            key={`${event.layoutId}-title`}
+                            type="button"
+                            className="absolute z-10 truncate px-1 text-left text-[8px] font-semibold text-white"
                             style={{
                               top: stackedTop,
                               left: totalColumns > 1 ? `${column * slotWidth}%` : '0',
                               width: totalColumns > 1 ? `${slotWidth}%` : '100%',
                             }}
+                            onClick={() =>
+                              onSelectOccurrence({
+                                event,
+                                instanceDate: event.instanceDate,
+                                title: event.renderedTitle,
+                                description: event.renderedDescription,
+                                eventTypeId: event.renderedEventTypeId,
+                                startTime: `${String(event.startHour).padStart(2, '0')}:${String(event.startMinute).padStart(2, '0')}`,
+                                endTime: `${String(event.endHour).padStart(2, '0')}:${String(event.endMinute).padStart(2, '0')}`,
+                              })
+                            }
                           >
-                            {event.title}
-                          </div>
+                            {event.renderedTitle}
+                          </button>
                         );
                       })}
                     </div>
@@ -333,14 +540,9 @@ function WeekSchedule({ currentDate, events }: { currentDate: Date; events: Play
 }
 
 export function PlayerCalendar({ events, className }: PlayerCalendarProps) {
-  const firstEventDate = events[0]?.date ?? new Date().toISOString().slice(0, 10);
   const [view, setView] = useState<'Day' | 'Week'>('Week');
-  const [currentDate, setCurrentDate] = useState<Date>(() => parseISO(firstEventDate));
-
-  useEffect(() => {
-    if (!events.length) return;
-    setCurrentDate(parseISO(events[0].date));
-  }, [events]);
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
+  const [selectedOccurrence, setSelectedOccurrence] = useState<SelectedOccurrence | null>(null);
 
   const viewLabel = view === 'Week' ? `Week of ${format(startOfWeek(currentDate, { weekStartsOn: 1 }), 'MMM d')}` : format(currentDate, 'MMM d, yyyy');
 
@@ -384,24 +586,34 @@ export function PlayerCalendar({ events, className }: PlayerCalendarProps) {
       </div>
 
       <div className="min-h-0 flex-1">
-        {events.length === 0 ? (
-          <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-5 text-sm text-gray-300">
-            No activities scheduled for this player.
-          </div>
-        ) : (
+        {view === 'Day' ? (
+          <DaySchedule
+            date={currentDate}
+            events={events}
+            onSelectOccurrence={setSelectedOccurrence}
+          />
+        ) : null}
+        {view === 'Week' ? (
           <>
-            {view === 'Day' ? <DaySchedule date={currentDate} events={events} /> : null}
-            {view === 'Week' ? (
-              <>
-                <div className="md:hidden">
-                  <DaySchedule date={currentDate} events={events} />
-                </div>
-                <WeekSchedule currentDate={currentDate} events={events} />
-              </>
-            ) : null}
+            <div className="md:hidden">
+              <DaySchedule
+                date={currentDate}
+                events={events}
+                onSelectOccurrence={setSelectedOccurrence}
+              />
+            </div>
+            <WeekSchedule
+              currentDate={currentDate}
+              events={events}
+              onSelectOccurrence={setSelectedOccurrence}
+            />
           </>
-        )}
+        ) : null}
       </div>
+
+      {selectedOccurrence ? (
+        <EventDetailsModal occurrence={selectedOccurrence} onClose={() => setSelectedOccurrence(null)} />
+      ) : null}
     </section>
   );
 }

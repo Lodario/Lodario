@@ -93,7 +93,7 @@ function getSummaryStatus({
     };
   }
 
-  if (averageReadiness != null && (averageReadiness < 78 || stress >= 58 || fatigue >= 7.2)) {
+  if (averageReadiness != null && (averageReadiness < 70 || stress >= 58 || fatigue >= 7.2)) {
     return {
       label: 'Needs Attention',
       className: 'text-[var(--status-red)] border-[rgba(255,107,107,0.4)] bg-[rgba(255,107,107,0.12)]',
@@ -131,8 +131,8 @@ function buildAttentionIssue({
       issue: 'Low readiness',
       scoreLabel: 'Readiness',
       scoreValue: readiness,
-      triggered: readiness < 78,
-      severity: 78 - readiness,
+      triggered: readiness < 70,
+      severity: 70 - readiness,
     },
     {
       issue: 'High fatigue',
@@ -152,8 +152,8 @@ function buildAttentionIssue({
       issue: 'Poor sleep',
       scoreLabel: 'Sleep score',
       scoreValue: sleepScore,
-      triggered: sleepScore < 76,
-      severity: 76 - sleepScore,
+      triggered: sleepScore < 70,
+      severity: 70 - sleepScore,
     },
     {
       issue: 'High stress',

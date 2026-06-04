@@ -1,16 +1,25 @@
-import { addDays, addWeeks, format, isSameDay, parseISO, startOfWeek, subDays, subWeeks } from 'date-fns';
+import { addDays, addWeeks, format, isSameDay, startOfWeek, subDays, subWeeks } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CSSProperties } from 'react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { TeamCalendarItem } from '@/components/coach/calendar/types';
+import { resolveCalendarOccurrence } from '@/lib/calendar/events';
 
 interface TeamCalendarProps {
   items: TeamCalendarItem[];
   className?: string;
   style?: CSSProperties;
+  selectedItemId?: string | null;
+  onSelectItem?: (item: TeamCalendarItem, instanceDate: string) => void;
+  onSelectEmptySlot?: (date: string, hour: number) => void;
 }
 
 interface ParsedCalendarItem extends TeamCalendarItem {
+  layoutId: string;
+  instanceDate: string;
+  renderedTitle: string;
+  renderedDescription?: string;
+  renderedEventTypeId: string;
   startHour: number;
   startMinute: number;
   endHour: number;
@@ -71,7 +80,7 @@ function computeOverlapGroups(events: ParsedCalendarItem[], maxCols: number): Ma
 
   const intervals = events
     .map((event) => ({
-      id: event.id,
+      id: event.layoutId,
       start: event.startHour * 60 + event.startMinute,
       end: event.endHour * 60 + event.endMinute,
     }))
@@ -113,28 +122,70 @@ function getItemColor(type: TeamCalendarItem['type']) {
 }
 
 function parseDayItems(items: TeamCalendarItem[], dateString: string): ParsedCalendarItem[] {
-  return items
-    .filter((item) => item.date === dateString)
-    .map((item) => {
-      const parsedStart = parseTime(item.startTime);
-      const parsedEnd = parseTime(item.endTime);
-      const startTotal = parsedStart.hour * 60 + parsedStart.minute;
-      let endTotal = parsedEnd.hour * 60 + parsedEnd.minute;
-      if (endTotal <= startTotal) {
-        endTotal = startTotal + 60;
-      }
+  const parsedItems: ParsedCalendarItem[] = [];
 
-      return {
-        ...item,
-        startHour: Math.floor(startTotal / 60),
-        startMinute: startTotal % 60,
-        endHour: Math.floor(endTotal / 60),
-        endMinute: endTotal % 60,
-      };
+  items.forEach((item) => {
+    const occurrence = resolveCalendarOccurrence(
+      {
+        date: item.date,
+        startTime: item.startTime,
+        endTime: item.endTime,
+        startDate: item.startDate,
+        endDate: item.endDate,
+        kind: item.kind,
+        title: item.title,
+        description: item.description,
+        eventTypeId: item.eventTypeId ?? item.type,
+        recurrence: item.recurrence,
+        recurrenceConfig: item.recurrenceConfig,
+        recurrenceEndDate: item.recurrenceEndDate,
+        excludedDates: item.excludedDates,
+        overrides: item.overrides,
+        anticipatedIntensity: item.anticipatedIntensity,
+      },
+      dateString
+    );
+
+    if (!occurrence) return;
+
+    const parsedStart = parseTime(occurrence.startTime);
+    const parsedEnd = parseTime(occurrence.endTime);
+    const startTotal = parsedStart.hour * 60 + parsedStart.minute;
+    let endTotal = parsedEnd.hour * 60 + parsedEnd.minute;
+    if (endTotal <= startTotal) {
+      endTotal = startTotal + 60;
+    }
+
+    parsedItems.push({
+      ...item,
+      layoutId: `${item.id}::${dateString}`,
+      instanceDate: dateString,
+      renderedTitle: occurrence.title,
+      renderedDescription: occurrence.description,
+      renderedEventTypeId: occurrence.eventTypeId,
+      startHour: Math.floor(startTotal / 60),
+      startMinute: startTotal % 60,
+      endHour: Math.floor(endTotal / 60),
+      endMinute: endTotal % 60,
     });
+  });
+
+  return parsedItems;
 }
 
-function DaySchedule({ date, items }: { date: Date; items: TeamCalendarItem[] }) {
+function DaySchedule({
+  date,
+  items,
+  selectedItemId,
+  onSelectItem,
+  onSelectEmptySlot,
+}: {
+  date: Date;
+  items: TeamCalendarItem[];
+  selectedItemId?: string | null;
+  onSelectItem?: (item: TeamCalendarItem, instanceDate: string) => void;
+  onSelectEmptySlot?: (date: string, hour: number) => void;
+}) {
   const scheduleRef = useRef<HTMLDivElement>(null);
   const dateKey = format(date, 'yyyy-MM-dd');
   const dayItems = useMemo(() => parseDayItems(items, dateKey), [dateKey, items]);
@@ -150,11 +201,17 @@ function DaySchedule({ date, items }: { date: Date; items: TeamCalendarItem[] })
   }, [dateKey]);
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)]">
+    <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)]">
       <div className="border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)] px-4 py-2">
         <p className="text-xs uppercase tracking-wide text-gray-400">Day View</p>
         <p className="text-sm font-semibold text-white">{format(date, 'EEEE, MMM d')}</p>
       </div>
+
+      {dayItems.length === 0 ? (
+        <p className="pointer-events-none absolute left-1/2 top-16 z-20 -translate-x-1/2 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(10,14,39,0.88)] px-3 py-2 text-center text-xs text-gray-300 shadow-lg">
+          No activities scheduled for this day.
+        </p>
+      ) : null}
 
       <div
         ref={scheduleRef}
@@ -166,33 +223,43 @@ function DaySchedule({ date, items }: { date: Date; items: TeamCalendarItem[] })
             getHourCellCoverage(hour, item.startHour, item.startMinute, item.endHour, item.endMinute)
           );
           const startsHere = dayItems.filter((item) => item.startHour === hour);
+          const isCellEmpty = itemsHere.length === 0;
 
           return (
             <div key={hour} data-hour={hour} className="flex min-h-[44px] border-b border-[rgba(255,255,255,0.05)]">
               <div className="w-12 shrink-0 pr-2 pt-1 text-right text-[10px] font-medium text-gray-500">
                 {formatHourLabel(hour)}
               </div>
-              <div className="relative flex-1 border-l border-[rgba(255,255,255,0.06)]">
+              <div
+                className="relative flex-1 border-l border-[rgba(255,255,255,0.06)]"
+                role={isCellEmpty && onSelectEmptySlot ? 'button' : undefined}
+                onClick={isCellEmpty && onSelectEmptySlot ? () => onSelectEmptySlot(dateKey, hour) : undefined}
+              >
                 {itemsHere.map((item) => {
                   const coverage = getHourCellCoverage(hour, item.startHour, item.startMinute, item.endHour, item.endMinute);
                   if (!coverage) return null;
-                  const itemLayout = layout.get(item.id);
+                  const itemLayout = layout.get(item.layoutId);
                   const column = itemLayout?.column ?? 0;
                   const totalColumns = itemLayout?.totalColumns ?? 1;
                   const slotWidth = 100 / totalColumns;
+                  const isSelected = selectedItemId === item.id;
 
                   return (
                     <div
-                      key={`${item.id}-${hour}`}
-                      className={`absolute rounded-r ${item.kind === 'task' ? 'border border-dashed border-white/30' : ''} ${
-                        item.status === 'completed' ? 'opacity-45' : 'opacity-75'
-                      }`}
+                      key={`${item.layoutId}-${hour}`}
+                      className={`absolute cursor-pointer rounded-r ${
+                        item.kind === 'task' ? 'border border-dashed border-white/30' : ''
+                      } ${item.status === 'completed' ? 'opacity-45' : 'opacity-75'} ${item.isDraft ? 'border border-amber-300/50' : ''} ${isSelected ? 'ring-2 ring-[var(--accent-secondary)]' : ''}`}
                       style={{
                         backgroundColor: getItemColor(item.type),
                         top: `${coverage.top * 100}%`,
                         height: `${coverage.height * 100}%`,
                         left: totalColumns > 1 ? `${column * slotWidth}%` : '0',
                         width: totalColumns > 1 ? `${slotWidth}%` : '100%',
+                      }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelectItem?.(item, item.instanceDate);
                       }}
                     />
                   );
@@ -201,23 +268,28 @@ function DaySchedule({ date, items }: { date: Date; items: TeamCalendarItem[] })
                 {startsHere.map((item) => {
                   const coverage = getHourCellCoverage(hour, item.startHour, item.startMinute, item.endHour, item.endMinute);
                   if (!coverage) return null;
-                  const itemLayout = layout.get(item.id);
+                  const itemLayout = layout.get(item.layoutId);
                   const column = itemLayout?.column ?? 0;
                   const totalColumns = itemLayout?.totalColumns ?? 1;
                   const slotWidth = 100 / totalColumns;
 
                   return (
-                    <div
-                      key={`${item.id}-label`}
-                      className="pointer-events-none absolute z-10 truncate px-1.5 text-[10px] font-semibold text-white"
+                    <button
+                      key={`${item.layoutId}-label`}
+                      type="button"
+                      className="absolute z-10 truncate px-1.5 text-left text-[10px] font-semibold text-white"
                       style={{
                         top: `${coverage.top * 100}%`,
                         left: totalColumns > 1 ? `${column * slotWidth}%` : '0',
                         width: totalColumns > 1 ? `${slotWidth}%` : '100%',
                       }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSelectItem?.(item, item.instanceDate);
+                      }}
                     >
-                      {item.kind === 'task' ? `Task: ${item.title}` : item.title}
-                    </div>
+                      {item.kind === 'task' ? `Task: ${item.renderedTitle}` : item.renderedTitle}
+                    </button>
                   );
                 })}
               </div>
@@ -229,7 +301,19 @@ function DaySchedule({ date, items }: { date: Date; items: TeamCalendarItem[] })
   );
 }
 
-function WeekSchedule({ currentDate, items }: { currentDate: Date; items: TeamCalendarItem[] }) {
+function WeekSchedule({
+  currentDate,
+  items,
+  selectedItemId,
+  onSelectItem,
+  onSelectEmptySlot,
+}: {
+  currentDate: Date;
+  items: TeamCalendarItem[];
+  selectedItemId?: string | null;
+  onSelectItem?: (item: TeamCalendarItem, instanceDate: string) => void;
+  onSelectEmptySlot?: (date: string, hour: number) => void;
+}) {
   const scheduleRef = useRef<HTMLDivElement>(null);
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = useMemo(() => Array.from({ length: 7 }).map((_, index) => addDays(weekStart, index)), [weekStart]);
@@ -251,7 +335,7 @@ function WeekSchedule({ currentDate, items }: { currentDate: Date; items: TeamCa
 
   return (
     <div className="hidden h-full min-h-0 md:block">
-      <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)]">
+      <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)]">
         <div className="flex border-b border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.03)]">
           <div className="w-10 shrink-0" />
           <div className="grid flex-1 grid-cols-7">
@@ -271,6 +355,12 @@ function WeekSchedule({ currentDate, items }: { currentDate: Date; items: TeamCa
           </div>
         </div>
 
+        {parsedByDay.every((dayItems) => dayItems.length === 0) ? (
+          <p className="pointer-events-none absolute left-1/2 top-16 z-20 -translate-x-1/2 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(10,14,39,0.88)] px-3 py-2 text-center text-xs text-gray-300 shadow-lg">
+            No activities scheduled for this week.
+          </p>
+        ) : null}
+
         <div
           ref={scheduleRef}
           className="min-h-0 overflow-y-auto"
@@ -284,33 +374,46 @@ function WeekSchedule({ currentDate, items }: { currentDate: Date; items: TeamCa
               <div className="grid flex-1 grid-cols-7">
                 {weekDays.map((day, dayIndex) => {
                   const dayItems = parsedByDay[dayIndex];
+                  const dateKey = format(day, 'yyyy-MM-dd');
                   const layout = layoutsByDay[dayIndex];
                   const itemsHere = dayItems.filter((item) =>
                     getHourCellCoverage(hour, item.startHour, item.startMinute, item.endHour, item.endMinute)
                   );
                   const startsHere = dayItems.filter((item) => item.startHour === hour);
+                  const isCellEmpty = itemsHere.length === 0;
+
                   return (
-                    <div key={`${day.toISOString()}-${hour}`} className="relative border-l border-[rgba(255,255,255,0.06)]">
+                    <div
+                      key={`${day.toISOString()}-${hour}`}
+                      className="relative border-l border-[rgba(255,255,255,0.06)]"
+                      role={isCellEmpty && onSelectEmptySlot ? 'button' : undefined}
+                      onClick={isCellEmpty && onSelectEmptySlot ? () => onSelectEmptySlot(dateKey, hour) : undefined}
+                    >
                       {itemsHere.map((item) => {
                         const coverage = getHourCellCoverage(hour, item.startHour, item.startMinute, item.endHour, item.endMinute);
                         if (!coverage) return null;
-                        const itemLayout = layout.get(item.id);
+                        const itemLayout = layout.get(item.layoutId);
                         const column = itemLayout?.column ?? 0;
                         const totalColumns = itemLayout?.totalColumns ?? 1;
                         const slotWidth = 100 / totalColumns;
+                        const isSelected = selectedItemId === item.id;
 
                         return (
                           <div
-                            key={`${item.id}-${hour}`}
-                            className={`absolute ${item.kind === 'task' ? 'border border-dashed border-white/30' : ''} ${
-                              item.status === 'completed' ? 'opacity-45' : 'opacity-75'
-                            }`}
+                            key={`${item.layoutId}-${hour}`}
+                            className={`absolute cursor-pointer ${
+                              item.kind === 'task' ? 'border border-dashed border-white/30' : ''
+                            } ${item.status === 'completed' ? 'opacity-45' : 'opacity-75'} ${item.isDraft ? 'border border-amber-300/50' : ''} ${isSelected ? 'ring-2 ring-[var(--accent-secondary)]' : ''}`}
                             style={{
                               backgroundColor: getItemColor(item.type),
                               top: `${coverage.top * 100}%`,
                               height: `${coverage.height * 100}%`,
                               left: totalColumns > 1 ? `${column * slotWidth}%` : '0',
                               width: totalColumns > 1 ? `${slotWidth}%` : '100%',
+                            }}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onSelectItem?.(item, item.instanceDate);
                             }}
                           />
                         );
@@ -319,24 +422,29 @@ function WeekSchedule({ currentDate, items }: { currentDate: Date; items: TeamCa
                       {startsHere.map((item, index) => {
                         const coverage = getHourCellCoverage(hour, item.startHour, item.startMinute, item.endHour, item.endMinute);
                         if (!coverage) return null;
-                        const itemLayout = layout.get(item.id);
+                        const itemLayout = layout.get(item.layoutId);
                         const column = itemLayout?.column ?? 0;
                         const totalColumns = itemLayout?.totalColumns ?? 1;
                         const slotWidth = 100 / totalColumns;
                         const stackedTop = `calc(${coverage.top * 100}% + ${index * 9}px)`;
 
                         return (
-                          <div
-                            key={`${item.id}-title`}
-                            className="pointer-events-none absolute z-10 truncate px-1 text-[8px] font-semibold text-white"
+                          <button
+                            key={`${item.layoutId}-title`}
+                            type="button"
+                            className="absolute z-10 truncate px-1 text-left text-[8px] font-semibold text-white"
                             style={{
                               top: stackedTop,
                               left: totalColumns > 1 ? `${column * slotWidth}%` : '0',
                               width: totalColumns > 1 ? `${slotWidth}%` : '100%',
                             }}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onSelectItem?.(item, item.instanceDate);
+                            }}
                           >
-                            {item.kind === 'task' ? `Task: ${item.title}` : item.title}
-                          </div>
+                            {item.kind === 'task' ? `Task: ${item.renderedTitle}` : item.renderedTitle}
+                          </button>
                         );
                       })}
                     </div>
@@ -351,15 +459,16 @@ function WeekSchedule({ currentDate, items }: { currentDate: Date; items: TeamCa
   );
 }
 
-export function TeamCalendar({ items, className, style }: TeamCalendarProps) {
-  const firstItemDate = items[0]?.date ?? new Date().toISOString().slice(0, 10);
+export function TeamCalendar({
+  items,
+  className,
+  style,
+  selectedItemId,
+  onSelectItem,
+  onSelectEmptySlot,
+}: TeamCalendarProps) {
   const [view, setView] = useState<'Day' | 'Week'>('Week');
-  const [currentDate, setCurrentDate] = useState<Date>(() => parseISO(firstItemDate));
-
-  useEffect(() => {
-    if (!items.length) return;
-    setCurrentDate(parseISO(items[0].date));
-  }, [items]);
+  const [currentDate, setCurrentDate] = useState<Date>(() => new Date());
 
   const viewLabel =
     view === 'Week'
@@ -410,23 +519,35 @@ export function TeamCalendar({ items, className, style }: TeamCalendarProps) {
       </div>
 
       <div className="min-h-0 flex-1">
-        {items.length === 0 ? (
-          <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-5 text-sm text-gray-300">
-            No activities scheduled for this team.
-          </div>
-        ) : (
+        {view === 'Day' ? (
+          <DaySchedule
+            date={currentDate}
+            items={items}
+            selectedItemId={selectedItemId}
+            onSelectItem={onSelectItem}
+            onSelectEmptySlot={onSelectEmptySlot}
+          />
+        ) : null}
+        {view === 'Week' ? (
           <>
-            {view === 'Day' ? <DaySchedule date={currentDate} items={items} /> : null}
-            {view === 'Week' ? (
-              <>
-                <div className="md:hidden">
-                  <DaySchedule date={currentDate} items={items} />
-                </div>
-                <WeekSchedule currentDate={currentDate} items={items} />
-              </>
-            ) : null}
+            <div className="md:hidden">
+              <DaySchedule
+                date={currentDate}
+                items={items}
+                selectedItemId={selectedItemId}
+                onSelectItem={onSelectItem}
+                onSelectEmptySlot={onSelectEmptySlot}
+              />
+            </div>
+            <WeekSchedule
+              currentDate={currentDate}
+              items={items}
+              selectedItemId={selectedItemId}
+              onSelectItem={onSelectItem}
+              onSelectEmptySlot={onSelectEmptySlot}
+            />
           </>
-        )}
+        ) : null}
       </div>
     </section>
   );

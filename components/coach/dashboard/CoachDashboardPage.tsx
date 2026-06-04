@@ -172,7 +172,7 @@ export function CoachDashboardPage() {
     });
 
     teamCards.forEach((team) => {
-      if (team.averageReadiness != null && team.averageReadiness < 78) {
+      if (team.averageReadiness != null && team.averageReadiness < 70) {
         alerts.push({
           id: `${team.id}-readiness`,
           teamName: team.name,

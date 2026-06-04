@@ -1,6 +1,23 @@
 export type PlayerViewMode = 'analytics' | 'calendar';
 
 export type PlayerSessionType = 'training' | 'game' | 'gym' | 'recovery' | 'solo' | 'meeting' | 'other';
+export type PlayerCalendarRecurrence = 'none' | 'daily' | 'weekly' | 'monthly';
+export type PlayerCalendarIntensity = 'Low' | 'Moderate' | 'High';
+export type PlayerCalendarAssignmentScope = 'team' | 'player';
+
+export interface PlayerCalendarRecurrenceConfig {
+  days?: number[];
+  monthDays?: number[];
+}
+
+export interface PlayerCalendarEventOverride {
+  title?: string;
+  description?: string;
+  eventTypeId?: string;
+  start?: string;
+  end?: string;
+  anticipatedIntensity?: PlayerCalendarIntensity;
+}
 
 export interface CoachPlayer {
   id: string;
@@ -25,9 +42,23 @@ export interface PlayerCalendarEvent {
   teamId: string;
   title: string;
   type: PlayerSessionType;
+  kind?: 'event' | 'task';
+  description?: string;
+  assignmentScope?: PlayerCalendarAssignmentScope;
+  coachManaged?: boolean;
+  recurrence?: PlayerCalendarRecurrence;
+  recurrenceConfig?: PlayerCalendarRecurrenceConfig;
+  recurrenceEndDate?: string | null;
+  anticipatedIntensity?: PlayerCalendarIntensity | null;
+  overrides?: Record<string, PlayerCalendarEventOverride>;
+  excludedDates?: string[];
+  isDraft?: boolean;
+  sourceEventGroupId?: string | null;
   date: string;
   startTime: string;
   endTime: string;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface PlayerNoteItem {

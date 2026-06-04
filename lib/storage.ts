@@ -9,6 +9,32 @@ import {
 } from './types';
 
 export class StorageService {
+  private static isMissingCalendarDescriptionError(error: { message?: string | null; details?: string | null } | null | undefined): boolean {
+    const message = `${error?.message ?? ''} ${error?.details ?? ''}`.toLowerCase();
+    return message.includes('column calendar_events.description does not exist');
+  }
+
+  private static isCoachDraftEvent(recurrenceConfig: unknown): boolean {
+    if (!recurrenceConfig || typeof recurrenceConfig !== 'object' || Array.isArray(recurrenceConfig)) {
+      return false;
+    }
+
+    const config = recurrenceConfig as Record<string, unknown>;
+    const meta = config.meta;
+    if (!meta || typeof meta !== 'object' || Array.isArray(meta)) {
+      return false;
+    }
+
+    const normalizedMeta = meta as Record<string, unknown>;
+    const coachManaged = normalizedMeta.coachManaged === true;
+    const published = normalizedMeta.published;
+    if (!coachManaged) {
+      return false;
+    }
+
+    return published === false;
+  }
+
   // --- Profile ---
   static async getProfile(): Promise<UserProfile | null> {
     const { data: { user } } = await supabase.auth.getUser();
@@ -174,45 +200,64 @@ export class StorageService {
 
     if (error || !data) return [];
 
-    return data.map((row: any) => ({
-      id: row.id,
-      eventTypeId: row.event_type_id,
-      title: row.title ?? undefined,
-      start: row.start_time,
-      end: row.end_time,
-      color: row.color ?? undefined,
-      recurrence: row.recurrence,
-      recurrenceConfig: row.recurrence_config ?? undefined,
-      recurrenceEndDate: row.recurrence_end_date ?? undefined,
-      excludedDates: row.excluded_dates ?? undefined,
-      overrides: row.overrides ?? undefined,
-      anticipatedIntensity: row.anticipated_intensity ?? undefined,
-    }));
+    return data
+      .filter((row: any) => !StorageService.isCoachDraftEvent(row.recurrence_config))
+      .map((row: any) => ({
+        id: row.id,
+        eventTypeId: row.event_type_id,
+        title: row.title ?? undefined,
+        description: row.description ?? undefined,
+        start: row.start_time,
+        end: row.end_time,
+        color: row.color ?? undefined,
+        recurrence: row.recurrence,
+        recurrenceConfig: row.recurrence_config ?? undefined,
+        recurrenceEndDate: row.recurrence_end_date ?? undefined,
+        excludedDates: row.excluded_dates ?? undefined,
+        overrides: row.overrides ?? undefined,
+        anticipatedIntensity: row.anticipated_intensity ?? undefined,
+      }));
   }
 
   static async saveCalendarEvent(event: CalendarEvent): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    const payload = {
+      id: event.id,
+      user_id: user.id,
+      event_type_id: event.eventTypeId,
+      title: event.title ?? null,
+      description: event.description ?? null,
+      start_time: event.start,
+      end_time: event.end,
+      color: event.color ?? null,
+      recurrence: event.recurrence,
+      recurrence_config: event.recurrenceConfig ?? {},
+      recurrence_end_date: event.recurrenceEndDate ?? null,
+      excluded_dates: event.excludedDates ?? [],
+      overrides: event.overrides ?? {},
+      anticipated_intensity: event.anticipatedIntensity ?? null,
+    };
+
     const { error } = await supabase
       .from('calendar_events')
-      .upsert({
-        id: event.id,
-        user_id: user.id,
-        event_type_id: event.eventTypeId,
-        title: event.title ?? null,
-        start_time: event.start,
-        end_time: event.end,
-        color: event.color ?? null,
-        recurrence: event.recurrence,
-        recurrence_config: event.recurrenceConfig ?? {},
-        recurrence_end_date: event.recurrenceEndDate ?? null,
-        excluded_dates: event.excludedDates ?? [],
-        overrides: event.overrides ?? {},
-        anticipated_intensity: event.anticipatedIntensity ?? null,
-      }, { onConflict: 'id' });
+      .upsert(payload, { onConflict: 'id' });
 
-    if (error) console.error('Error saving calendar event:', error);
+    if (!error) return;
+
+    if (StorageService.isMissingCalendarDescriptionError(error)) {
+      const { description: _description, ...fallbackPayload } = payload;
+      const fallbackResult = await supabase
+        .from('calendar_events')
+        .upsert(fallbackPayload, { onConflict: 'id' });
+
+      if (!fallbackResult.error) return;
+      console.error('Error saving calendar event:', fallbackResult.error);
+      return;
+    }
+
+    console.error('Error saving calendar event:', error);
   }
 
   static async deleteCalendarEvent(eventId: string): Promise<void> {
