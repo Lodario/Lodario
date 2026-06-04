@@ -222,8 +222,6 @@ export function CoachCalendarPage() {
     setSaveSuccess(null);
     setForm((previous) => ({
       ...createDefaultForm(playerOptions, date, hour),
-      assignmentScope: previous.assignmentScope,
-      assignedPlayerId: previous.assignedPlayerId || playerOptions[0]?.id || '',
       eventType: previous.eventType,
       kind: previous.kind,
       recurrence: previous.recurrence,
@@ -269,11 +267,6 @@ export function CoachCalendarPage() {
       return;
     }
 
-    if (form.assignmentScope === 'player' && !form.assignedPlayerId) {
-      setSaveError('Select a player for individual assignment.');
-      return;
-    }
-
     const isTask = form.kind === 'task';
     const startDate = isTask ? form.startDate : form.date;
     const endDate = isTask ? form.endDate : form.date;
@@ -305,20 +298,10 @@ export function CoachCalendarPage() {
       return;
     }
 
-    const targetPlayers =
-      form.assignmentScope === 'team'
-        ? playerOptions.map((player) => player.id)
-        : [form.assignedPlayerId].filter((value) => value.length > 0);
+    const targetPlayers = playerOptions.map((player) => player.id);
 
     if (targetPlayers.length === 0) {
       setSaveError('No active players are available for this team.');
-      return;
-    }
-
-    const selectedPlayerStillActive =
-      form.assignmentScope === 'team' || playerOptions.some((player) => player.id === form.assignedPlayerId);
-    if (!selectedPlayerStillActive) {
-      setSaveError('The selected player is no longer active on this team.');
       return;
     }
 
@@ -341,8 +324,8 @@ export function CoachCalendarPage() {
       coachId: user.id,
       teamId: selectedTeam.id,
       kind: form.kind,
-      assignmentScope: form.assignmentScope,
-      assignedPlayerId: form.assignmentScope === 'player' ? form.assignedPlayerId : null,
+      assignmentScope: 'team',
+      assignedPlayerId: null,
       eventGroupId,
       published: publish,
     } as const;
@@ -477,7 +460,9 @@ export function CoachCalendarPage() {
         <section className="glass-card flex min-h-0 flex-col p-4 sm:p-5 xl:self-start">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold text-white">{selectedItem ? 'Edit Calendar Item' : 'Create Calendar Item'}</h2>
+              <h2 className="text-sm font-semibold text-white">
+                {selectedItem ? 'Edit Team Calendar Item' : 'Create Team Calendar Item'}
+              </h2>
               <p className="mt-1 text-xs text-gray-400">Target team: {selectedTeam.name}</p>
             </div>
             {selectedItem?.isDraft ? (
@@ -493,49 +478,6 @@ export function CoachCalendarPage() {
               checked={form.kind === 'task'}
               onChange={(checked) => setForm((previous) => ({ ...previous, kind: checked ? 'task' : 'event' }))}
             />
-
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Assignment</p>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {(['team', 'player'] as const).map((scope) => (
-                  <button
-                    key={scope}
-                    type="button"
-                    onClick={() =>
-                      setForm((previous) => ({
-                        ...previous,
-                        assignmentScope: scope,
-                        assignedPlayerId: previous.assignedPlayerId || playerOptions[0]?.id || '',
-                      }))
-                    }
-                    className={`rounded-lg border px-3 py-2 text-xs font-semibold capitalize transition-colors ${
-                      form.assignmentScope === scope
-                        ? 'border-[var(--accent-secondary)] bg-[rgba(74,158,255,0.16)] text-white'
-                        : 'border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] text-gray-300 hover:text-white'
-                    }`}
-                  >
-                    {scope === 'team' ? 'Whole Team' : 'Individual Player'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {form.assignmentScope === 'player' ? (
-              <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Player
-                <select
-                  value={form.assignedPlayerId}
-                  onChange={(event) => setForm((previous) => ({ ...previous, assignedPlayerId: event.target.value }))}
-                  className="mt-1.5 w-full rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.05)] p-3 text-sm text-white"
-                >
-                  {playerOptions.map((player) => (
-                    <option key={player.id} value={player.id} className="bg-[#0b1230] text-white">
-                      {player.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
 
             <label className="block text-xs font-semibold uppercase tracking-wider text-gray-400">
               Event Title
