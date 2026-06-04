@@ -4,6 +4,8 @@ import { calculateReadiness } from '@/lib/readiness';
 import { generateRecommendation } from '@/lib/recommendations';
 import { analyzeTrainingLoad } from '@/lib/training-load';
 import {
+  dedupeCalendarEventsById,
+  isBuiltInActivityEventType,
   parseCoachCalendarMeta,
   parseExcludedDates,
   parseOverrideMap,
@@ -61,7 +63,7 @@ interface TrainingRow {
   pain_notes: string | null;
 }
 
-interface CalendarRow {
+export interface CalendarRow {
   id: string;
   user_id: string;
   title: string | null;
@@ -86,6 +88,13 @@ interface InjuryRow {
   created_at: string;
 }
 
+interface EventTypeActivityRow {
+  id: string;
+  user_id: string;
+  is_activity: boolean | null;
+  is_deleted: boolean | null;
+}
+
 type SupabaseErrorLike = {
   message?: string | null;
   details?: string | null;
@@ -105,7 +114,7 @@ function isMissingCalendarColumnError(error: SupabaseErrorLike | null | undefine
   return message.includes('column calendar_events.') && message.includes('does not exist');
 }
 
-async function loadCalendarRowsForPlayers(playerIds: string[]): Promise<{ rows: CalendarRow[]; error: string | null }> {
+export async function loadCalendarRowsForPlayers(playerIds: string[]): Promise<{ rows: CalendarRow[]; error: string | null }> {
   const selectWithDescription =
     'id, user_id, title, description, event_type_id, start_time, end_time, recurrence, recurrence_config, recurrence_end_date, excluded_dates, overrides, anticipated_intensity';
   const selectCoreOnly = 'id, user_id, title, event_type_id, start_time, end_time';
@@ -146,6 +155,33 @@ async function loadCalendarRowsForPlayers(playerIds: string[]): Promise<{ rows: 
   }));
 
   return { rows, error: null };
+}
+
+async function loadEventTypeActivityForPlayers(playerIds: string[]): Promise<{
+  activityByPlayerAndType: Map<string, boolean>;
+  error: string | null;
+}> {
+  const { data, error } = await supabase
+    .from('custom_event_types')
+    .select('id, user_id, is_activity, is_deleted')
+    .in('user_id', playerIds);
+
+  if (error) {
+    return {
+      activityByPlayerAndType: new Map(),
+      error: error.message || 'Unable to load player event type activity settings.',
+    };
+  }
+
+  const activityByPlayerAndType = new Map<string, boolean>();
+  for (const row of (data ?? []) as EventTypeActivityRow[]) {
+    activityByPlayerAndType.set(
+      `${row.user_id}:${row.id}`,
+      row.is_deleted !== true && row.is_activity === true
+    );
+  }
+
+  return { activityByPlayerAndType, error: null };
 }
 
 function toNumber(value: number | string | null | undefined, fallback = 0): number {
@@ -219,6 +255,35 @@ function mapEventTypeIdToPlayerSessionType(rawType: string): PlayerSessionType {
   if (normalized.includes('meeting')) return 'meeting';
   if (normalized.includes('solo') || normalized.includes('individual')) return 'solo';
   return 'other';
+}
+
+function isPlayerCreatedActivityEvent(
+  row: CalendarRow,
+  activityByPlayerAndType: Map<string, boolean>
+): boolean {
+  const activityKey = `${row.user_id}:${row.event_type_id}`;
+  if (activityByPlayerAndType.has(activityKey)) {
+    return activityByPlayerAndType.get(activityKey) === true;
+  }
+
+  return isBuiltInActivityEventType(row.event_type_id);
+}
+
+function isVisibleInCoachPlayerCalendar(
+  row: CalendarRow,
+  player: CoachPlayer,
+  activityByPlayerAndType: Map<string, boolean>
+): boolean {
+  const meta = parseCoachCalendarMeta(row.recurrence_config);
+  if (meta?.coachManaged) {
+    if (meta.published === false) return false;
+    if (meta.teamId && meta.teamId !== player.teamId) return false;
+    if (meta.assignmentScope === 'team') return true;
+
+    return !meta.assignedPlayerId || meta.assignedPlayerId === player.id;
+  }
+
+  return isPlayerCreatedActivityEvent(row, activityByPlayerAndType);
 }
 
 function buildWellnessNotes(wellnessRows: WellnessRow[]): PlayerNoteItem[] {
@@ -489,10 +554,11 @@ function buildDatasetForPlayer(params: {
   wellnessRows: WellnessRow[];
   trainingRows: TrainingRow[];
   calendarRows: CalendarRow[];
+  activityByPlayerAndType: Map<string, boolean>;
   injuryRows: InjuryRow[] | undefined;
   injuryQueryError: string | null;
 }): TeamPlayerDataset {
-  const { player, wellnessRows, trainingRows, calendarRows, injuryRows, injuryQueryError } = params;
+  const { player, wellnessRows, trainingRows, calendarRows, activityByPlayerAndType, injuryRows, injuryQueryError } = params;
   const latestWellness = wellnessRows[wellnessRows.length - 1];
 
   const loadByDate = trainingRows.reduce<Record<string, number>>((accumulator, row) => {
@@ -543,7 +609,8 @@ function buildDatasetForPlayer(params: {
     };
   });
 
-  const sortedCalendarRows = [...calendarRows].sort((a, b) => a.start_time.localeCompare(b.start_time));
+  const sortedCalendarRows = dedupeCalendarEventsById(calendarRows)
+    .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
   return {
     player,
@@ -602,13 +669,14 @@ function buildDatasetForPlayer(params: {
       return {
         id: row.id,
         playerId: row.user_id,
-        teamId: player.teamId,
+        teamId: meta?.teamId ?? player.teamId,
         title: row.title || row.event_type_id || 'Session',
         type: sessionType,
         kind: meta?.kind === 'task' ? 'task' : 'event',
         description: row.description ?? undefined,
         assignmentScope,
         coachManaged: meta?.coachManaged === true,
+        visibleInCoachPlayerCalendar: isVisibleInCoachPlayerCalendar(row, player, activityByPlayerAndType),
         recurrence: parseRecurrence(row.recurrence),
         recurrenceConfig,
         recurrenceEndDate: row.recurrence_end_date ?? null,
@@ -654,7 +722,7 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
 
   const playerIds = playerRows.map((row) => row.user_id);
 
-  const [wellnessResult, trainingResult, calendarResult, injuriesResult] = await Promise.all([
+  const [wellnessResult, trainingResult, calendarResult, eventTypeActivityResult, injuriesResult] = await Promise.all([
     supabase
       .from('wellness_logs')
       .select('user_id, date, energy, fatigue, stress, sleep_quality, sleep_duration, sleep_time, wake_time, notes, pain_notes, pain_active, pain_level')
@@ -666,6 +734,7 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
       .in('user_id', playerIds)
       .order('date', { ascending: true }),
     loadCalendarRowsForPlayers(playerIds),
+    loadEventTypeActivityForPlayers(playerIds),
     supabase
       .from('injuries')
       .select('id, user_id, description, expected_return, status, created_at')
@@ -688,6 +757,13 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
     console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading calendar events for team players:', calendarResult.error, { teamId, playerCount: playerIds.length });
   } else {
     calendarRows = calendarResult.rows;
+  }
+
+  if (eventTypeActivityResult.error) {
+    console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading player event type activity settings:', eventTypeActivityResult.error, {
+      teamId,
+      playerCount: playerIds.length,
+    });
   }
 
   let injuryQueryError: string | null = null;
@@ -725,6 +801,7 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
       wellnessRows: wellnessRows.filter((wellnessRow) => wellnessRow.user_id === row.user_id),
       trainingRows: trainingRows.filter((trainingRow) => trainingRow.user_id === row.user_id),
       calendarRows: calendarRows.filter((calendarRow) => calendarRow.user_id === row.user_id),
+      activityByPlayerAndType: eventTypeActivityResult.activityByPlayerAndType,
       injuryRows: injuryRowsByUserId[row.user_id],
       injuryQueryError,
     });

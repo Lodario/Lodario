@@ -40,6 +40,13 @@ export interface CalendarOccurrence {
   anticipatedIntensity?: TeamCalendarIntensity | null;
 }
 
+const builtInActivityEventTypeIds = new Set([
+  'team-training',
+  'match',
+  'personal-training',
+  'gym',
+]);
+
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
@@ -191,6 +198,14 @@ export function parseOverrideMap(value: unknown): Record<string, TeamCalendarEve
 export function parseExcludedDates(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((entry): entry is string => typeof entry === 'string');
+}
+
+export function isBuiltInActivityEventType(eventTypeId: string): boolean {
+  return builtInActivityEventTypeIds.has(eventTypeId.trim().toLowerCase());
+}
+
+export function dedupeCalendarEventsById<T extends { id: string }>(events: T[]): T[] {
+  return Array.from(new Map(events.map((event) => [event.id, event])).values());
 }
 
 export function resolveCalendarOccurrence(input: CalendarOccurrenceInput, dateKey: string): CalendarOccurrence | null {

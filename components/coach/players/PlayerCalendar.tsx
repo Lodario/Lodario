@@ -126,7 +126,7 @@ function parseDayEvents(events: PlayerCalendarEvent[], dateString: string): Pars
   const parsedEvents: ParsedEvent[] = [];
 
   events.forEach((event) => {
-    if (!event.coachManaged) return;
+    if (!event.visibleInCoachPlayerCalendar) return;
     if (event.isDraft) return;
 
     const occurrence = resolveCalendarOccurrence(
