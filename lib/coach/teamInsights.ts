@@ -4,9 +4,17 @@ import { useEffect, useMemo, useState } from 'react';
 import { buildTeamAnalyticsDataFromPlayers } from '@/components/coach/analytics/buildFromPlayers';
 import type { TeamAnalyticsDataset } from '@/components/coach/analytics/types';
 import type { TeamCalendarDataset, TeamCalendarItem, TeamCalendarItemStatus, TeamEventType } from '@/components/coach/calendar/types';
-import { loadRealTeamPlayerDatasets } from '@/components/coach/players/realData';
-import type { TeamPlayerDataset } from '@/components/coach/players/types';
+import { loadCalendarRowsForPlayers, loadRealTeamPlayerDatasets } from '@/components/coach/players/realData';
+import type { PlayerCalendarEvent, TeamPlayerDataset } from '@/components/coach/players/types';
 import { buildTeamOverviewData, type TeamOverviewData } from '@/components/coach/overview/buildFromInsights';
+import {
+  dedupeCalendarEventsById,
+  parseCoachCalendarMeta,
+  parseExcludedDates,
+  parseOverrideMap,
+  parseRecurrence,
+  parseRecurrenceConfig,
+} from '@/lib/calendar/events';
 import { supabase } from '@/lib/supabase';
 
 interface TeamMembershipRow {
@@ -37,22 +45,6 @@ interface TrainingSummaryRow {
   date: string;
   duration: number | string;
   intensity: number | string;
-}
-
-interface CalendarEventRow {
-  id: string;
-  user_id: string;
-  title: string | null;
-  description: string | null;
-  event_type_id: string;
-  start_time: string;
-  end_time: string;
-  recurrence: string | null;
-  recurrence_config: unknown;
-  recurrence_end_date: string | null;
-  excluded_dates: unknown;
-  overrides: unknown;
-  anticipated_intensity: 'Low' | 'Moderate' | 'High' | null;
 }
 
 interface TeamReference {
@@ -416,68 +408,78 @@ function buildCalendarAverages(players: TeamPlayerDataset[]): TeamCalendarDatase
   ];
 }
 
-export function buildTeamCalendarDataFromPlayers(teamId: string, players: TeamPlayerDataset[]): TeamCalendarDataset {
+interface TeamCalendarEventSource {
+  event: PlayerCalendarEvent;
+  fallbackDescription: string;
+}
+
+function buildTeamCalendarItems(teamId: string, sources: TeamCalendarEventSource[]): TeamCalendarItem[] {
   const groupedItems = new Map<string, TeamCalendarItem>();
+  const uniqueSources = Array.from(new Map(sources.map((source) => [source.event.id, source])).values());
 
-  players.forEach((dataset) => {
-    dataset.calendarEvents.forEach((event) => {
-      if (!event.coachManaged) {
-        return;
-      }
+  uniqueSources.forEach(({ event, fallbackDescription }) => {
+    if (!event.coachManaged || event.assignmentScope !== 'team' || event.teamId !== teamId) {
+      return;
+    }
 
-      const assignmentScope = event.assignmentScope === 'team' ? 'team' : 'player';
-      const groupKey =
-        assignmentScope === 'team'
-          ? `team:${event.sourceEventGroupId ?? event.id}`
-          : `player:${event.id}`;
-      const existing = groupedItems.get(groupKey);
+    const groupKey = `team:${event.sourceEventGroupId ?? event.id}`;
+    const existing = groupedItems.get(groupKey);
 
-      if (existing) {
-        const eventIds = new Set([...(existing.sourceEventIds ?? []), event.id]);
-        existing.sourceEventIds = Array.from(eventIds);
-        return;
-      }
+    if (existing) {
+      const eventIds = new Set([...(existing.sourceEventIds ?? []), event.id]);
+      existing.sourceEventIds = Array.from(eventIds);
+      return;
+    }
 
-      const isRecurring = event.recurrence && event.recurrence !== 'none';
-      const status = isRecurring ? 'upcoming' : resolveCalendarStatus(event.date, event.endTime);
+    const isRecurring = event.recurrence && event.recurrence !== 'none';
+    const status = isRecurring ? 'upcoming' : resolveCalendarStatus(event.date, event.endTime);
 
-      groupedItems.set(groupKey, {
-        id: groupKey,
-        teamId,
-        title: event.title,
-        eventTypeId: event.type,
-        type: mapPlayerEventTypeToTeamEventType(event.type),
-        description: event.description ?? `${dataset.player.name} ${event.type} session`,
-        kind: event.kind === 'task' ? 'task' : 'event',
-        status,
-        assignmentScope,
-        assignedPlayerId: assignmentScope === 'player' ? dataset.player.id : null,
-        assignedPlayerName: assignmentScope === 'player' ? dataset.player.name : null,
-        recurrence: event.recurrence ?? 'none',
-        recurrenceConfig: event.recurrenceConfig,
-        recurrenceEndDate: event.recurrenceEndDate ?? null,
-        anticipatedIntensity: event.anticipatedIntensity ?? null,
-        overrides: event.overrides,
-        excludedDates: event.excludedDates,
-        isDraft: event.isDraft ?? false,
-        sourceEventIds: [event.id],
-        sourceEventGroupId: event.sourceEventGroupId ?? null,
-        date: event.date,
-        startTime: event.startTime,
-        endTime: event.endTime,
-        startDate: event.startDate ?? event.date,
-        endDate: event.endDate ?? event.date,
-      });
+    groupedItems.set(groupKey, {
+      id: groupKey,
+      teamId,
+      title: event.title,
+      eventTypeId: event.type,
+      type: mapPlayerEventTypeToTeamEventType(event.type),
+      description: event.description ?? fallbackDescription ?? `${event.type} session`,
+      kind: event.kind === 'task' ? 'task' : 'event',
+      status,
+      assignmentScope: 'team',
+      assignedPlayerId: null,
+      assignedPlayerName: null,
+      recurrence: event.recurrence ?? 'none',
+      recurrenceConfig: event.recurrenceConfig,
+      recurrenceEndDate: event.recurrenceEndDate ?? null,
+      anticipatedIntensity: event.anticipatedIntensity ?? null,
+      overrides: event.overrides,
+      excludedDates: event.excludedDates,
+      isDraft: event.isDraft ?? false,
+      sourceEventIds: [event.id],
+      sourceEventGroupId: event.sourceEventGroupId ?? null,
+      date: event.date,
+      startTime: event.startTime,
+      endTime: event.endTime,
+      startDate: event.startDate ?? event.date,
+      endDate: event.endDate ?? event.date,
     });
   });
 
-  const items: TeamCalendarItem[] = Array.from(groupedItems.values()).sort((first, second) =>
+  return Array.from(groupedItems.values()).sort((first, second) =>
     `${first.date}T${first.startTime}`.localeCompare(`${second.date}T${second.startTime}`)
   );
+}
 
+export function buildTeamCalendarDataFromPlayers(teamId: string, players: TeamPlayerDataset[]): TeamCalendarDataset {
   return {
     averages: buildCalendarAverages(players),
-    items,
+    items: buildTeamCalendarItems(
+      teamId,
+      players.flatMap((dataset) =>
+        dataset.calendarEvents.map((event) => ({
+          event,
+          fallbackDescription: `${dataset.player.name} ${event.type} session`,
+        }))
+      )
+    ),
   };
 }
 
@@ -744,51 +746,65 @@ export async function loadCoachCalendarItemsForTeams(teams: TeamReference[]): Pr
   }
 
   const userIds = Array.from(new Set(memberships.map((row) => row.user_id).filter((userId): userId is string => Boolean(userId))));
-  const teamIdsByUserId = memberships.reduce<Record<string, string[]>>((accumulator, row) => {
-    if (!row.user_id || !row.team_id) return accumulator;
-    if (!accumulator[row.user_id]) {
-      accumulator[row.user_id] = [];
-    }
-    if (!accumulator[row.user_id].includes(row.team_id)) {
-      accumulator[row.user_id].push(row.team_id);
-    }
-    return accumulator;
-  }, {});
+  const activeMemberships = new Set(
+    memberships
+      .filter((row): row is { team_id: string; user_id: string } => Boolean(row.team_id) && Boolean(row.user_id))
+      .map((row) => `${row.team_id}:${row.user_id}`)
+  );
 
   if (userIds.length === 0) {
     return { items: [], error: null };
   }
 
-  const { data: calendarRows, error: calendarError } = await supabase
-    .from('calendar_events')
-    .select('id, user_id, title, event_type_id, start_time, end_time')
-    .in('user_id', userIds)
-    .order('start_time', { ascending: true });
-
-  if (calendarError) {
-    console.error('[teamInsights/loadCoachCalendarItemsForTeams] Error loading calendar events:', calendarError, { teamIds, userCount: userIds.length });
-    return { items: [], error: calendarError.message || 'Unable to load team calendar events.' };
+  const calendarResult = await loadCalendarRowsForPlayers(userIds);
+  if (calendarResult.error) {
+    console.error('[teamInsights/loadCoachCalendarItemsForTeams] Error loading calendar events:', calendarResult.error, { teamIds, userCount: userIds.length });
+    return { items: [], error: calendarResult.error };
   }
 
-  const items = ((calendarRows ?? []) as CalendarEventRow[]).flatMap((row) => {
-    const userTeamIds = teamIdsByUserId[row.user_id] ?? [];
+  const sourcesByTeamId = new Map<string, TeamCalendarEventSource[]>();
+  for (const row of dedupeCalendarEventsById(calendarResult.rows)) {
+    const meta = parseCoachCalendarMeta(row.recurrence_config);
+    if (!meta?.coachManaged || meta.assignmentScope !== 'team' || !meta.teamId) continue;
+    if (!teamNameById.has(meta.teamId) || !activeMemberships.has(`${meta.teamId}:${row.user_id}`)) continue;
+
     const start = toDateAndTime(row.start_time);
     const end = toDateAndTime(row.end_time);
     const resolvedTitle = row.title?.trim() || row.event_type_id || 'Event';
+    const source: TeamCalendarEventSource = {
+      event: {
+        id: row.id,
+        playerId: row.user_id,
+        teamId: meta.teamId,
+        title: resolvedTitle,
+        type: mapEventTypeIdToTeamEventType(row.event_type_id || ''),
+        kind: meta.kind === 'task' ? 'task' : 'event',
+        description: row.description ?? undefined,
+        assignmentScope: 'team',
+        coachManaged: true,
+        recurrence: parseRecurrence(row.recurrence),
+        recurrenceConfig: parseRecurrenceConfig(row.recurrence_config),
+        recurrenceEndDate: row.recurrence_end_date ?? null,
+        anticipatedIntensity: row.anticipated_intensity ?? null,
+        overrides: parseOverrideMap(row.overrides),
+        excludedDates: parseExcludedDates(row.excluded_dates),
+        isDraft: meta.published === false,
+        sourceEventGroupId: meta.eventGroupId ?? null,
+        date: start.date,
+        startTime: start.time,
+        endTime: end.time,
+        startDate: start.date,
+        endDate: end.date,
+      },
+      fallbackDescription: `${teamNameById.get(meta.teamId) ?? 'Team'} activity`,
+    };
 
-    return userTeamIds.map((teamId) => ({
-      id: `${row.id}-${teamId}`,
-      teamId,
-      title: resolvedTitle,
-      type: mapEventTypeIdToTeamEventType(row.event_type_id || ''),
-      description: `${teamNameById.get(teamId) ?? 'Team'} activity`,
-      kind: 'event' as const,
-      status: resolveCalendarStatus(start.date, end.time),
-      date: start.date,
-      startTime: start.time,
-      endTime: end.time,
-    }));
-  });
+    const teamSources = sourcesByTeamId.get(meta.teamId) ?? [];
+    teamSources.push(source);
+    sourcesByTeamId.set(meta.teamId, teamSources);
+  }
+
+  const items = normalizedTeams.flatMap((team) => buildTeamCalendarItems(team.id, sourcesByTeamId.get(team.id) ?? []));
 
   return { items, error: null };
 }

@@ -46,6 +46,7 @@ export interface PlayerCalendarEvent {
   description?: string;
   assignmentScope?: PlayerCalendarAssignmentScope;
   coachManaged?: boolean;
+  visibleInCoachPlayerCalendar?: boolean;
   recurrence?: PlayerCalendarRecurrence;
   recurrenceConfig?: PlayerCalendarRecurrenceConfig;
   recurrenceEndDate?: string | null;
