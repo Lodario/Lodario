@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { format, isSameDay, parseISO, getDay, isBefore } from 'date-fns';
 import { useData } from '../lib/DataContext';
-import { calculateReadiness, ReadinessResult } from '../lib/readiness';
+import { calculatePlayerReadinessForDate, ReadinessResult } from '../lib/readiness';
 import { generateRecommendation, RecommendationResult } from '../lib/recommendations';
 import { useTrainingLoad } from './useTrainingLoad';
 import { CalendarEvent } from '../lib/types';
@@ -13,21 +13,16 @@ export interface ComprehensiveReadiness {
 }
 
 export function useReadiness(): ComprehensiveReadiness {
-  const { wellnessLogs, profile, injuries, calendarEvents } = useData();
+  const { wellnessLogs, trainingLogs, profile, injuries, calendarEvents } = useData();
   const load = useTrainingLoad();
 
   return useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const todayLog = wellnessLogs[todayStr];
-    const historicalLogs = Object.values(wellnessLogs);
-
-    const readinessResult = calculateReadiness(
-      todayLog,
-      historicalLogs,
-      load.loadScore,
-      load.hasAcuteData,
-      load.hasChronicData
-    );
+    const readinessResult = calculatePlayerReadinessForDate(
+      Object.values(wellnessLogs),
+      trainingLogs
+    ).readiness;
 
     // Gather today's calendar events (including recurring) that have anticipatedIntensity
     const today = new Date();
@@ -70,5 +65,5 @@ export function useReadiness(): ComprehensiveReadiness {
       recommendation: recommendationResult,
       hasWellnessToday: !!todayLog,
     };
-  }, [wellnessLogs, load, injuries, profile, calendarEvents]);
+  }, [wellnessLogs, trainingLogs, load, injuries, profile, calendarEvents]);
 }

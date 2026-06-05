@@ -84,9 +84,10 @@ function standardDeviation(values: number[]): number {
 
 export function analyzeTrainingLoad(
   trainingLogs: TrainingLog[],
-  wellnessLogs: WellnessLog[]
+  wellnessLogs: WellnessLog[],
+  asOfDate: Date = new Date()
 ): LoadResult {
-  const today = new Date();
+  const today = asOfDate;
 
   let numSessionsLast7 = 0;
   let numSessionsLast14 = 0;

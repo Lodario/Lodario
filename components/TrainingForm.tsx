@@ -10,10 +10,7 @@ import { v4 as uuidv4 } from 'uuid';
 interface TrainingFormProps {
   onSaved: () => void;
   selectedDate: string; // YYYY-MM-DD
-  initialValues?: {
-    sessionType?: SessionType;
-    duration?: number;
-  };
+  initialValues?: Partial<TrainingLog>;
 }
 
 export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingFormProps) {
@@ -38,15 +35,20 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
   const [notes, setNotes] = useState<string>('');
 
   const [error, setError] = useState<string>('');
+  const isEditing = !!initialValues?.id;
 
   useEffect(() => {
-    if (initialValues?.sessionType) {
-      setSessionType(initialValues.sessionType);
-    }
-    if (initialValues?.duration && initialValues.duration > 0) {
-      setDuration(String(initialValues.duration));
-    }
-  }, [initialValues?.sessionType, initialValues?.duration, selectedDate]);
+    setSessionType(initialValues?.sessionType || 'Team');
+    setDuration(initialValues?.duration && initialValues.duration > 0 ? String(initialValues.duration) : '90');
+    setDistance(initialValues?.distance != null ? String(initialValues.distance) : '');
+    setIntensity(initialValues?.intensity ?? 7);
+    setSprinting(initialValues?.sprinting || 'no');
+    setPerformance(initialValues?.performance ?? 5);
+    setPainActive(initialValues?.painActive ?? false);
+    setPainLevel(initialValues?.painLevel || 1);
+    setPainNotes(initialValues?.painNotes || '');
+    setNotes(initialValues?.notes || '');
+  }, [initialValues, selectedDate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,8 +61,8 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
     }
 
     const log: TrainingLog = {
-      id: uuidv4(),
-      date: selectedDate,
+      id: initialValues?.id || uuidv4(),
+      date: initialValues?.date || selectedDate,
       sessionType,
       duration: durationNum,
       distance: distance ? parseFloat(distance) : undefined,
@@ -216,7 +218,7 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
         type="submit" 
         className="w-full bg-gradient-to-r from-[var(--accent-secondary)] to-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 touch-target"
       >
-        Save Training Log
+        {isEditing ? 'Update Training Log' : 'Save Training Log'}
       </button>
     </form>
   );

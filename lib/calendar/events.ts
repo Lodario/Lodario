@@ -146,6 +146,10 @@ export function parseCoachCalendarMeta(value: unknown): CoachCalendarEventMeta |
   };
 }
 
+export function isCoachManagedCalendarConfig(value: unknown): boolean {
+  return parseCoachCalendarMeta(value)?.coachManaged === true;
+}
+
 export function withCoachCalendarMeta(
   config: TeamCalendarRecurrenceConfig | undefined,
   meta: CoachCalendarEventMeta

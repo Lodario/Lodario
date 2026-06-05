@@ -5,6 +5,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { useData } from '../lib/DataContext';
 import { format, subDays, parseISO } from 'date-fns';
 import { calculateSessionLoad } from '../lib/training-load';
+import { calculatePlayerReadinessForDate } from '../lib/readiness';
 
 interface ChartProps {
   days: number;
@@ -27,20 +28,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export function ReadinessChart({ days }: ChartProps) {
-  const { wellnessLogs } = useData();
+  const { wellnessLogs, trainingLogs } = useData();
   
   const data = Array.from({ length: days }).map((_, i) => {
     const date = subDays(new Date(), days - 1 - i);
     const dateStr = format(date, 'yyyy-MM-dd');
     const log = wellnessLogs[dateStr];
     
-    // Simplistic score for charting (actual score requires full history mapping, simplifying for UI performance)
-    let score = null;
-    if (log) {
-      score = ((log.sleepDuration >= 8 ? 100 : (log.sleepDuration/8)*100) * 0.3) +
-              ((log.energy / 10) * 100 * 0.3) +
-              (((10 - log.fatigue + 1) / 10) * 100 * 0.4);
-    }
+    const score = log
+      ? calculatePlayerReadinessForDate(Object.values(wellnessLogs), trainingLogs, date).readiness.score
+      : null;
     
     return {
       name: format(date, 'MMM d'),
