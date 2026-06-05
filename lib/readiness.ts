@@ -1,5 +1,6 @@
-import { WellnessLog } from './types';
-import { differenceInDays, parseISO, subDays } from 'date-fns';
+import { TrainingLog, WellnessLog } from './types';
+import { analyzeTrainingLoad, LoadResult } from './training-load';
+import { differenceInDays, format, isAfter, parseISO } from 'date-fns';
 
 export interface ReadinessResult {
   score: number;
@@ -15,12 +16,18 @@ export interface ReadinessResult {
   loadStage: 'none' | 'acute-only' | 'full'; // Indicates which load data stage is active
 }
 
+export interface PlayerReadinessForDateResult {
+  readiness: ReadinessResult;
+  load: LoadResult;
+}
+
 export function calculateReadiness(
   todayLog: WellnessLog | undefined,
   historicalLogs: WellnessLog[],
   trainingLoadScore: number, // From training-load.ts
   hasAcuteData: boolean,
-  hasChronicData: boolean
+  hasChronicData: boolean,
+  asOfDate: Date = new Date()
 ): ReadinessResult {
   if (!todayLog) {
     return {
@@ -102,7 +109,7 @@ export function calculateReadiness(
   // 3. Sleep Consistency (7 day stdev)
   let sleepConsistencyScore = 80; // Default if not enough data
   const last7Days = historicalLogs.filter(
-    (l) => differenceInDays(new Date(), parseISO(l.date)) <= 7
+    (l) => differenceInDays(asOfDate, parseISO(l.date)) <= 7
   );
   if (last7Days.length >= 3) {
     const avgSleep = last7Days.reduce((sum, l) => sum + l.sleepDuration, 0) / last7Days.length;
@@ -184,5 +191,28 @@ export function calculateReadiness(
       load: Math.round(loadScore),
     },
     loadStage,
+  };
+}
+
+export function calculatePlayerReadinessForDate(
+  wellnessLogs: WellnessLog[],
+  trainingLogs: TrainingLog[],
+  asOfDate: Date = new Date()
+): PlayerReadinessForDateResult {
+  const dateKey = format(asOfDate, 'yyyy-MM-dd');
+  const wellnessThroughDate = wellnessLogs.filter((log) => !isAfter(parseISO(log.date), asOfDate));
+  const trainingThroughDate = trainingLogs.filter((log) => !isAfter(parseISO(log.date), asOfDate));
+  const load = analyzeTrainingLoad(trainingThroughDate, wellnessThroughDate, asOfDate);
+
+  return {
+    readiness: calculateReadiness(
+      wellnessThroughDate.find((log) => log.date === dateKey),
+      wellnessThroughDate,
+      load.loadScore,
+      load.hasAcuteData,
+      load.hasChronicData,
+      asOfDate
+    ),
+    load,
   };
 }

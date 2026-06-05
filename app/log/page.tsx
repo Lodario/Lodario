@@ -5,9 +5,9 @@ import { WellnessForm } from '@/components/WellnessForm';
 import { TrainingForm } from '@/components/TrainingForm';
 import { useData } from '@/lib/DataContext';
 import { format, subDays, addDays, parseISO, isValid } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckCircle2, Heart, Dumbbell, Moon, Zap, Activity } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, Heart, Dumbbell, Moon, Zap, Activity, MoreVertical, Pencil, Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-import { SessionType } from '@/lib/types';
+import { SessionType, TrainingLog } from '@/lib/types';
 
 const sessionTypeSet = new Set<SessionType>(['Solo', 'Partner', 'Team', 'Match', 'Gym', 'Other']);
 
@@ -15,9 +15,12 @@ export default function LogPage() {
   const [expandedForm, setExpandedForm] = useState<'wellness' | 'training' | null>(null);
   const [selectedDateObj, setSelectedDateObj] = useState(new Date());
   const [showSuccess, setShowSuccess] = useState(false);
-  const [trainingPrefill, setTrainingPrefill] = useState<{ sessionType?: SessionType; duration?: number } | null>(null);
+  const [trainingPrefill, setTrainingPrefill] = useState<Partial<TrainingLog> | null>(null);
+  const [editingTraining, setEditingTraining] = useState<TrainingLog | null>(null);
+  const [openTrainingMenuId, setOpenTrainingMenuId] = useState<string | null>(null);
+  const [confirmDeleteTrainingId, setConfirmDeleteTrainingId] = useState<string | null>(null);
 
-  const { wellnessLogs, trainingLogs } = useData();
+  const { wellnessLogs, trainingLogs, deleteTrainingLog } = useData();
   const searchParams = useSearchParams();
   const openParam = searchParams.get('open');
   const dateParam = searchParams.get('date');
@@ -38,12 +41,39 @@ export default function LogPage() {
     setShowSuccess(true);
     setExpandedForm(null);
     setTrainingPrefill(null);
+    setEditingTraining(null);
+    setOpenTrainingMenuId(null);
+    setConfirmDeleteTrainingId(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
   const toggleForm = (form: 'wellness' | 'training') => {
     setExpandedForm(prev => prev === form ? null : form);
+    setEditingTraining(null);
+    if (form === 'training') {
+      setTrainingPrefill(null);
+    }
+  };
+
+  const handleEditTraining = (training: TrainingLog) => {
+    setEditingTraining(training);
+    setTrainingPrefill(training);
+    setExpandedForm('training');
+    setOpenTrainingMenuId(null);
+    setConfirmDeleteTrainingId(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDeleteTraining = (trainingId: string) => {
+    deleteTrainingLog(trainingId);
+    setOpenTrainingMenuId(null);
+    setConfirmDeleteTrainingId(null);
+    if (editingTraining?.id === trainingId) {
+      setEditingTraining(null);
+      setTrainingPrefill(null);
+      setExpandedForm(null);
+    }
   };
 
   // Get wellness log for the selected date
@@ -147,7 +177,7 @@ export default function LogPage() {
       {expandedForm === 'training' && (
         <div className="animate-slide-up">
           <TrainingForm
-            key={`training-${selectedDateStr}-${trainingPrefill?.sessionType || 'default'}-${trainingPrefill?.duration || 'default'}`}
+            key={`training-${selectedDateStr}-${trainingPrefill?.id || trainingPrefill?.sessionType || 'default'}-${trainingPrefill?.duration || 'default'}`}
             selectedDate={selectedDateStr}
             onSaved={onSaved}
             initialValues={trainingPrefill || undefined}
@@ -214,10 +244,64 @@ export default function LogPage() {
 
               {/* Training Summaries for Selected Date */}
               {selectedTrainings.map((training) => (
-                <div key={training.id} className="glass-card p-5">
-                  <h3 className="text-xs font-bold text-[var(--accent-secondary)] uppercase tracking-wider mb-3 flex items-center">
-                    <Dumbbell size={14} className="mr-1.5" /> {training.sessionType} Session
-                  </h3>
+                <div key={training.id} className="glass-card p-5 relative">
+                  <div className="flex items-start justify-between mb-3">
+                    <h3 className="text-xs font-bold text-[var(--accent-secondary)] uppercase tracking-wider flex items-center pr-8">
+                      <Dumbbell size={14} className="mr-1.5" /> {training.sessionType} Session
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpenTrainingMenuId(openTrainingMenuId === training.id ? null : training.id);
+                        setConfirmDeleteTrainingId(null);
+                      }}
+                      className="absolute top-3 right-3 p-2 rounded-full text-gray-400 hover:text-white hover:bg-[rgba(255,255,255,0.08)] touch-target"
+                      aria-label="Training log options"
+                    >
+                      <MoreVertical size={18} />
+                    </button>
+                  </div>
+
+                  {openTrainingMenuId === training.id && (
+                    <div className="absolute right-3 top-12 z-20 w-36 overflow-hidden rounded-xl border border-[rgba(255,255,255,0.1)] bg-[var(--background)] shadow-xl animate-fade-in">
+                      <button
+                        type="button"
+                        onClick={() => handleEditTraining(training)}
+                        className="w-full px-3 py-3 text-left text-xs font-bold text-gray-200 hover:bg-[rgba(255,255,255,0.06)] flex items-center"
+                      >
+                        <Pencil size={14} className="mr-2" /> Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirmDeleteTrainingId(training.id)}
+                        className="w-full px-3 py-3 text-left text-xs font-bold text-[#ff6b6b] hover:bg-[rgba(255,107,107,0.08)] flex items-center"
+                      >
+                        <Trash2 size={14} className="mr-2" /> Delete
+                      </button>
+                    </div>
+                  )}
+
+                  {confirmDeleteTrainingId === training.id && (
+                    <div className="mb-4 p-3 rounded-xl bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.3)] animate-fade-in">
+                      <p className="text-xs text-gray-200 mb-3">Delete this training log?</p>
+                      <div className="flex space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTraining(training.id)}
+                          className="flex-1 py-2 rounded-lg text-xs font-bold bg-[#ff6b6b] text-white flex items-center justify-center transition-transform active:scale-95"
+                        >
+                          <Trash2 size={14} className="mr-1.5" /> Delete Log
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmDeleteTrainingId(null)}
+                          className="px-4 py-2 rounded-lg text-xs font-medium text-gray-400 bg-[rgba(255,255,255,0.05)] hover:text-white"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <div>
                     <p className="text-xs text-gray-400 mb-3">{format(parseISO(training.date), 'EEEE, MMM d, yyyy')}</p>
                     <div className="grid grid-cols-2 gap-3">

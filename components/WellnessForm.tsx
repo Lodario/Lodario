@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useData } from '../lib/DataContext';
 import { Slider } from './ui/Slider';
 import { Toggle } from './ui/Toggle';
 import { WellnessLog } from '../lib/types';
-import { format } from 'date-fns';
+import { format, isBefore, parseISO, subDays } from 'date-fns';
 
 interface WellnessFormProps {
   onSaved: () => void;
@@ -26,10 +26,32 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
   const [painLevel, setPainLevel] = useState(1);
   const [painNotes, setPainNotes] = useState('');
   const [notes, setNotes] = useState('');
+  const sleepTimesTouchedRef = useRef(false);
+
+  const getPreviousSleepTimes = useCallback(() => {
+    const selectedDateObj = parseISO(selectedDate);
+    const yesterdayKey = format(subDays(selectedDateObj, 1), 'yyyy-MM-dd');
+    const yesterdayLog = wellnessLogs[yesterdayKey];
+    if (yesterdayLog) {
+      return {
+        sleepTime: yesterdayLog.sleepTime,
+        wakeTime: yesterdayLog.wakeTime,
+      };
+    }
+
+    const previousLog = Object.values(wellnessLogs)
+      .filter((log) => isBefore(parseISO(log.date), selectedDateObj))
+      .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime())[0];
+
+    return previousLog
+      ? { sleepTime: previousLog.sleepTime, wakeTime: previousLog.wakeTime }
+      : null;
+  }, [selectedDate, wellnessLogs]);
 
   // Load existing data if changing date
   useEffect(() => {
     if (existingLog) {
+      sleepTimesTouchedRef.current = false;
       setSleepTime(existingLog.sleepTime);
       setWakeTime(existingLog.wakeTime);
       setSleepQuality(existingLog.sleepQuality);
@@ -42,8 +64,11 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
       setNotes(existingLog.notes || '');
     } else {
       // Defaults map to "average"
-      setSleepTime('22:00');
-      setWakeTime('06:00');
+      if (!sleepTimesTouchedRef.current) {
+        const previousSleepTimes = getPreviousSleepTimes();
+        setSleepTime(previousSleepTimes?.sleepTime || '22:00');
+        setWakeTime(previousSleepTimes?.wakeTime || '06:00');
+      }
       setSleepQuality(5);
       setEnergy(5);
       setFatigue(5);
@@ -53,7 +78,7 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
       setPainNotes('');
       setNotes('');
     }
-  }, [existingLog, selectedDate]);
+  }, [existingLog, selectedDate, wellnessLogs, getPreviousSleepTimes]);
 
   const calculateDuration = () => {
     const sl = sleepTime.split(':').map(Number);
@@ -97,7 +122,10 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
             <input 
               type="time" 
               value={sleepTime} 
-              onChange={(e) => setSleepTime(e.target.value)}
+              onChange={(e) => {
+                sleepTimesTouchedRef.current = true;
+                setSleepTime(e.target.value);
+              }}
               className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-white touch-target"
             />
           </div>
@@ -106,7 +134,10 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
             <input 
               type="time" 
               value={wakeTime} 
-              onChange={(e) => setWakeTime(e.target.value)}
+              onChange={(e) => {
+                sleepTimesTouchedRef.current = true;
+                setWakeTime(e.target.value);
+              }}
               className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-white touch-target"
             />
           </div>

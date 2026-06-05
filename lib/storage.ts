@@ -191,6 +191,15 @@ export class StorageService {
     if (error) console.error('Error saving training log:', error);
   }
 
+  static async deleteTrainingLog(logId: string): Promise<void> {
+    const { error } = await supabase
+      .from('training_logs')
+      .delete()
+      .eq('id', logId);
+
+    if (error) console.error('Error deleting training log:', error);
+  }
+
   // --- Calendar Events ---
   static async getCalendarEvents(): Promise<CalendarEvent[]> {
     const { data, error } = await supabase

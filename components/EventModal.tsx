@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CalendarEvent, RecurrenceType } from '../lib/types';
 import { useData } from '../lib/DataContext';
-import { X, Save, Plus, Trash2, Check, FileText, ChevronDown } from 'lucide-react';
+import { X, Save, Plus, Trash2, Check, FileText, ChevronDown, Lock } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
 interface EventModalProps {
@@ -13,11 +13,12 @@ interface EventModalProps {
   isRecurringInstance?: boolean; // true when clicking a generated recurring occurrence
   instanceDate?: string; // the specific date of this occurrence (YYYY-MM-DD)
   defaultStartHour?: number; // Feature 5: clicked hour slot
+  readOnly?: boolean;
 }
 
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-export function EventModal({ onClose, selectedDate, existingEvent, isRecurringInstance, instanceDate, defaultStartHour }: EventModalProps) {
+export function EventModal({ onClose, selectedDate, existingEvent, isRecurringInstance, instanceDate, defaultStartHour, readOnly = false }: EventModalProps) {
   const { customEventTypes, saveCalendarEvent, deleteCalendarEvent, saveCustomEventType, deleteCustomEventType } = useData();
 
   // --- Event type long-press-to-delete ---
@@ -161,6 +162,8 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
   };
 
   const handleSave = () => {
+    if (readOnly) return;
+
     let finalEventTypeId = eventTypeId;
 
     // If still in new-type creation mode and there's a name, save it on event save too
@@ -229,6 +232,7 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
   };
 
   const handleDelete = () => {
+    if (readOnly) return;
     if (!existingEvent) return;
 
     // Single-instance delete of a recurring event
@@ -253,7 +257,7 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
         
         {/* Header */}
         <div className="border-b border-[rgba(255,255,255,0.1)] p-4 flex justify-between items-center bg-[var(--card-bg)]">
-          <h2 className="text-lg font-bold text-white">{isEditing ? 'Edit Event' : 'Add Event'}</h2>
+          <h2 className="text-lg font-bold text-white">{readOnly ? 'Event Details' : isEditing ? 'Edit Event' : 'Add Event'}</h2>
           <button onClick={onClose} className="p-2 text-gray-400 hover:text-white rounded-full bg-[rgba(255,255,255,0.05)]">
             <X size={20} />
           </button>
@@ -261,9 +265,17 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
 
         {/* Body */}
         <div className="p-5 overflow-y-auto max-h-[70vh]">
+          {readOnly && (
+            <div className="mb-5 p-3 rounded-xl bg-[rgba(74,158,255,0.1)] border border-[rgba(74,158,255,0.25)] text-xs text-gray-200 font-medium flex items-center">
+              <Lock size={14} className="mr-2 text-[var(--accent-secondary)]" />
+              Assigned by coach
+            </div>
+          )}
+
+          <fieldset disabled={readOnly} className={readOnly ? 'opacity-80' : undefined}>
           
           {/* Single-instance toggle for recurring events */}
-          {isEditing && isRecurringInstance && (
+          {isEditing && isRecurringInstance && !readOnly && (
             <div className="mb-5 p-3 rounded-xl bg-[rgba(74,158,255,0.1)] border border-[rgba(74,158,255,0.2)]">
               <label className="flex items-center space-x-3 cursor-pointer touch-target">
                 <input
@@ -612,22 +624,34 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
               </div>
             )}
           </div>
+          </fieldset>
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            <button 
-              onClick={handleSave}
-              className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-4 rounded-xl shadow-lg flex items-center justify-center touch-target transition-transform active:scale-95"
-            >
-              <Save className="mr-2" size={20} /> {isEditing ? 'Update Event' : 'Save Event'}
-            </button>
+            {!readOnly ? (
+              <>
+                <button 
+                  onClick={handleSave}
+                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-4 rounded-xl shadow-lg flex items-center justify-center touch-target transition-transform active:scale-95"
+                >
+                  <Save className="mr-2" size={20} /> {isEditing ? 'Update Event' : 'Save Event'}
+                </button>
 
-            {isEditing && (
+                {isEditing && (
+                  <button 
+                    onClick={handleDelete}
+                    className="w-full bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.3)] text-[#ff6b6b] font-bold py-3 rounded-xl flex items-center justify-center touch-target transition-transform active:scale-95"
+                  >
+                    <Trash2 className="mr-2" size={18} /> {isRecurringInstance && applyOnlyToThis ? 'Delete This Occurrence' : 'Delete Event'}
+                  </button>
+                )}
+              </>
+            ) : (
               <button 
-                onClick={handleDelete}
-                className="w-full bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.3)] text-[#ff6b6b] font-bold py-3 rounded-xl flex items-center justify-center touch-target transition-transform active:scale-95"
+                onClick={onClose}
+                className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] text-white font-bold py-3 rounded-xl flex items-center justify-center touch-target transition-transform active:scale-95"
               >
-                <Trash2 className="mr-2" size={18} /> {isRecurringInstance && applyOnlyToThis ? 'Delete This Occurrence' : 'Delete Event'}
+                Close
               </button>
             )}
           </div>

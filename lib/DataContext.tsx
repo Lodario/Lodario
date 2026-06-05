@@ -16,6 +16,7 @@ interface DataContextType {
   saveProfile: (profile: UserProfile) => void;
   saveWellnessLog: (log: WellnessLog) => void;
   saveTrainingLog: (log: TrainingLog) => void;
+  deleteTrainingLog: (logId: string) => void;
   saveCalendarEvent: (event: CalendarEvent) => void;
   deleteCalendarEvent: (eventId: string) => void;
   saveCustomEventType: (type: CustomEventType) => void;
@@ -34,6 +35,7 @@ const defaultContext: DataContextType = {
   saveProfile: () => {},
   saveWellnessLog: () => {},
   saveTrainingLog: () => {},
+  deleteTrainingLog: () => {},
   saveCalendarEvent: () => {},
   deleteCalendarEvent: () => {},
   saveCustomEventType: () => {},
@@ -49,7 +51,7 @@ export const useData = () => useContext(DataContext);
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
 
-  const [data, setData] = useState<Omit<DataContextType, 'saveProfile' | 'saveWellnessLog' | 'saveTrainingLog' | 'saveCalendarEvent' | 'deleteCalendarEvent' | 'saveCustomEventType' | 'deleteCustomEventType' | 'saveInjury'>>({
+  const [data, setData] = useState<Omit<DataContextType, 'saveProfile' | 'saveWellnessLog' | 'saveTrainingLog' | 'deleteTrainingLog' | 'saveCalendarEvent' | 'deleteCalendarEvent' | 'saveCustomEventType' | 'deleteCustomEventType' | 'saveInjury'>>({
     profile: null,
     wellnessLogs: {},
     trainingLogs: [],
@@ -124,6 +126,14 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
+  const deleteTrainingLog = useCallback((logId: string) => {
+    StorageService.deleteTrainingLog(logId);
+    setData((prev) => ({
+      ...prev,
+      trainingLogs: prev.trainingLogs.filter((log) => log.id !== logId),
+    }));
+  }, []);
+
   const saveCalendarEvent = useCallback((event: CalendarEvent) => {
     StorageService.saveCalendarEvent(event);
     setData((prev) => {
@@ -180,6 +190,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
         saveProfile,
         saveWellnessLog,
         saveTrainingLog,
+        deleteTrainingLog,
         saveCalendarEvent,
         deleteCalendarEvent,
         saveCustomEventType,

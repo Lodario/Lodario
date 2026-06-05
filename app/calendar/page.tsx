@@ -9,6 +9,7 @@ import { useData } from '@/lib/DataContext';
 import { CalendarEvent, SessionType } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { computeDurationMinutes, mapCalendarEventToSessionType } from '@/lib/calendarLogSession';
+import { isCoachManagedCalendarConfig } from '@/lib/calendar/events';
 
 // Parse "HH:mm" into { hour, minute }
 function parseTime(timeStr: string): { hour: number; minute: number } {
@@ -107,6 +108,7 @@ export default function CalendarPage() {
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>(undefined);
   const [editingIsRecurring, setEditingIsRecurring] = useState(false);
   const [editingInstanceDate, setEditingInstanceDate] = useState<string | undefined>(undefined);
+  const [editingReadOnly, setEditingReadOnly] = useState(false);
   const [defaultStartHour, setDefaultStartHour] = useState<number | undefined>(undefined);
   const [logSessionPrompt, setLogSessionPrompt] = useState<{
     x: number;
@@ -130,6 +132,7 @@ export default function CalendarPage() {
     setEditingEvent(undefined);
     setEditingIsRecurring(false);
     setEditingInstanceDate(undefined);
+    setEditingReadOnly(false);
     setSelectedDateForEvent(dateStr || format(currentDate, 'yyyy-MM-dd'));
     setDefaultStartHour(hour);
     setShowEventModal(true);
@@ -139,6 +142,7 @@ export default function CalendarPage() {
     setEditingEvent(event);
     setEditingIsRecurring(isRecurringInstance);
     setEditingInstanceDate(instanceDate);
+    setEditingReadOnly(isCoachManagedCalendarConfig(event.recurrenceConfig));
     setSelectedDateForEvent(instanceDate);
     setDefaultStartHour(undefined);
     setShowEventModal(true);
@@ -149,6 +153,7 @@ export default function CalendarPage() {
     setEditingEvent(undefined);
     setEditingIsRecurring(false);
     setEditingInstanceDate(undefined);
+    setEditingReadOnly(false);
     setDefaultStartHour(undefined);
   };
 
@@ -263,6 +268,7 @@ export default function CalendarPage() {
           isRecurringInstance={editingIsRecurring}
           instanceDate={editingInstanceDate}
           defaultStartHour={defaultStartHour}
+          readOnly={editingReadOnly}
         />
       )}
     </div>
