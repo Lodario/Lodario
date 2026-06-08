@@ -36,7 +36,7 @@ export function CoachMobileNav({ open, onClose }: CoachMobileNavProps) {
         }`}
       >
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Prolaesio Coach</p>
+          <p className="text-sm font-semibold text-white">Lodario Coach</p>
           <button
             type="button"
             onClick={onClose}

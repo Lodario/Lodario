@@ -21,7 +21,7 @@ export function CoachSidebar() {
         <Link href="/coach/dashboard" className="mb-4 flex items-center gap-3 rounded-xl px-3 py-3 text-white">
           <Shield size={19} className="text-[var(--accent-primary)] shrink-0" />
           <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-semibold opacity-0 transition-all duration-300 group-hover/sidebar:max-w-[190px] group-hover/sidebar:opacity-100">
-            Prolaesio Coach
+            Lodario Coach
           </span>
         </Link>
 

@@ -7,13 +7,13 @@ import { RootAppShell } from "@/components/RootAppShell";
 const outfit = Outfit({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"] });
 
 export const metadata: Metadata = {
-  title: "Prolaesio",
+  title: "Lodario",
   description: "Mobile-first soccer training tracker and guidance app for young athletes.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Prolaesio",
+    title: "Lodario",
   },
   icons: {
     apple: "/icons/apple-touch-icon.png",
