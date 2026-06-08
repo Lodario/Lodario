@@ -305,7 +305,7 @@ export function OnboardingFlow() {
             </div>
             <div>
               <p className="text-xs text-[var(--accent-secondary)] font-bold uppercase tracking-wider">
-                Welcome to Prolaesio
+                Welcome to Lodario
               </p>
               <p className="text-[11px] text-gray-400">Let&apos;s get your account set up</p>
             </div>

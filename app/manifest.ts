@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Prolaesio',
-    short_name: 'Prolaesio',
+    name: 'Lodario',
+    short_name: 'Lodario',
     description: 'Soccer training tracker and guidance app for young athletes.',
     start_url: '/',
     display: 'standalone',

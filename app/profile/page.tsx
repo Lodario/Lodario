@@ -55,7 +55,7 @@ export default function ProfilePage() {
       {!profile && (
         <div className="mt-4 mb-2 p-4 bg-[rgba(255,255,255,0.05)] rounded-2xl border border-[rgba(255,255,255,0.2)]">
           <p className="text-sm text-gray-300">
-            Welcome to Prolaesio! Let&apos;s set up your profile so the AI guide can properly contextualize your training load and development.
+            Welcome to Lodario! Let&apos;s set up your profile so the AI guide can properly contextualize your training load and development.
           </p>
         </div>
       )}

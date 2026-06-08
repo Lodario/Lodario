@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <div className="px-4 py-8 max-w-md mx-auto">
       <header className="mb-8 pl-1">
-        <h1 className="text-3xl font-bold text-white tracking-tight">Prolaesio</h1>
+        <h1 className="text-3xl font-bold text-white tracking-tight">Lodario</h1>
         <p className="text-sm text-[var(--accent-secondary)] mt-1 font-medium">Your personal training guide</p>
       </header>
 

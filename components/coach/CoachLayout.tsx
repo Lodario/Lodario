@@ -37,7 +37,7 @@ function CoachLayoutInner({ children }: CoachLayoutProps) {
             </button>
 
             <div>
-              <p className="text-xs uppercase tracking-wide text-gray-400">Prolaesio Coach</p>
+              <p className="text-xs uppercase tracking-wide text-gray-400">Lodario Coach</p>
               <h1 className="text-sm font-semibold text-white">{pageTitle}</h1>
               {teamScopedPage ? (
                 <p className="text-xs font-medium text-[var(--accent-secondary)]">{selectedTeam.name}</p>

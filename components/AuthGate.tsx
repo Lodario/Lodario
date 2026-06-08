@@ -33,7 +33,7 @@ export function AuthGate({ children, requiredRole }: AuthGateProps) {
           <div className="w-16 h-16 rounded-full border-2 border-[var(--accent-primary)] border-t-transparent animate-spin" />
           <Shield className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[var(--accent-primary)]" size={24} />
         </div>
-        <p className="mt-6 text-gray-400 text-sm font-medium animate-pulse">Loading Prolaesio...</p>
+        <p className="mt-6 text-gray-400 text-sm font-medium animate-pulse">Loading Lodario...</p>
       </div>
     );
   }
@@ -107,7 +107,7 @@ function RoleSelectionScreen() {
         <div className="glass-card p-6 sm:p-8 animate-slide-up">
           <h2 className="text-2xl font-bold text-white">Choose your role</h2>
           <p className="text-sm text-gray-400 mt-2 mb-6 leading-relaxed">
-            Select how you use Prolaesio. Players get personal training guidance. Coaches get team dashboards and planning tools.
+            Select how you use Lodario. Players get personal training guidance. Coaches get team dashboards and planning tools.
           </p>
 
           <div className="space-y-3">
@@ -262,7 +262,7 @@ function AuthScreen() {
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-900/30">
             <Shield className="text-black" size={36} />
           </div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Prolaesio</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Lodario</h1>
           <p className="text-sm text-gray-400 mt-1">Your personal training guide</p>
         </div>
 
