@@ -53,7 +53,7 @@ export function PlayerSelectorDropdown({
       </button>
 
       {open ? (
-        <div className="absolute left-0 right-0 z-20 mt-1.5 overflow-hidden rounded-xl border border-[rgba(255,255,255,0.14)] bg-[rgba(10,14,39,0.97)] shadow-xl">
+        <div className="absolute left-0 right-0 z-20 mt-1.5 overflow-hidden rounded-xl border border-[rgba(255,255,255,0.14)] bg-[rgba(var(--surface-shell-rgb),0.97)] shadow-xl">
           <ul className="max-h-64 overflow-y-auto py-1">
             {players.map((dataset) => {
               const isSelected = dataset.player.id === selectedPlayerId;
@@ -67,7 +67,7 @@ export function PlayerSelectorDropdown({
                     }}
                     className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm transition-colors ${
                       isSelected
-                        ? 'bg-[rgba(0,212,170,0.12)] text-[var(--accent-primary)]'
+                        ? 'bg-[rgba(var(--accent-primary-rgb),0.12)] text-[var(--accent-primary)]'
                         : 'text-gray-200 hover:bg-[rgba(255,255,255,0.06)]'
                     }`}
                     aria-pressed={isSelected}

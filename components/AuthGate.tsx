@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
+import { AppLogo } from '@/components/AppLogo';
 import {
   Shield,
   Mail,
@@ -54,7 +55,7 @@ export function AuthGate({ children, requiredRole }: AuthGateProps) {
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
         <div className="w-full max-w-sm">
           <div className="glass-card p-8 text-center animate-slide-up">
-            <div className="w-16 h-16 rounded-full bg-[rgba(0,212,170,0.15)] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-full bg-[rgba(var(--accent-primary-rgb),0.15)] flex items-center justify-center mx-auto mb-4">
               <Shield className="text-[var(--accent-primary)]" size={32} />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Route Access</h2>
@@ -63,13 +64,13 @@ export function AuthGate({ children, requiredRole }: AuthGateProps) {
             </p>
             <Link
               href={fallbackRoute}
-              className="w-full py-3 rounded-xl text-sm font-bold text-black bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 inline-flex items-center justify-center"
+              className="w-full py-3 rounded-xl text-sm font-bold text-black bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] inline-flex items-center justify-center"
             >
               Go to your workspace
             </Link>
             <button
               onClick={signOut}
-              className="w-full mt-3 py-3 rounded-xl text-sm font-bold text-[var(--accent-primary)] border border-[var(--accent-primary)] hover:bg-[rgba(0,212,170,0.1)] transition-colors"
+              className="w-full mt-3 py-3 rounded-xl text-sm font-bold text-[var(--accent-primary)] border border-[var(--accent-primary)] hover:bg-[rgba(var(--accent-primary-rgb),0.1)] transition-colors"
             >
               Sign Out
             </button>
@@ -115,7 +116,7 @@ function RoleSelectionScreen() {
               type="button"
               onClick={() => handleSelectRole('player')}
               disabled={savingRole !== null}
-              className="w-full p-4 rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] text-left flex items-center space-x-3 hover:border-[rgba(0,212,170,0.5)] hover:bg-[rgba(0,212,170,0.08)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full p-4 rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] text-left flex items-center space-x-3 hover:border-[rgba(var(--accent-primary-rgb),0.5)] hover:bg-[rgba(var(--accent-primary-rgb),0.08)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <User className="text-[var(--accent-primary)] flex-shrink-0" size={22} />
               <div>
@@ -129,7 +130,7 @@ function RoleSelectionScreen() {
               type="button"
               onClick={() => handleSelectRole('coach')}
               disabled={savingRole !== null}
-              className="w-full p-4 rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] text-left flex items-center space-x-3 hover:border-[rgba(74,158,255,0.55)] hover:bg-[rgba(74,158,255,0.1)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+              className="w-full p-4 rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] text-left flex items-center space-x-3 hover:border-[rgba(var(--accent-secondary-rgb),0.55)] hover:bg-[rgba(var(--accent-secondary-rgb),0.1)] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <ClipboardList className="text-[var(--accent-secondary)] flex-shrink-0" size={22} />
               <div>
@@ -149,7 +150,7 @@ function RoleSelectionScreen() {
 
           <button
             onClick={signOut}
-            className="w-full mt-4 py-3 rounded-xl text-sm font-bold text-[var(--accent-primary)] border border-[var(--accent-primary)] hover:bg-[rgba(0,212,170,0.1)] transition-colors"
+            className="w-full mt-4 py-3 rounded-xl text-sm font-bold text-[var(--accent-primary)] border border-[var(--accent-primary)] hover:bg-[rgba(var(--accent-primary-rgb),0.1)] transition-colors"
           >
             Sign Out
           </button>
@@ -231,7 +232,7 @@ function AuthScreen() {
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
         <div className="w-full max-w-sm">
           <div className="glass-card p-8 text-center animate-slide-up">
-            <div className="w-16 h-16 rounded-full bg-[rgba(0,212,170,0.15)] flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 rounded-full bg-[rgba(var(--accent-primary-rgb),0.15)] flex items-center justify-center mx-auto mb-4">
               <Mail className="text-[var(--accent-primary)]" size={32} />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">Check Your Email</h2>
@@ -245,7 +246,7 @@ function AuthScreen() {
                 setResetSuccess(false);
                 setMode('signin');
               }}
-              className="w-full py-3 rounded-xl text-sm font-bold text-[var(--accent-primary)] border border-[var(--accent-primary)] hover:bg-[rgba(0,212,170,0.1)] transition-colors"
+              className="w-full py-3 rounded-xl text-sm font-bold text-[var(--accent-primary)] border border-[var(--accent-primary)] hover:bg-[rgba(var(--accent-primary-rgb),0.1)] transition-colors"
             >
               Back to Sign In
             </button>
@@ -259,9 +260,7 @@ function AuthScreen() {
     <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-8 animate-fade-in">
-          <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-900/30">
-            <Shield className="text-black" size={36} />
-          </div>
+          <AppLogo size={80} priority className="mx-auto mb-4 shadow-lg shadow-[0_16px_40px_rgba(var(--accent-tertiary-rgb),0.22)]" />
           <h1 className="text-3xl font-bold text-white tracking-tight">Lodario</h1>
           <p className="text-sm text-gray-400 mt-1">Your personal training guide</p>
         </div>
@@ -360,7 +359,7 @@ function AuthScreen() {
               id="auth-submit"
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-3.5 rounded-xl shadow-lg shadow-emerald-900/30 flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-3.5 rounded-xl shadow-lg shadow-[0_16px_40px_rgba(var(--accent-tertiary-rgb),0.22)] flex items-center justify-center transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <Loader2 className="animate-spin" size={20} />

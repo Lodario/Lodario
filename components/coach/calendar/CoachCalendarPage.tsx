@@ -719,7 +719,7 @@ export function CoachCalendarPage() {
               </p>
             ) : null}
             {saveSuccess ? (
-              <p className="rounded-lg border border-[rgba(0,212,170,0.3)] bg-[rgba(0,212,170,0.1)] px-3 py-2 text-xs text-[var(--accent-primary)]">
+              <p className="rounded-lg border border-[rgba(var(--status-green-rgb),0.3)] bg-[rgba(var(--status-green-rgb),0.1)] px-3 py-2 text-xs text-[var(--status-green)]">
                 {saveSuccess}
               </p>
             ) : null}
@@ -737,7 +737,7 @@ export function CoachCalendarPage() {
                 type="button"
                 disabled={isSaving}
                 onClick={() => void saveEvent(true)}
-                className="w-full rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 py-3 text-sm font-bold text-black transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                className="w-full rounded-xl bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] py-3 text-sm font-bold text-black transition-transform active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSaving ? 'Saving...' : 'Save and Publish'}
               </button>

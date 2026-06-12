@@ -9,7 +9,7 @@ interface RecommendationCardProps {
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
   const getGradient = () => {
     switch (recommendation.intensity) {
-      case 'Intense': return 'from-[var(--status-green)] to-emerald-600';
+      case 'Intense': return 'from-[var(--status-green)] to-[var(--accent-tertiary)]';
       case 'Moderate': return 'from-[var(--status-yellow)] to-amber-500';
       case 'Light': return 'from-[var(--status-orange)] to-orange-600';
       case 'Recovery': return 'from-[var(--status-red)] to-rose-600';

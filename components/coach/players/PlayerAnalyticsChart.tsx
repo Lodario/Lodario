@@ -77,7 +77,7 @@ export function PlayerAnalyticsChart({
               ) : null}
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'rgba(10,14,39,0.94)',
+                  backgroundColor: 'rgba(var(--surface-shell-rgb),0.96)',
                   border: '1px solid rgba(255,255,255,0.14)',
                   borderRadius: '10px',
                 }}
@@ -134,7 +134,7 @@ export function PlayerAnalyticsChart({
               ) : null}
               <Tooltip
                 contentStyle={{
-                  backgroundColor: 'rgba(10,14,39,0.94)',
+                  backgroundColor: 'rgba(var(--surface-shell-rgb),0.96)',
                   border: '1px solid rgba(255,255,255,0.14)',
                   borderRadius: '10px',
                 }}

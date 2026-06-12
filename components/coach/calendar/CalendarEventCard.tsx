@@ -17,7 +17,7 @@ export function CalendarEventCard({ item }: CalendarEventCardProps) {
   const statusBadgeClass =
     item.status === 'completed'
       ? 'border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.08)] text-gray-300'
-      : 'border-[rgba(0,212,170,0.3)] bg-[rgba(0,212,170,0.1)] text-[var(--accent-primary)]';
+      : 'border-[rgba(var(--accent-primary-rgb),0.3)] bg-[rgba(var(--accent-primary-rgb),0.1)] text-[var(--accent-primary)]';
 
   return (
     <article

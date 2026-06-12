@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { Shield } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { AppLogo } from '@/components/AppLogo';
 import { NavigationItem } from '@/components/coach/NavigationItem';
 import {
   coachPrimaryNavigation,
@@ -16,10 +16,10 @@ export function CoachSidebar() {
   const { selectedTeam } = useCoachTeam();
 
   return (
-    <aside className="group/sidebar fixed inset-y-0 left-0 z-40 hidden w-20 border-r border-[var(--card-border)] bg-[rgba(10,14,39,0.95)] backdrop-blur-xl transition-[width] duration-300 lg:flex hover:w-64">
+    <aside className="group/sidebar fixed inset-y-0 left-0 z-40 hidden w-20 border-r border-[var(--card-border)] bg-[rgba(var(--surface-shell-rgb),0.95)] backdrop-blur-xl transition-[width] duration-300 lg:flex hover:w-64">
       <div className="flex w-full flex-col px-3 py-4">
         <Link href="/coach/dashboard" className="mb-4 flex items-center gap-3 rounded-xl px-3 py-3 text-white">
-          <Shield size={19} className="text-[var(--accent-primary)] shrink-0" />
+          <AppLogo size={22} />
           <span className="max-w-0 overflow-hidden whitespace-nowrap text-sm font-semibold opacity-0 transition-all duration-300 group-hover/sidebar:max-w-[190px] group-hover/sidebar:opacity-100">
             Lodario Coach
           </span>

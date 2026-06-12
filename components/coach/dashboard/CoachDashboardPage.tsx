@@ -55,7 +55,7 @@ const stableStatusBadge: TeamStatusBadge = {
 
 const liveStatusBadge: TeamStatusBadge = {
   label: 'Live',
-  className: 'border-[rgba(0,212,170,0.35)] bg-[rgba(0,212,170,0.12)] text-[var(--accent-primary)]',
+  className: 'border-[rgba(var(--status-green-rgb),0.35)] bg-[rgba(var(--status-green-rgb),0.12)] text-[var(--status-green)]',
 };
 
 const quickActions = [
@@ -222,13 +222,13 @@ export function CoachDashboardPage() {
               <span className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 font-medium text-gray-300">
                 {todaySummary.hasUnknownPlayerCounts ? 'Loading players...' : `${todaySummary.totalPlayers} players`}
               </span>
-              <span className="rounded-full border border-[rgba(0,212,170,0.3)] bg-[rgba(0,212,170,0.1)] px-2.5 py-1 font-medium text-[var(--accent-primary)]">
+              <span className="rounded-full border border-[rgba(var(--accent-secondary-rgb),0.3)] bg-[rgba(var(--accent-secondary-rgb),0.1)] px-2.5 py-1 font-medium text-[var(--metric-readiness)]">
                 Avg readiness {todaySummary.averageReadiness == null ? '--' : `${Math.round(todaySummary.averageReadiness)}%`}
               </span>
-              <span className="rounded-full border border-[rgba(74,158,255,0.35)] bg-[rgba(74,158,255,0.12)] px-2.5 py-1 font-medium text-[var(--accent-secondary)]">
+              <span className="rounded-full border border-[rgba(var(--metric-load-rgb),0.35)] bg-[rgba(var(--metric-load-rgb),0.12)] px-2.5 py-1 font-medium text-[var(--metric-load)]">
                 Avg load {todaySummary.averageLoad == null ? '--' : Math.round(todaySummary.averageLoad)}
               </span>
-              <span className="rounded-full border border-[rgba(0,212,170,0.28)] bg-[rgba(0,212,170,0.1)] px-2.5 py-1 font-medium text-[var(--accent-primary)]">
+              <span className="rounded-full border border-[rgba(var(--accent-primary-rgb),0.28)] bg-[rgba(var(--accent-primary-rgb),0.1)] px-2.5 py-1 font-medium text-[var(--accent-primary)]">
                 Selected team: {selectedTeam.name}
               </span>
             </div>
@@ -262,8 +262,8 @@ export function CoachDashboardPage() {
                 key={team.id}
                 className={`glass-card p-4 transition-colors ${
                   team.id === selectedTeamId
-                    ? 'border-[rgba(0,212,170,0.42)] bg-[rgba(0,212,170,0.08)]'
-                    : 'hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(25,33,73,0.72)]'
+                    ? 'border-[rgba(var(--accent-primary-rgb),0.42)] bg-[rgba(var(--accent-primary-rgb),0.08)]'
+                    : 'hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(var(--surface-elevated-rgb),0.92)]'
                 }`}
               >
                 <div className="mb-3 flex items-start justify-between gap-2">
@@ -283,13 +283,13 @@ export function CoachDashboardPage() {
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <dt className="text-gray-300">Avg readiness</dt>
-                    <dd className="font-semibold text-[var(--accent-primary)]">
+                    <dd className="font-semibold text-[var(--metric-readiness)]">
                       {team.averageReadiness == null ? '--' : `${Math.round(team.averageReadiness)}%`}
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-2">
                     <dt className="text-gray-300">Avg load</dt>
-                    <dd className="font-semibold text-[var(--accent-secondary)]">
+                    <dd className="font-semibold text-[var(--metric-load)]">
                       {team.averageLoad == null ? '--' : Math.round(team.averageLoad)}
                     </dd>
                   </div>
@@ -353,7 +353,7 @@ export function CoachDashboardPage() {
                     </div>
 
                     <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                      <span className="rounded-full border border-[rgba(74,158,255,0.35)] bg-[rgba(74,158,255,0.12)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-secondary)]">
+                      <span className="rounded-full border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.12)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-secondary)]">
                         {activity.type}
                       </span>
                     </div>
@@ -400,10 +400,10 @@ export function CoachDashboardPage() {
               <Link
                 key={action.label}
                 href={action.href}
-                className="glass-card group flex min-h-[96px] items-center justify-between gap-3 p-4 transition-colors hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(25,33,73,0.72)]"
+                className="glass-card group flex min-h-[96px] items-center justify-between gap-3 p-4 transition-colors hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(var(--surface-elevated-rgb),0.92)]"
               >
                 <div className="flex min-w-0 items-center gap-3">
-                  <span className="shrink-0 rounded-lg border border-[rgba(0,212,170,0.24)] bg-[rgba(0,212,170,0.1)] p-2 text-[var(--accent-primary)]">
+                  <span className="shrink-0 rounded-lg border border-[rgba(var(--accent-primary-rgb),0.24)] bg-[rgba(var(--accent-primary-rgb),0.1)] p-2 text-[var(--accent-primary)]">
                     <Icon size={16} />
                   </span>
                   <div className="min-w-0">

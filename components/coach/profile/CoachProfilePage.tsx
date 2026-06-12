@@ -136,7 +136,7 @@ export function CoachProfilePage() {
 
               <h2 className="mt-4 text-lg font-semibold text-white">{accountName}</h2>
               <p className="mt-1 text-sm text-gray-400">{accountEmail || '--'}</p>
-              <span className="mt-3 inline-flex items-center gap-1 rounded-full border border-[rgba(0,212,170,0.35)] bg-[rgba(0,212,170,0.12)] px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
+              <span className="mt-3 inline-flex items-center gap-1 rounded-full border border-[rgba(var(--accent-primary-rgb),0.35)] bg-[rgba(var(--accent-primary-rgb),0.12)] px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--accent-primary)]">
                 <BadgeCheck size={12} />
                 {roleLabel}
               </span>
@@ -210,13 +210,13 @@ export function CoachProfilePage() {
               <button
                 type="submit"
                 disabled={isSavingProfile}
-                className="rounded-lg border border-[rgba(0,212,170,0.4)] bg-[rgba(0,212,170,0.14)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--accent-primary)] transition-colors hover:bg-[rgba(0,212,170,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="rounded-lg border border-[rgba(var(--accent-primary-rgb),0.4)] bg-[rgba(var(--accent-primary-rgb),0.14)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--accent-primary)] transition-colors hover:bg-[rgba(var(--accent-primary-rgb),0.2)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSavingProfile ? 'Saving...' : 'Save Profile'}
               </button>
 
               {saveError ? <p className="text-xs text-[var(--status-red)]">{saveError}</p> : null}
-              {saveSuccess ? <p className="text-xs text-[var(--accent-primary)]">{saveSuccess}</p> : null}
+              {saveSuccess ? <p className="text-xs text-[var(--status-green)]">{saveSuccess}</p> : null}
             </form>
           </section>
 

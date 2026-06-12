@@ -208,7 +208,7 @@ function DaySchedule({
       </div>
 
       {dayItems.length === 0 ? (
-        <p className="pointer-events-none absolute left-1/2 top-16 z-20 -translate-x-1/2 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(10,14,39,0.88)] px-3 py-2 text-center text-xs text-gray-300 shadow-lg">
+        <p className="pointer-events-none absolute left-1/2 top-16 z-20 -translate-x-1/2 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(var(--surface-shell-rgb),0.92)] px-3 py-2 text-center text-xs text-gray-300 shadow-lg">
           No activities scheduled for this day.
         </p>
       ) : null}
@@ -356,7 +356,7 @@ function WeekSchedule({
         </div>
 
         {parsedByDay.every((dayItems) => dayItems.length === 0) ? (
-          <p className="pointer-events-none absolute left-1/2 top-16 z-20 -translate-x-1/2 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(10,14,39,0.88)] px-3 py-2 text-center text-xs text-gray-300 shadow-lg">
+          <p className="pointer-events-none absolute left-1/2 top-16 z-20 -translate-x-1/2 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(var(--surface-shell-rgb),0.92)] px-3 py-2 text-center text-xs text-gray-300 shadow-lg">
             No activities scheduled for this week.
           </p>
         ) : null}

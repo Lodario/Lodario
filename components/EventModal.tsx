@@ -266,7 +266,7 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
         {/* Body */}
         <div className="p-5 overflow-y-auto max-h-[70vh]">
           {readOnly && (
-            <div className="mb-5 p-3 rounded-xl bg-[rgba(74,158,255,0.1)] border border-[rgba(74,158,255,0.25)] text-xs text-gray-200 font-medium flex items-center">
+            <div className="mb-5 p-3 rounded-xl bg-[rgba(var(--accent-secondary-rgb),0.1)] border border-[rgba(var(--accent-secondary-rgb),0.25)] text-xs text-gray-200 font-medium flex items-center">
               <Lock size={14} className="mr-2 text-[var(--accent-secondary)]" />
               Assigned by coach
             </div>
@@ -276,7 +276,7 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
           
           {/* Single-instance toggle for recurring events */}
           {isEditing && isRecurringInstance && !readOnly && (
-            <div className="mb-5 p-3 rounded-xl bg-[rgba(74,158,255,0.1)] border border-[rgba(74,158,255,0.2)]">
+            <div className="mb-5 p-3 rounded-xl bg-[rgba(var(--accent-secondary-rgb),0.1)] border border-[rgba(var(--accent-secondary-rgb),0.2)]">
               <label className="flex items-center space-x-3 cursor-pointer touch-target">
                 <input
                   type="checkbox"
@@ -632,7 +632,7 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
               <>
                 <button 
                   onClick={handleSave}
-                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-4 rounded-xl shadow-lg flex items-center justify-center touch-target transition-transform active:scale-95"
+                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-4 rounded-xl shadow-lg flex items-center justify-center touch-target transition-transform active:scale-95"
                 >
                   <Save className="mr-2" size={20} /> {isEditing ? 'Update Event' : 'Save Event'}
                 </button>

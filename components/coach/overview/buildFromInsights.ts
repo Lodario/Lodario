@@ -89,7 +89,7 @@ function getSummaryStatus({
   if (!hasData) {
     return {
       label: 'Stable',
-      className: 'text-[var(--accent-primary)] border-[rgba(0,212,170,0.4)] bg-[rgba(0,212,170,0.12)]',
+      className: 'text-[var(--status-green)] border-[rgba(var(--status-green-rgb),0.4)] bg-[rgba(var(--status-green-rgb),0.12)]',
     };
   }
 
@@ -109,7 +109,7 @@ function getSummaryStatus({
 
   return {
     label: 'Stable',
-    className: 'text-[var(--accent-primary)] border-[rgba(0,212,170,0.4)] bg-[rgba(0,212,170,0.12)]',
+    className: 'text-[var(--status-green)] border-[rgba(var(--status-green-rgb),0.4)] bg-[rgba(var(--status-green-rgb),0.12)]',
   };
 }
 
@@ -354,21 +354,21 @@ export function buildTeamOverviewData({
       points: readinessTrendPoints,
       latest: rounded(readinessTrendPoints[readinessTrendPoints.length - 1] ?? 0),
       delta: rounded((readinessTrendPoints[readinessTrendPoints.length - 1] ?? 0) - (readinessTrendPoints[0] ?? 0)),
-      toneClass: 'text-[var(--accent-primary)]',
+      toneClass: 'text-[var(--metric-readiness)]',
     },
     {
       label: 'Load Trend',
       points: loadTrendPoints,
       latest: rounded(loadTrendPoints[loadTrendPoints.length - 1] ?? 0),
       delta: rounded((loadTrendPoints[loadTrendPoints.length - 1] ?? 0) - (loadTrendPoints[0] ?? 0)),
-      toneClass: 'text-[var(--accent-secondary)]',
+      toneClass: 'text-[var(--metric-load)]',
     },
     {
       label: 'Fatigue Trend',
       points: fatigueTrendPoints,
       latest: rounded(fatigueTrendPoints[fatigueTrendPoints.length - 1] ?? 0),
       delta: rounded((fatigueTrendPoints[fatigueTrendPoints.length - 1] ?? 0) - (fatigueTrendPoints[0] ?? 0)),
-      toneClass: 'text-[var(--status-red)]',
+      toneClass: 'text-[var(--metric-fatigue)]',
     },
   ] : [];
 

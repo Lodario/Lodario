@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'Soccer training tracker and guidance app for young athletes.',
     start_url: '/',
     display: 'standalone',
-    background_color: '#0a0e27',
-    theme_color: '#0a0e27',
+    background_color: '#0d0d0c',
+    theme_color: '#0d0d0c',
     orientation: 'portrait',
     icons: [
       {

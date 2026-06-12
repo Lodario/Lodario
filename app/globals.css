@@ -3,18 +3,42 @@
 @tailwind utilities;
 
 :root {
-  --background: #0a0e27;
+  --background: #0d0d0c;
   --foreground: #f8f9fa;
-  
-  --accent-primary: #00d4aa;
-  --accent-secondary: #4a9eff;
-  
-  --status-green: #00d4aa;
+
+  --surface-shell: #0f0f0e;
+  --surface-shell-rgb: 15, 15, 14;
+  --surface-card: #181817;
+  --surface-card-rgb: 24, 24, 23;
+  --surface-elevated: #22211f;
+  --surface-elevated-rgb: 34, 33, 31;
+
+  --accent-primary: #ffd43b;
+  --accent-primary-rgb: 255, 212, 59;
+  --accent-secondary: #ff922b;
+  --accent-secondary-rgb: 255, 146, 43;
+  --accent-tertiary: #ff4d1f;
+  --accent-tertiary-rgb: 255, 77, 31;
+
+  --status-green: #22c55e;
+  --status-green-rgb: 34, 197, 94;
   --status-yellow: #ffd43b;
   --status-orange: #ff922b;
   --status-red: #ff6b6b;
-  
-  --card-bg: rgba(25, 33, 73, 0.6);
+
+  --metric-readiness: #ff7a2f;
+  --metric-energy: #ffe45e;
+  --metric-fatigue: #ff4d6d;
+  --metric-stress: #d946ef;
+  --metric-sleep-score: #38bdf8;
+  --metric-sleep-time: #60a5fa;
+  --metric-sleep-quality: #fbbf24;
+  --metric-load: #8b5cf6;
+  --metric-load-rgb: 139, 92, 246;
+  --metric-load-score: #a78bfa;
+  --metric-performance: #ef5da8;
+
+  --card-bg: rgba(24, 24, 23, 0.82);
   --card-border: rgba(255, 255, 255, 0.1);
 }
 
@@ -57,8 +81,8 @@ body {
 }
 
 @keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 6px 2px var(--glow-color, rgba(0,212,170,0.6)), 0 0 14px 4px var(--glow-color-soft, rgba(0,212,170,0.25)); }
-  50% { box-shadow: 0 0 10px 4px var(--glow-color, rgba(0,212,170,0.8)), 0 0 22px 8px var(--glow-color-soft, rgba(0,212,170,0.35)); }
+  0%, 100% { box-shadow: 0 0 6px 2px var(--glow-color, rgba(var(--accent-primary-rgb),0.6)), 0 0 14px 4px var(--glow-color-soft, rgba(var(--accent-primary-rgb),0.25)); }
+  50% { box-shadow: 0 0 10px 4px var(--glow-color, rgba(var(--accent-primary-rgb),0.8)), 0 0 22px 8px var(--glow-color-soft, rgba(var(--accent-primary-rgb),0.35)); }
 }
 
 /* Custom Slider Styling */
@@ -76,5 +100,5 @@ input[type=range]::-webkit-slider-thumb {
 
 input[type=range]::-webkit-slider-runnable-track {
   @apply w-full h-2 rounded-full;
-  background: linear-gradient(90deg, var(--accent-secondary) 0%, var(--accent-primary) 100%);
+  background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 55%, var(--accent-tertiary) 100%);
 }

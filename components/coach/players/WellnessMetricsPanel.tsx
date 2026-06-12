@@ -12,9 +12,9 @@ interface MetricRow {
 
 export function WellnessMetricsPanel({ metrics }: WellnessMetricsPanelProps) {
   const metricRows: MetricRow[] = [
-    { label: 'Readiness Score', value: metrics.readinessScore, colorClass: 'bg-[var(--accent-primary)]' },
-    { label: 'Fatigue', value: metrics.fatigue, colorClass: 'bg-[var(--status-red)]' },
-    { label: 'Load Score', value: metrics.loadScore, colorClass: 'bg-[var(--accent-secondary)]' },
+    { label: 'Readiness Score', value: metrics.readinessScore, colorClass: 'bg-[var(--metric-readiness)]' },
+    { label: 'Fatigue', value: metrics.fatigue, colorClass: 'bg-[var(--metric-fatigue)]' },
+    { label: 'Load Score', value: metrics.loadScore, colorClass: 'bg-[var(--metric-load-score)]' },
   ];
 
   return (

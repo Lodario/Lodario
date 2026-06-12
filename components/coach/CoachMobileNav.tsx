@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { AppLogo } from '@/components/AppLogo';
 import { NavigationItem } from '@/components/coach/NavigationItem';
 import {
   coachPrimaryNavigation,
@@ -31,12 +32,15 @@ export function CoachMobileNav({ open, onClose }: CoachMobileNavProps) {
       />
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-72 border-r border-[var(--card-border)] bg-[rgba(10,14,39,0.98)] px-4 py-4 shadow-2xl transition-transform duration-300 lg:hidden ${
+        className={`fixed inset-y-0 left-0 z-50 w-72 border-r border-[var(--card-border)] bg-[rgba(var(--surface-shell-rgb),0.98)] px-4 py-4 shadow-2xl transition-transform duration-300 lg:hidden ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
         <div className="mb-4 flex items-center justify-between">
-          <p className="text-sm font-semibold text-white">Lodario Coach</p>
+          <div className="flex items-center gap-3">
+            <AppLogo size={28} />
+            <p className="text-sm font-semibold text-white">Lodario Coach</p>
+          </div>
           <button
             type="button"
             onClick={onClose}

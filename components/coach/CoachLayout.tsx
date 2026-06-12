@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import { AppLogo } from '@/components/AppLogo';
 import { CoachSidebar } from '@/components/coach/CoachSidebar';
 import { CoachMobileNav } from '@/components/coach/CoachMobileNav';
 import { getCoachPageTitle, isTeamScopedPath } from '@/components/coach/navigation';
@@ -25,7 +26,7 @@ function CoachLayoutInner({ children }: CoachLayoutProps) {
       <CoachMobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
       <div className="min-h-screen lg:pl-20">
-        <header className="sticky top-0 z-30 border-b border-[var(--card-border)] bg-[rgba(10,14,39,0.92)] px-4 py-3 backdrop-blur lg:hidden">
+        <header className="sticky top-0 z-30 border-b border-[var(--card-border)] bg-[rgba(var(--surface-shell-rgb),0.92)] px-4 py-3 backdrop-blur lg:hidden">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -35,6 +36,8 @@ function CoachLayoutInner({ children }: CoachLayoutProps) {
             >
               <Menu size={18} />
             </button>
+
+            <AppLogo size={28} />
 
             <div>
               <p className="text-xs uppercase tracking-wide text-gray-400">Lodario Coach</p>

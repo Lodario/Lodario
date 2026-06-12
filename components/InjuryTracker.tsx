@@ -51,7 +51,7 @@ export function InjuryTracker() {
               </span>
               <button 
                 onClick={() => markResolved(injury.id)}
-                className="text-xs text-gray-400 hover:text-emerald-400 flex items-center touch-target"
+                className="text-xs text-gray-400 hover:text-[var(--status-green)] flex items-center touch-target"
               >
                 <CheckCircle2 size={16} className="mr-1" /> Resolve
               </button>
@@ -60,7 +60,7 @@ export function InjuryTracker() {
         ))}
         {activeInjuries.length === 0 && !load.hasAutoInjury && (
           <div className="glass-card p-5 text-center border-dashed border-[rgba(255,255,255,0.2)]">
-            <CheckCircle2 className="mx-auto text-emerald-500 mb-2" size={32} />
+            <CheckCircle2 className="mx-auto text-[var(--status-green)] mb-2" size={32} />
             <p className="text-sm font-medium text-white">No Active Issues</p>
             <p className="text-xs text-gray-400 mt-1">You are fully fit to train.</p>
           </div>

@@ -66,7 +66,7 @@ function InjuryStatusCard({
         ? 'border-[rgba(255,146,43,0.4)] bg-[rgba(255,146,43,0.12)] text-[var(--status-orange)]'
         : injuryStatus.state === 'unavailable'
           ? 'border-[rgba(255,212,59,0.3)] bg-[rgba(255,212,59,0.1)] text-[var(--status-yellow)]'
-          : 'border-[rgba(0,212,170,0.3)] bg-[rgba(0,212,170,0.1)] text-[var(--accent-primary)]';
+          : 'border-[rgba(var(--status-green-rgb),0.3)] bg-[rgba(var(--status-green-rgb),0.1)] text-[var(--status-green)]';
 
   return (
     <section className="glass-card p-3.5 sm:p-4">
@@ -103,7 +103,7 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
           title="Readiness Score Trend"
           data={playerDataset.analytics.readinessTrend}
           leftDomain={[0, 100]}
-          series={[{ dataKey: 'readinessScore', name: 'Readiness Score', color: 'var(--accent-primary)' }]}
+          series={[{ dataKey: 'readinessScore', name: 'Readiness Score', color: 'var(--metric-readiness)' }]}
         />
         <PlayerAnalyticsChart
           graphNumber={2}
@@ -115,12 +115,12 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
             {
               dataKey: 'acuteTrainingLoad',
               name: 'Acute Training Load',
-              color: 'var(--accent-secondary)',
+              color: 'var(--metric-load)',
               type: 'bar',
               yAxisId: 'left',
             },
-            { dataKey: 'energy', name: 'Energy', color: '#ffd43b', yAxisId: 'right' },
-            { dataKey: 'fatigue', name: 'Fatigue', color: '#ff6b6b', yAxisId: 'right' },
+            { dataKey: 'energy', name: 'Energy', color: 'var(--metric-energy)', yAxisId: 'right' },
+            { dataKey: 'fatigue', name: 'Fatigue', color: 'var(--metric-fatigue)', yAxisId: 'right' },
           ]}
         />
         <PlayerAnalyticsChart
@@ -131,9 +131,9 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
           rightDomain={[0, 100]}
           footerNote={sleepTimingNote}
           series={[
-            { dataKey: 'sleepHours', name: 'Sleep Time (hours)', color: 'var(--accent-secondary)', type: 'bar', yAxisId: 'left' },
-            { dataKey: 'sleepQualityScore', name: 'Sleep Quality', color: '#ffd43b', yAxisId: 'right' },
-            { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--accent-primary)', yAxisId: 'right' },
+            { dataKey: 'sleepHours', name: 'Sleep Time (hours)', color: 'var(--metric-sleep-time)', type: 'bar', yAxisId: 'left' },
+            { dataKey: 'sleepQualityScore', name: 'Sleep Quality', color: 'var(--metric-sleep-quality)', yAxisId: 'right' },
+            { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--metric-sleep-score)', yAxisId: 'right' },
           ]}
         />
         <PlayerAnalyticsChart
@@ -142,8 +142,8 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
           data={playerDataset.analytics.stressVsSleepScore}
           leftDomain={[0, 100]}
           series={[
-            { dataKey: 'stress', name: 'Stress', color: '#ff6b6b' },
-            { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--accent-secondary)' },
+            { dataKey: 'stress', name: 'Stress', color: 'var(--metric-stress)' },
+            { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--metric-sleep-score)' },
           ]}
         />
         <div className="md:col-span-2">
@@ -153,12 +153,12 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
             data={playerDataset.analytics.multiFactorReadiness}
             leftDomain={[0, 100]}
             series={[
-              { dataKey: 'readinessScore', name: 'Readiness Score', color: 'var(--accent-primary)', type: 'bar' },
-              { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--accent-secondary)' },
-              { dataKey: 'energyScore', name: 'Energy', color: '#ffd43b' },
-              { dataKey: 'fatigueScore', name: 'Fatigue', color: '#ff922b' },
-              { dataKey: 'stressScore', name: 'Stress', color: '#ff6b6b' },
-              { dataKey: 'loadScore', name: 'Load Score', color: '#b197fc' },
+              { dataKey: 'readinessScore', name: 'Readiness Score', color: 'var(--metric-readiness)', type: 'bar' },
+              { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--metric-sleep-score)' },
+              { dataKey: 'energyScore', name: 'Energy', color: 'var(--metric-energy)' },
+              { dataKey: 'fatigueScore', name: 'Fatigue', color: 'var(--metric-fatigue)' },
+              { dataKey: 'stressScore', name: 'Stress', color: 'var(--metric-stress)' },
+              { dataKey: 'loadScore', name: 'Load Score', color: 'var(--metric-load-score)' },
             ]}
           />
         </div>

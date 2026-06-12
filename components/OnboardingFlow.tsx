@@ -10,9 +10,9 @@ import {
   ChevronRight,
   Loader2,
   Plus,
-  Shield,
   SkipForward,
 } from 'lucide-react';
+import { AppLogo } from '@/components/AppLogo';
 import { useData } from '@/lib/DataContext';
 import {
   Position,
@@ -300,9 +300,7 @@ export function OnboardingFlow() {
       <main className="flex-1 overflow-y-auto pb-12">
         <div className="max-w-md mx-auto px-4 py-8">
           <header className="mb-6 flex items-center space-x-3 animate-fade-in">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center shadow-lg">
-              <Shield className="text-black" size={20} />
-            </div>
+            <AppLogo size={40} className="shadow-lg" />
             <div>
               <p className="text-xs text-[var(--accent-secondary)] font-bold uppercase tracking-wider">
                 Welcome to Lodario
@@ -334,7 +332,7 @@ export function OnboardingFlow() {
                       className="flex-1 bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-xl p-3 text-white touch-target [color-scheme:dark]"
                     />
                     {computedAge !== null && (
-                      <div className="flex-shrink-0 bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold px-4 py-2.5 rounded-xl text-sm shadow-md">
+                      <div className="flex-shrink-0 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold px-4 py-2.5 rounded-xl text-sm shadow-md">
                         Age: {computedAge}
                       </div>
                     )}
@@ -390,7 +388,7 @@ export function OnboardingFlow() {
                         onClick={() => togglePosition(pos.id as Position)}
                         className={`px-3 py-2 rounded-full text-xs font-bold transition-all touch-target ${
                           positions.includes(pos.id as Position)
-                            ? 'bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black shadow-md'
+                            ? 'bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black shadow-md'
                             : 'bg-[rgba(255,255,255,0.05)] text-gray-400 hover:text-gray-200 border border-[rgba(255,255,255,0.1)]'
                         }`}
                       >
@@ -410,9 +408,9 @@ export function OnboardingFlow() {
                   </p>
 
                   {teamConnected ? (
-                    <div className="flex items-center justify-between p-3 rounded-xl bg-[rgba(0,212,170,0.1)] border border-[var(--accent-primary)]">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-[rgba(var(--status-green-rgb),0.1)] border border-[var(--status-green)]">
                       <div className="flex items-center space-x-2 min-w-0">
-                        <Check className="text-[var(--accent-primary)] flex-shrink-0" size={18} />
+                        <Check className="text-[var(--status-green)] flex-shrink-0" size={18} />
                         <div className="min-w-0">
                           <p className="text-xs text-gray-400">Connected with</p>
                           <p className="text-sm font-bold text-white truncate">{teamCode}</p>
@@ -457,7 +455,7 @@ export function OnboardingFlow() {
                           onClick={handleNoTeam}
                           className={`flex-1 py-2.5 rounded-xl text-xs font-bold border transition-colors ${
                             teamSkipped
-                              ? 'border-[var(--accent-primary)] text-[var(--accent-primary)] bg-[rgba(0,212,170,0.08)]'
+                              ? 'border-[var(--accent-primary)] text-[var(--accent-primary)] bg-[rgba(var(--accent-primary-rgb),0.08)]'
                               : 'border-[rgba(255,255,255,0.15)] text-gray-300 hover:border-[var(--accent-primary)]'
                           }`}
                         >
@@ -473,7 +471,7 @@ export function OnboardingFlow() {
                         <p
                           className={`mt-2 text-[11px] ${
                             teamJoinFeedback.type === 'success'
-                              ? 'text-[var(--accent-primary)]'
+                              ? 'text-[var(--status-green)]'
                               : teamJoinFeedback.type === 'info'
                               ? 'text-[var(--accent-secondary)]'
                               : 'text-[#ff6b6b]'
@@ -495,7 +493,7 @@ export function OnboardingFlow() {
                 <button
                   type="submit"
                   disabled={savingStep1}
-                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center transition-transform active:scale-95 disabled:opacity-60"
+                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center transition-transform active:scale-95 disabled:opacity-60"
                 >
                   {savingStep1 ? (
                     <Loader2 className="animate-spin" size={20} />
@@ -523,7 +521,7 @@ export function OnboardingFlow() {
                 <button
                   type="button"
                   onClick={handleSaveAvailability}
-                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center transition-transform active:scale-95"
+                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center transition-transform active:scale-95"
                 >
                   Save & Continue <ArrowRight className="ml-2" size={18} />
                 </button>
@@ -561,7 +559,7 @@ export function OnboardingFlow() {
                 <button
                   type="button"
                   onClick={handleSaveResources}
-                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center transition-transform active:scale-95"
+                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center transition-transform active:scale-95"
                 >
                   Save & Continue <ArrowRight className="ml-2" size={18} />
                 </button>
@@ -629,7 +627,7 @@ export function OnboardingFlow() {
               <button
                 type="button"
                 onClick={() => handleAddEvent()}
-                className="w-full mb-3 flex items-center justify-center py-2.5 rounded-xl bg-[rgba(74,158,255,0.12)] border border-[var(--accent-secondary)] text-[var(--accent-secondary)] font-bold text-xs"
+                className="w-full mb-3 flex items-center justify-center py-2.5 rounded-xl bg-[rgba(var(--accent-secondary-rgb),0.12)] border border-[var(--accent-secondary)] text-[var(--accent-secondary)] font-bold text-xs"
               >
                 <Plus size={16} className="mr-1.5" /> Add Recurring Event
               </button>
@@ -652,7 +650,7 @@ export function OnboardingFlow() {
                   type="button"
                   onClick={finishOnboarding}
                   disabled={completing}
-                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center transition-transform active:scale-95 disabled:opacity-60"
+                  className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center transition-transform active:scale-95 disabled:opacity-60"
                 >
                   {completing ? (
                     <Loader2 className="animate-spin" size={20} />
