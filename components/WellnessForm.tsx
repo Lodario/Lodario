@@ -192,7 +192,7 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
 
       <button 
         type="submit" 
-        className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 touch-target"
+        className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 touch-target"
       >
         Save Wellness Log
       </button>

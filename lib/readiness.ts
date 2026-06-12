@@ -169,7 +169,7 @@ export function calculateReadiness(
   let label = 'Low Readiness';
 
   if (finalScore >= 75) {
-    color = '#00d4aa'; // green
+    color = '#22c55e'; // green
     label = 'Optimal';
   } else if (finalScore >= 50) {
     color = '#ffd43b'; // yellow

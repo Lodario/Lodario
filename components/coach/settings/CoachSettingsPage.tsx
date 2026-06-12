@@ -26,7 +26,7 @@ function ToggleRow({ label, description, checked, onChange }: ToggleRowProps) {
         onClick={() => onChange(!checked)}
         className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors ${
           checked
-            ? 'border-[rgba(0,212,170,0.5)] bg-[rgba(0,212,170,0.28)]'
+            ? 'border-[rgba(var(--accent-primary-rgb),0.5)] bg-[rgba(var(--accent-primary-rgb),0.28)]'
             : 'border-[rgba(255,255,255,0.2)] bg-[rgba(255,255,255,0.06)]'
         }`}
       >
@@ -211,7 +211,7 @@ export function CoachSettingsPage() {
               <select
                 value={selectedTeamId}
                 onChange={(event) => setSelectedTeamId(event.target.value)}
-                className="mt-3 w-full appearance-none rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm font-medium text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+                className="mt-3 w-full appearance-none rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(var(--surface-shell-rgb),0.96)] px-3 py-2 text-sm font-medium text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
               >
                 {teams.map((team) => (
                   <option key={team.id} value={team.id} className="bg-[var(--background)] text-white">
@@ -274,14 +274,14 @@ export function CoachSettingsPage() {
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                   placeholder="New password"
-                  className="w-full rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(var(--surface-shell-rgb),0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
                 />
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   placeholder="Confirm new password"
-                  className="w-full rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+                  className="w-full rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(var(--surface-shell-rgb),0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
                 />
                 <button
                   type="button"
@@ -292,7 +292,7 @@ export function CoachSettingsPage() {
                   {isUpdatingPassword ? 'Updating...' : 'Update Password'}
                 </button>
                 {passwordError ? <p className="text-xs text-[var(--status-red)]">{passwordError}</p> : null}
-                {passwordSuccess ? <p className="text-xs text-[var(--accent-primary)]">{passwordSuccess}</p> : null}
+                {passwordSuccess ? <p className="text-xs text-[var(--status-green)]">{passwordSuccess}</p> : null}
               </div>
             </div>
           </div>
@@ -326,7 +326,7 @@ export function CoachSettingsPage() {
         <p className="mt-3 text-xs text-gray-400">Destructive account actions are disabled until backend lifecycle flows are added.</p>
       </section>
 
-      <section className="rounded-xl border border-[rgba(74,158,255,0.28)] bg-[rgba(74,158,255,0.08)] px-4 py-3 text-xs text-[var(--accent-secondary)]">
+      <section className="rounded-xl border border-[rgba(var(--accent-secondary-rgb),0.28)] bg-[rgba(var(--accent-secondary-rgb),0.08)] px-4 py-3 text-xs text-[var(--accent-secondary)]">
         Notification, display, and privacy toggles currently save in local page state only.
       </section>
     </div>

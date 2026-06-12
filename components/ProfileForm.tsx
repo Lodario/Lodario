@@ -186,7 +186,7 @@ export function ProfileForm() {
             className="flex-1 bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-white touch-target [color-scheme:dark]"
           />
           {computedAge !== null && (
-            <div className="flex-shrink-0 bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold px-4 py-2.5 rounded-xl text-sm shadow-md">
+            <div className="flex-shrink-0 bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold px-4 py-2.5 rounded-xl text-sm shadow-md">
               Age: {computedAge}
             </div>
           )}
@@ -249,7 +249,7 @@ export function ProfileForm() {
               type="button"
               onClick={() => void handleJoinTeam()}
               disabled={joiningTeam || !teamCode.trim()}
-              className="rounded-lg border border-[rgba(74,158,255,0.45)] bg-[rgba(74,158,255,0.14)] px-3 py-2 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:bg-[rgba(74,158,255,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg border border-[rgba(var(--accent-secondary-rgb),0.45)] bg-[rgba(var(--accent-secondary-rgb),0.14)] px-3 py-2 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:bg-[rgba(var(--accent-secondary-rgb),0.2)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {joiningTeam ? <Loader2 className="animate-spin" size={14} /> : 'Join Team'}
             </button>
@@ -258,7 +258,7 @@ export function ProfileForm() {
             <p
               className={`text-[11px] ${
                 teamJoinFeedback.type === 'success'
-                  ? 'text-[var(--accent-primary)]'
+                  ? 'text-[var(--status-green)]'
                   : teamJoinFeedback.type === 'info'
                   ? 'text-[var(--accent-secondary)]'
                   : 'text-[#ff6b6b]'
@@ -306,7 +306,7 @@ export function ProfileForm() {
               onClick={() => togglePriority(pri)}
               className={`px-3 py-2 rounded-full text-xs font-bold transition-all touch-target ${
                 priorities.includes(pri)
-                  ? 'bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black shadow-md'
+                  ? 'bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black shadow-md'
                   : 'bg-[rgba(255,255,255,0.05)] text-gray-400 hover:text-gray-200'
               }`}
             >
@@ -318,7 +318,7 @@ export function ProfileForm() {
 
       <button 
         type="submit" 
-        className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-4 rounded-xl shadow-lg flex items-center justify-center touch-target transition-transform active:scale-95"
+        className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-4 rounded-xl shadow-lg flex items-center justify-center touch-target transition-transform active:scale-95"
       >
         <Save className="mr-2" size={20} /> Save Profile
       </button>

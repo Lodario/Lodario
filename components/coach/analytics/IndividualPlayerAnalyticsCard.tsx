@@ -13,7 +13,7 @@ function getStatus(player: TeamPlayerComparisonPoint, teamAverageLoad: number) {
     return { label: 'Needs Attention', className: 'text-[var(--status-red)] border-[rgba(255,107,107,0.4)] bg-[rgba(255,107,107,0.12)]' };
   }
 
-  return { label: 'Stable', className: 'text-[var(--accent-primary)] border-[rgba(0,212,170,0.4)] bg-[rgba(0,212,170,0.12)]' };
+  return { label: 'Stable', className: 'text-[var(--status-green)] border-[rgba(var(--status-green-rgb),0.4)] bg-[rgba(var(--status-green-rgb),0.12)]' };
 }
 
 export function IndividualPlayerAnalyticsCard({

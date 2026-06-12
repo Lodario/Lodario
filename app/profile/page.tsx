@@ -89,7 +89,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={handleSaveAvailability}
-                  className="mt-4 w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-3 rounded-xl flex items-center justify-center transition-transform active:scale-95"
+                  className="mt-4 w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-3 rounded-xl flex items-center justify-center transition-transform active:scale-95"
                 >
                   <Save className="mr-2" size={18} /> {availabilitySaved ? 'Saved' : 'Save Availability'}
                 </button>
@@ -123,7 +123,7 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={handleSaveResources}
-                  className="mt-4 w-full bg-gradient-to-r from-[var(--accent-primary)] to-emerald-500 text-black font-bold py-3 rounded-xl flex items-center justify-center transition-transform active:scale-95"
+                  className="mt-4 w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-3 rounded-xl flex items-center justify-center transition-transform active:scale-95"
                 >
                   <Save className="mr-2" size={18} /> {resourcesSaved ? 'Saved' : 'Save Resources'}
                 </button>

@@ -136,7 +136,7 @@ export default function LogPage() {
 
       {/* Success Notification */}
       {showSuccess && (
-        <div className="mb-6 bg-emerald-500 text-black font-bold p-4 rounded-xl flex items-center justify-center animate-slide-up shadow-lg shadow-emerald-900/50">
+        <div className="mb-6 bg-[var(--status-green)] text-black font-bold p-4 rounded-xl flex items-center justify-center animate-slide-up shadow-lg shadow-[0_16px_40px_rgba(var(--status-green-rgb),0.26)]">
           <CheckCircle2 className="mr-2" />
           Successfully saved!
         </div>
@@ -148,7 +148,7 @@ export default function LogPage() {
           onClick={() => toggleForm('wellness')}
           className={`py-4 px-3 rounded-xl font-bold text-sm transition-all shadow-sm touch-target flex flex-col items-center justify-center space-y-1 ${
             expandedForm === 'wellness' 
-              ? 'bg-gradient-to-br from-[var(--accent-primary)] to-emerald-600 text-black shadow-lg shadow-emerald-900/30' 
+              ? 'bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black shadow-lg shadow-[0_16px_40px_rgba(var(--accent-tertiary-rgb),0.22)]'
               : 'glass-card text-gray-300 hover:text-white'
           }`}
         >
@@ -159,7 +159,7 @@ export default function LogPage() {
           onClick={() => toggleForm('training')}
           className={`py-4 px-3 rounded-xl font-bold text-sm transition-all shadow-sm touch-target flex flex-col items-center justify-center space-y-1 ${
             expandedForm === 'training' 
-              ? 'bg-gradient-to-br from-[var(--accent-secondary)] to-blue-600 text-white shadow-lg shadow-blue-900/30' 
+              ? 'bg-gradient-to-br from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white shadow-lg shadow-[0_16px_40px_rgba(var(--accent-secondary-rgb),0.22)]'
               : 'glass-card text-gray-300 hover:text-white'
           }`}
         >
@@ -204,7 +204,7 @@ export default function LogPage() {
                     <p className="text-xs text-gray-400 mb-3">{format(parseISO(selectedWellness.date), 'EEEE, MMM d, yyyy')}</p>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex items-center space-x-2">
-                        <Moon size={14} className="text-blue-400" />
+                        <Moon size={14} className="text-[var(--metric-sleep-score)]" />
                         <div>
                           <p className="text-[10px] text-gray-500 uppercase">Sleep</p>
                           <p className="text-sm font-bold text-white">{selectedWellness.sleepDuration}h · Q{selectedWellness.sleepQuality}/10</p>
@@ -218,14 +218,14 @@ export default function LogPage() {
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Activity size={14} className="text-orange-400" />
+                        <Activity size={14} className="text-[var(--metric-fatigue)]" />
                         <div>
                           <p className="text-[10px] text-gray-500 uppercase">Fatigue</p>
                           <p className="text-sm font-bold text-white">{selectedWellness.fatigue}/10</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Heart size={14} className="text-red-400" />
+                        <Heart size={14} className="text-[var(--metric-stress)]" />
                         <div>
                           <p className="text-[10px] text-gray-500 uppercase">Stress</p>
                           <p className="text-sm font-bold text-white">{selectedWellness.stress}/10</p>

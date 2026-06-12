@@ -30,7 +30,7 @@ export function TrainingResourcePicker({ value, onChange }: TrainingResourcePick
             onClick={() => toggle(option.id)}
             className={`w-full flex items-center justify-between p-3 rounded-xl border transition-colors text-left touch-target ${
               selected
-                ? 'border-[var(--accent-primary)] bg-[rgba(0,212,170,0.12)]'
+                ? 'border-[var(--accent-primary)] bg-[rgba(var(--accent-primary-rgb),0.12)]'
                 : 'border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] hover:border-[var(--accent-secondary)]'
             }`}
           >

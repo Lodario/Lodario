@@ -281,8 +281,8 @@ export class StorageService {
   // --- Custom Event Types ---
   static async getCustomEventTypes(): Promise<CustomEventType[]> {
     const defaultTypes: CustomEventType[] = [
-      { id: 'school', name: 'School', color: '#4a9eff', icon: 'Book', isBuiltIn: true, isActivity: false },
-      { id: 'team-training', name: 'Team Training', color: '#00d4aa', icon: 'Users', isBuiltIn: true, isActivity: true },
+      { id: 'school', name: 'School', color: '#38bdf8', icon: 'Book', isBuiltIn: true, isActivity: false },
+      { id: 'team-training', name: 'Team Training', color: '#22c55e', icon: 'Users', isBuiltIn: true, isActivity: true },
       { id: 'match', name: 'Match', color: '#ff6b6b', icon: 'Trophy', isBuiltIn: true, isActivity: true },
       { id: 'personal-training', name: 'Personal Training', color: '#ffd43b', icon: 'Activity', isBuiltIn: true, isActivity: true },
       { id: 'gym', name: 'Gym', color: '#845ef7', icon: 'Dumbbell', isBuiltIn: true, isActivity: true },

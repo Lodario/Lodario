@@ -96,7 +96,7 @@ export default function Home() {
       <section className="mb-12 animate-slide-up" style={{ animationDelay: '0.4s', animationFillMode: 'both' }}>
         <div className="flex justify-between items-end mb-4 pl-1">
           <h2 className="text-sm font-bold text-white uppercase tracking-wider font-sans">Schedule</h2>
-          <Link href="/calendar" className="text-xs text-[var(--accent-secondary)] font-medium hover:text-blue-300">
+          <Link href="/calendar" className="text-xs text-[var(--accent-secondary)] font-medium hover:text-[var(--accent-primary)]">
             View All
           </Link>
         </div>

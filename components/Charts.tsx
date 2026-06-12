@@ -54,15 +54,15 @@ export function ReadinessChart({ days }: ChartProps) {
         <AreaChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
           <defs>
             <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="var(--accent-primary)" stopOpacity={0.8}/>
-              <stop offset="95%" stopColor="var(--accent-primary)" stopOpacity={0}/>
+              <stop offset="5%" stopColor="var(--metric-readiness)" stopOpacity={0.8}/>
+              <stop offset="95%" stopColor="var(--metric-readiness)" stopOpacity={0}/>
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
           <XAxis dataKey="name" stroke="gray" fontSize={10} tickLine={false} axisLine={false} />
           <YAxis stroke="gray" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} />
           <Tooltip content={<CustomTooltip />} />
-          <Area type="monotone" dataKey="score" name="Score" stroke="var(--accent-primary)" fillOpacity={1} fill="url(#colorScore)" strokeWidth={3} />
+          <Area type="monotone" dataKey="score" name="Score" stroke="var(--metric-readiness)" fillOpacity={1} fill="url(#colorScore)" strokeWidth={3} />
         </AreaChart>
       </ResponsiveContainer>
     </div>
@@ -94,7 +94,7 @@ export function LoadChart({ days }: ChartProps) {
           <XAxis dataKey="name" stroke="gray" fontSize={10} tickLine={false} axisLine={false} />
           <YAxis stroke="gray" fontSize={10} tickLine={false} axisLine={false} />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
-          <Bar dataKey="load" name="Load (Intensity × Duration)" fill="var(--accent-secondary)" radius={[4, 4, 0, 0]} />
+          <Bar dataKey="load" name="Load (Intensity × Duration)" fill="var(--metric-load)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -128,8 +128,8 @@ export function FatigueEnergyChart({ days }: ChartProps) {
           <YAxis stroke="gray" fontSize={10} tickLine={false} axisLine={false} domain={[0, 10]} />
           <Tooltip content={<CustomTooltip />} />
           <Legend wrapperStyle={{ fontSize: '10px' }} iconType="circle" />
-          <Line type="monotone" dataKey="energy" name="Energy" stroke="#ffd43b" strokeWidth={3} dot={{ r: 3, fill: '#ffd43b', strokeWidth: 0 }} />
-          <Line type="monotone" dataKey="fatigue" name="Fatigue" stroke="#ff6b6b" strokeWidth={3} dot={{ r: 3, fill: '#ff6b6b', strokeWidth: 0 }} />
+          <Line type="monotone" dataKey="energy" name="Energy" stroke="var(--metric-energy)" strokeWidth={3} dot={{ r: 3, fill: 'var(--metric-energy)', strokeWidth: 0 }} />
+          <Line type="monotone" dataKey="fatigue" name="Fatigue" stroke="var(--metric-fatigue)" strokeWidth={3} dot={{ r: 3, fill: 'var(--metric-fatigue)', strokeWidth: 0 }} />
         </LineChart>
       </ResponsiveContainer>
     </div>

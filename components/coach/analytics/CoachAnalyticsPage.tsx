@@ -35,7 +35,7 @@ function AveragesView({
           title="Team Readiness Score Trend"
           data={averages.readinessTrend}
           leftDomain={[0, 100]}
-          series={[{ dataKey: 'readinessScore', name: 'Readiness Score', color: 'var(--accent-primary)' }]}
+          series={[{ dataKey: 'readinessScore', name: 'Readiness Score', color: 'var(--metric-readiness)' }]}
         />
 
         <TeamAnalyticsChart
@@ -48,12 +48,12 @@ function AveragesView({
             {
               dataKey: 'acuteTrainingLoad',
               name: 'Acute Training Load',
-              color: 'var(--accent-secondary)',
+              color: 'var(--metric-load)',
               type: 'bar',
               yAxisId: 'left',
             },
-            { dataKey: 'energy', name: 'Energy', color: '#ffd43b', yAxisId: 'right' },
-            { dataKey: 'fatigue', name: 'Fatigue', color: '#ff6b6b', yAxisId: 'right' },
+            { dataKey: 'energy', name: 'Energy', color: 'var(--metric-energy)', yAxisId: 'right' },
+            { dataKey: 'fatigue', name: 'Fatigue', color: 'var(--metric-fatigue)', yAxisId: 'right' },
           ]}
         />
 
@@ -65,9 +65,9 @@ function AveragesView({
           rightDomain={[0, 100]}
           footerNote={sleepTimingNote}
           series={[
-            { dataKey: 'sleepHours', name: 'Sleep Time (hours)', color: 'var(--accent-secondary)', type: 'bar', yAxisId: 'left' },
-            { dataKey: 'sleepQualityScore', name: 'Sleep Quality', color: '#ffd43b', yAxisId: 'right' },
-            { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--accent-primary)', yAxisId: 'right' },
+            { dataKey: 'sleepHours', name: 'Sleep Time (hours)', color: 'var(--metric-sleep-time)', type: 'bar', yAxisId: 'left' },
+            { dataKey: 'sleepQualityScore', name: 'Sleep Quality', color: 'var(--metric-sleep-quality)', yAxisId: 'right' },
+            { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--metric-sleep-score)', yAxisId: 'right' },
           ]}
         />
 
@@ -77,8 +77,8 @@ function AveragesView({
           data={averages.stressVsSleepScore}
           leftDomain={[0, 100]}
           series={[
-            { dataKey: 'stress', name: 'Stress', color: '#ff6b6b' },
-            { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--accent-secondary)' },
+            { dataKey: 'stress', name: 'Stress', color: 'var(--metric-stress)' },
+            { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--metric-sleep-score)' },
           ]}
         />
 
@@ -89,12 +89,12 @@ function AveragesView({
             data={averages.multiFactorReadiness}
             leftDomain={[0, 100]}
             series={[
-              { dataKey: 'readinessScore', name: 'Readiness Score', color: 'var(--accent-primary)', type: 'bar' },
-              { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--accent-secondary)' },
-              { dataKey: 'energyScore', name: 'Energy', color: '#ffd43b' },
-              { dataKey: 'fatigueScore', name: 'Fatigue', color: '#ff922b' },
-              { dataKey: 'stressScore', name: 'Stress', color: '#ff6b6b' },
-              { dataKey: 'loadScore', name: 'Load Score', color: '#b197fc' },
+              { dataKey: 'readinessScore', name: 'Readiness Score', color: 'var(--metric-readiness)', type: 'bar' },
+              { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--metric-sleep-score)' },
+              { dataKey: 'energyScore', name: 'Energy', color: 'var(--metric-energy)' },
+              { dataKey: 'fatigueScore', name: 'Fatigue', color: 'var(--metric-fatigue)' },
+              { dataKey: 'stressScore', name: 'Stress', color: 'var(--metric-stress)' },
+              { dataKey: 'loadScore', name: 'Load Score', color: 'var(--metric-load-score)' },
             ]}
           />
         </div>
@@ -151,7 +151,7 @@ function IndividualsView({
       label: 'Highest Readiness',
       value: topReadiness ? `${topReadiness.readinessScore}` : '--',
       context: topReadiness ? `${topReadiness.playerName}` : 'No players for this day',
-      toneClass: 'text-[var(--accent-primary)]',
+      toneClass: 'text-[var(--metric-readiness)]',
     },
     {
       label: 'Lowest Readiness',
@@ -163,7 +163,7 @@ function IndividualsView({
       label: 'Highest Acute Load',
       value: topLoad ? `${topLoad.acuteTrainingLoad}` : '--',
       context: topLoad ? `${topLoad.playerName}` : 'No players for this day',
-      toneClass: 'text-[var(--accent-secondary)]',
+      toneClass: 'text-[var(--metric-load)]',
     },
     {
       label: 'Lowest Sleep Score',
@@ -187,7 +187,7 @@ function IndividualsView({
           <select
             value={selectedDayLabel}
             onChange={(event) => onSelectDayLabel(event.target.value)}
-            className="min-w-[132px] appearance-none rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition-colors focus:border-[var(--accent-secondary)] focus:bg-[rgba(8,11,28,1)]"
+            className="min-w-[132px] appearance-none rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(var(--surface-shell-rgb),0.96)] px-3 py-2 text-sm font-medium text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition-colors focus:border-[var(--accent-secondary)] focus:bg-[rgba(var(--surface-shell-rgb),1)]"
           >
             {labels.map((label) => (
               <option key={label} value={label} className="bg-[var(--background)] text-white">

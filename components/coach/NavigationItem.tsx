@@ -39,7 +39,7 @@ export function NavigationItem({
         onClick={onSelect}
         className={`relative flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors ${
           active
-            ? 'bg-[rgba(74,158,255,0.12)] text-white'
+            ? 'bg-[rgba(var(--accent-secondary-rgb),0.12)] text-white'
             : 'text-gray-400 hover:bg-[rgba(255,255,255,0.06)] hover:text-gray-100'
         }`}
       >

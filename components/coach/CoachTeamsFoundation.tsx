@@ -113,14 +113,14 @@ export function CoachTeamsFoundation() {
             onChange={(event) => setNewTeamName(event.target.value)}
             placeholder="Team name"
             required
-            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(var(--surface-shell-rgb),0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
           />
           <input
             type="text"
             value={newTeamCode}
             onChange={(event) => setNewTeamCode(event.target.value.toUpperCase())}
             placeholder="Invite code (optional)"
-            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm uppercase text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(var(--surface-shell-rgb),0.96)] px-3 py-2 text-sm uppercase text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
           />
           <button
             type="button"
@@ -132,7 +132,7 @@ export function CoachTeamsFoundation() {
           <button
             type="submit"
             disabled={isCreatingTeam}
-            className="rounded-lg border border-[rgba(0,212,170,0.4)] bg-[rgba(0,212,170,0.14)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--accent-primary)] transition-colors hover:bg-[rgba(0,212,170,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg border border-[rgba(var(--accent-primary-rgb),0.4)] bg-[rgba(var(--accent-primary-rgb),0.14)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--accent-primary)] transition-colors hover:bg-[rgba(var(--accent-primary-rgb),0.2)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isCreatingTeam ? 'Creating...' : 'Create Team'}
           </button>

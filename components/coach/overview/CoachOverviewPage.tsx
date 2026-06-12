@@ -35,12 +35,12 @@ function Sparkline({ points }: SparklineProps) {
     <svg viewBox={`0 0 ${width} ${height}`} className="h-16 w-full" preserveAspectRatio="none" aria-hidden>
       <defs>
         <linearGradient id="overviewTrendFill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="rgba(74,158,255,0.34)" />
-          <stop offset="100%" stopColor="rgba(74,158,255,0.02)" />
+          <stop offset="0%" stopColor="rgba(var(--accent-secondary-rgb),0.34)" />
+          <stop offset="100%" stopColor="rgba(var(--accent-secondary-rgb),0.02)" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill="url(#overviewTrendFill)" />
-      <path d={path} fill="none" stroke="var(--accent-secondary)" strokeWidth="2.5" strokeLinecap="round" />
+      <path d={path} fill="none" stroke="var(--metric-load)" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -124,10 +124,10 @@ export function CoachOverviewPage() {
               <span className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.04)] px-2.5 py-1 font-medium text-gray-300">
                 {overviewData.summary.playerCount} players
               </span>
-              <span className="rounded-full border border-[rgba(0,212,170,0.3)] bg-[rgba(0,212,170,0.1)] px-2.5 py-1 font-medium text-[var(--accent-primary)]">
+              <span className="rounded-full border border-[rgba(var(--accent-secondary-rgb),0.3)] bg-[rgba(var(--accent-secondary-rgb),0.1)] px-2.5 py-1 font-medium text-[var(--metric-readiness)]">
                 Avg readiness {overviewData.summary.averageReadiness == null ? '--' : `${overviewData.summary.averageReadiness}%`}
               </span>
-              <span className="rounded-full border border-[rgba(74,158,255,0.35)] bg-[rgba(74,158,255,0.12)] px-2.5 py-1 font-medium text-[var(--accent-secondary)]">
+              <span className="rounded-full border border-[rgba(var(--metric-load-rgb),0.35)] bg-[rgba(var(--metric-load-rgb),0.12)] px-2.5 py-1 font-medium text-[var(--metric-load)]">
                 Avg load {overviewData.summary.averageLoad == null ? '--' : overviewData.summary.averageLoad}
               </span>
             </div>
@@ -251,7 +251,7 @@ export function CoachOverviewPage() {
                       <span className="rounded-full border border-[rgba(255,255,255,0.15)] bg-[rgba(255,255,255,0.05)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-200">
                         {activity.kind}
                       </span>
-                      <span className="rounded-full border border-[rgba(74,158,255,0.35)] bg-[rgba(74,158,255,0.12)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-secondary)]">
+                      <span className="rounded-full border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.12)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-secondary)]">
                         {activity.type}
                       </span>
                     </div>
@@ -285,10 +285,10 @@ export function CoachOverviewPage() {
               <Link
                 key={action.label}
                 href={action.href}
-                className="glass-card group flex flex-col gap-3 p-4 transition-colors hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(25,33,73,0.72)]"
+                className="glass-card group flex flex-col gap-3 p-4 transition-colors hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(var(--surface-elevated-rgb),0.92)]"
               >
                 <div className="flex items-center justify-between">
-                  <span className="rounded-lg border border-[rgba(0,212,170,0.24)] bg-[rgba(0,212,170,0.1)] p-2 text-[var(--accent-primary)]">
+                  <span className="rounded-lg border border-[rgba(var(--accent-primary-rgb),0.24)] bg-[rgba(var(--accent-primary-rgb),0.1)] p-2 text-[var(--accent-primary)]">
                     <Icon size={16} />
                   </span>
                   <ArrowUpRight

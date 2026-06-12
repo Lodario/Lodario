@@ -47,8 +47,8 @@ export function TeamCard({ team, averages, selected, onSelect, onUpdateTeam, onD
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   const cardStateClasses = selected
-    ? 'border-[rgba(0,212,170,0.45)] bg-[rgba(0,212,170,0.09)] shadow-[0_10px_24px_rgba(0,212,170,0.14)]'
-    : 'hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(25,33,73,0.72)]';
+    ? 'border-[rgba(var(--accent-primary-rgb),0.45)] bg-[rgba(var(--accent-primary-rgb),0.09)] shadow-[0_10px_24px_rgba(var(--accent-primary-rgb),0.14)]'
+    : 'hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(var(--surface-elevated-rgb),0.92)]';
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -128,7 +128,7 @@ export function TeamCard({ team, averages, selected, onSelect, onUpdateTeam, onD
             <MoreVertical size={14} />
           </button>
           {isMenuOpen ? (
-            <div className="absolute right-0 top-8 z-20 min-w-[140px] rounded-lg border border-[rgba(255,255,255,0.14)] bg-[rgba(8,11,28,0.98)] p-1.5 shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
+            <div className="absolute right-0 top-8 z-20 min-w-[140px] rounded-lg border border-[rgba(255,255,255,0.14)] bg-[rgba(var(--surface-shell-rgb),0.98)] p-1.5 shadow-[0_10px_24px_rgba(0,0,0,0.35)]">
               <button
                 type="button"
                 onClick={() => {
@@ -184,13 +184,13 @@ export function TeamCard({ team, averages, selected, onSelect, onUpdateTeam, onD
         </div>
         <div className="flex items-center justify-between gap-3 text-sm">
           <dt className="text-gray-300">Avg readiness</dt>
-          <dd className="rounded-md border border-[rgba(0,212,170,0.3)] bg-[rgba(0,212,170,0.1)] px-2 py-0.5 text-xs font-semibold text-[var(--accent-primary)]">
+          <dd className="rounded-md border border-[rgba(var(--accent-primary-rgb),0.3)] bg-[rgba(var(--accent-primary-rgb),0.1)] px-2 py-0.5 text-xs font-semibold text-[var(--accent-primary)]">
             {averages.averageReadiness == null ? '--' : `${averages.averageReadiness.toFixed(0)}%`}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3 text-sm">
           <dt className="text-gray-300">Avg load</dt>
-          <dd className="rounded-md border border-[rgba(74,158,255,0.35)] bg-[rgba(74,158,255,0.12)] px-2 py-0.5 text-xs font-semibold text-[var(--accent-secondary)]">
+          <dd className="rounded-md border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.12)] px-2 py-0.5 text-xs font-semibold text-[var(--accent-secondary)]">
             {averages.averageLoad == null ? '--' : averages.averageLoad.toFixed(0)}
           </dd>
         </div>
@@ -214,20 +214,20 @@ export function TeamCard({ team, averages, selected, onSelect, onUpdateTeam, onD
             onChange={(event) => setDraftName(event.target.value)}
             placeholder="Team name"
             required
-            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(var(--surface-shell-rgb),0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
           />
           <input
             type="text"
             value={draftCode}
             onChange={(event) => setDraftCode(event.target.value.toUpperCase())}
             placeholder="Invite code"
-            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(8,11,28,0.96)] px-3 py-2 text-sm uppercase text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
+            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(var(--surface-shell-rgb),0.96)] px-3 py-2 text-sm uppercase text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
           />
           <div className="flex items-center gap-2">
             <button
               type="submit"
               disabled={isSaving}
-              className="rounded-lg border border-[rgba(0,212,170,0.4)] bg-[rgba(0,212,170,0.14)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-primary)] transition-colors hover:bg-[rgba(0,212,170,0.2)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-lg border border-[rgba(var(--accent-primary-rgb),0.4)] bg-[rgba(var(--accent-primary-rgb),0.14)] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent-primary)] transition-colors hover:bg-[rgba(var(--accent-primary-rgb),0.2)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isSaving ? 'Saving...' : 'Save'}
             </button>

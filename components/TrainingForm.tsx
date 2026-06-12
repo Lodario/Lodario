@@ -216,7 +216,7 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
 
       <button 
         type="submit" 
-        className="w-full bg-gradient-to-r from-[var(--accent-secondary)] to-blue-500 text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 touch-target"
+        className="w-full bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 touch-target"
       >
         {isEditing ? 'Update Training Log' : 'Save Training Log'}
       </button>
