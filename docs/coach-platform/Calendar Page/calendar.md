@@ -1,4 +1,4 @@
-\# Calendar Page — Prolaesio Coach
+\# Calendar Page — Lodario Coach
 
 
 
@@ -6,7 +6,7 @@
 
 
 
-The Calendar page belongs to the Prolaesio Coach platform.
+The Calendar page belongs to the Lodario Coach platform.
 
 
 
@@ -32,7 +32,7 @@ The generated UI must include all important design sections shown in the sketch.
 
 
 
-Keep the current Prolaesio design language consistent with the athlete app. Do not redesign the UI from scratch.
+Keep the current Lodario design language consistent with the athlete app. Do not redesign the UI from scratch.
 
 
 

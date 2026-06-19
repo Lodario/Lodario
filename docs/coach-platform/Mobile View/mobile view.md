@@ -1,4 +1,4 @@
-\# Mobile View — Prolaesio Coach
+\# Mobile View — Lodario Coach
 
 
 
@@ -6,7 +6,7 @@
 
 
 
-The mobile view belongs to the Prolaesio Coach platform.
+The mobile view belongs to the Lodario Coach platform.
 
 
 
@@ -28,7 +28,7 @@ The uploaded sketch is a hand-drawn wireframe for the mobile layout. Use it as a
 
 
 
-Keep the current Prolaesio design language consistent with the athlete app. Do not redesign the UI from scratch.
+Keep the current Lodario design language consistent with the athlete app. Do not redesign the UI from scratch.
 
 
 
@@ -194,7 +194,7 @@ The header may include:
 
 \* hamburger icon
 
-\* Prolaesio Coach logo/text
+\* Lodario Coach logo/text
 
 \* current page title
 
