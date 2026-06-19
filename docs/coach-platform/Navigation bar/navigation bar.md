@@ -1,4 +1,4 @@
-\# Coach Navigation — Prolaesio Coach
+\# Coach Navigation — Lodario Coach
 
 
 
@@ -20,7 +20,7 @@ The coach platform uses the same app stack as the athlete side:
 
 
 
-The uploaded navigation sketches show the Prolaesio Coach sidebar in both collapsed and expanded states.
+The uploaded navigation sketches show the Lodario Coach sidebar in both collapsed and expanded states.
 
 
 
@@ -28,7 +28,7 @@ The navigation system is shared across all coach pages.
 
 
 
-Do not redesign the app style. Keep the same Prolaesio visual language, spacing, colors, typography, and card styling as the athlete app.
+Do not redesign the app style. Keep the same Lodario visual language, spacing, colors, typography, and card styling as the athlete app.
 
 
 
@@ -98,7 +98,7 @@ Collapsed sidebar shows:
 
 
 
-\- Prolaesio icon/logo
+\- Lodario icon/logo
 
 \- page icons only
 
@@ -130,7 +130,7 @@ Expanded sidebar shows:
 
 
 
-\- Prolaesio Coach logo/text
+\- Lodario Coach logo/text
 
 \- Dashboard
 
@@ -172,7 +172,7 @@ Top section:
 
 
 
-1\. Prolaesio Coach logo
+1\. Lodario Coach logo
 
 2\. Dashboard
 
@@ -278,7 +278,7 @@ Mobile top bar should show:
 
 \- hamburger icon
 
-\- Prolaesio Coach logo
+\- Lodario Coach logo
 
 \- selected team name when relevant
 

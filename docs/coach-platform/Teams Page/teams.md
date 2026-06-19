@@ -1,4 +1,4 @@
-\# Teams Page — Prolaesio Coach
+\# Teams Page — Lodario Coach
 
 
 
@@ -6,7 +6,7 @@
 
 
 
-The Teams page belongs to the Prolaesio Coach platform.
+The Teams page belongs to the Lodario Coach platform.
 
 
 
@@ -28,7 +28,7 @@ The uploaded sketch is a hand-drawn wireframe for the Teams page. Use it as a st
 
 
 
-Keep the current Prolaesio design language consistent with the athlete app. Do not redesign the UI from scratch.
+Keep the current Lodario design language consistent with the athlete app. Do not redesign the UI from scratch.
 
 
 
