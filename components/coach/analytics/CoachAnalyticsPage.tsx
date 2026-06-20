@@ -88,6 +88,7 @@ function AveragesView({
             title="Team Multi-Factor Inputs vs Readiness Score"
             data={averages.multiFactorReadiness}
             leftDomain={[0, 100]}
+            interactiveLegend
             series={[
               { dataKey: 'readinessScore', name: 'Readiness Score', color: 'var(--metric-readiness)', type: 'bar' },
               { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--metric-sleep-score)' },

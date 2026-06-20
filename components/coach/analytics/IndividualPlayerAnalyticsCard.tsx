@@ -47,7 +47,7 @@ export function IndividualPlayerAnalyticsCard({
           <p className="mt-0.5 text-xs font-semibold text-white">{player.fatigue.toFixed(1)}</p>
         </div>
         <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2 py-1.5">
-          <p className="text-[10px] uppercase tracking-wide text-gray-400">Load</p>
+          <p className="text-[10px] uppercase tracking-wide text-gray-400">Load Score</p>
           <p className="mt-0.5 text-xs font-semibold text-white">{player.loadScore}</p>
         </div>
         <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2 py-1.5">

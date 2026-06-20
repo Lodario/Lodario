@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import type { TeamPlayerDataset } from '@/components/coach/players/types';
+import { getTeamReadinessForDate } from '@/lib/coach/teamMetrics';
 import {
   analyticsLegendItems,
   type TeamAnalyticsDataset,
@@ -67,7 +68,13 @@ function getSortedDatePoints(players: TeamPlayerDataset[]): DateLabelPoint[] {
   const labelByDate = new Map<string, string>();
 
   players.forEach((dataset) => {
-    dataset.analytics.readinessTrend.forEach((point) => {
+    [
+      ...dataset.analytics.readinessTrend,
+      ...dataset.analytics.energyFatigueLoad,
+      ...dataset.analytics.sleepQualityAndTiming,
+      ...dataset.analytics.stressVsSleepScore,
+      ...dataset.analytics.multiFactorReadiness,
+    ].forEach((point) => {
       if (!point.date) return;
       if (!labelByDate.has(point.date)) {
         labelByDate.set(point.date, point.label || defaultLabelForDate(point.date));
@@ -83,21 +90,22 @@ function getSortedDatePoints(players: TeamPlayerDataset[]): DateLabelPoint[] {
 function buildTeamAverageSeries(players: TeamPlayerDataset[]) {
   const datePoints = getSortedDatePoints(players);
 
-  const readinessByPlayer = players.map((player) => new Map(player.analytics.readinessTrend.map((point) => [point.date, point])));
   const energyFatigueLoadByPlayer = players.map((player) => new Map(player.analytics.energyFatigueLoad.map((point) => [point.date, point])));
   const sleepByPlayer = players.map((player) => new Map(player.analytics.sleepQualityAndTiming.map((point) => [point.date, point])));
   const stressByPlayer = players.map((player) => new Map(player.analytics.stressVsSleepScore.map((point) => [point.date, point])));
   const multifactorByPlayer = players.map((player) => new Map(player.analytics.multiFactorReadiness.map((point) => [point.date, point])));
 
   const averages: TeamAveragesAnalyticsData = {
-    readinessTrend: datePoints.map(({ date, label }) => ({
-      label,
-      readinessScore: roundTo(
-        meanDefined(readinessByPlayer.map((map) => map.get(date)?.readinessScore)),
-        0
-      ),
-    })),
+    readinessTrend: datePoints.flatMap(({ date, label }) => {
+      const readiness = getTeamReadinessForDate(players, date).average;
+      return readiness == null ? [] : [{
+        date,
+        label,
+        readinessScore: roundTo(readiness, 0),
+      }];
+    }),
     energyFatigueLoad: datePoints.map(({ date, label }) => ({
+      date,
       label,
       energy: roundTo(meanDefined(energyFatigueLoadByPlayer.map((map) => map.get(date)?.energy)), 1),
       fatigue: roundTo(meanDefined(energyFatigueLoadByPlayer.map((map) => map.get(date)?.fatigue)), 1),
@@ -106,44 +114,41 @@ function buildTeamAverageSeries(players: TeamPlayerDataset[]) {
         0
       ),
     })),
-    sleepQualityAndTiming: datePoints.map(({ date, label }) => ({
-      label,
-      sleepHours: roundTo(meanDefined(sleepByPlayer.map((map) => map.get(date)?.sleepHours)), 1),
-      sleepQualityScore: roundTo(
-        meanDefined(sleepByPlayer.map((map) => map.get(date)?.sleepQualityScore)),
-        0
-      ),
-      sleepScore: roundTo(meanDefined(sleepByPlayer.map((map) => map.get(date)?.sleepScore)), 0),
-      bedTime: minutesToHHmm(
-        meanDefined(sleepByPlayer.map((map) => {
-          const value = map.get(date)?.bedTime;
-          return value ? hhmmToMinutes(value) : undefined;
-        }))
-      ),
-      wakeTime: minutesToHHmm(
-        meanDefined(sleepByPlayer.map((map) => {
-          const value = map.get(date)?.wakeTime;
-          return value ? hhmmToMinutes(value) : undefined;
-        }))
-      ),
-    })),
-    stressVsSleepScore: datePoints.map(({ date, label }) => ({
-      label,
-      stress: roundTo(meanDefined(stressByPlayer.map((map) => map.get(date)?.stress)), 0),
-      sleepScore: roundTo(meanDefined(stressByPlayer.map((map) => map.get(date)?.sleepScore)), 0),
-    })),
-    multiFactorReadiness: datePoints.map(({ date, label }) => ({
-      label,
-      readinessScore: roundTo(
-        meanDefined(multifactorByPlayer.map((map) => map.get(date)?.readinessScore)),
-        0
-      ),
-      sleepScore: roundTo(meanDefined(multifactorByPlayer.map((map) => map.get(date)?.sleepScore)), 0),
-      energyScore: roundTo(meanDefined(multifactorByPlayer.map((map) => map.get(date)?.energyScore)), 0),
-      fatigueScore: roundTo(meanDefined(multifactorByPlayer.map((map) => map.get(date)?.fatigueScore)), 0),
-      stressScore: roundTo(meanDefined(multifactorByPlayer.map((map) => map.get(date)?.stressScore)), 0),
-      loadScore: roundTo(meanDefined(multifactorByPlayer.map((map) => map.get(date)?.loadScore)), 0),
-    })),
+    sleepQualityAndTiming: datePoints.flatMap(({ date, label }) => {
+      const points = sleepByPlayer.map((map) => map.get(date)).filter((point): point is NonNullable<typeof point> => Boolean(point));
+      return points.length === 0 ? [] : [{
+        date,
+        label,
+        sleepHours: roundTo(mean(points.map((point) => point.sleepHours)), 1),
+        sleepQualityScore: roundTo(mean(points.map((point) => point.sleepQualityScore)), 0),
+        sleepScore: roundTo(mean(points.map((point) => point.sleepScore)), 0),
+        bedTime: minutesToHHmm(mean(points.map((point) => hhmmToMinutes(point.bedTime)))),
+        wakeTime: minutesToHHmm(mean(points.map((point) => hhmmToMinutes(point.wakeTime)))),
+      }];
+    }),
+    stressVsSleepScore: datePoints.flatMap(({ date, label }) => {
+      const points = stressByPlayer.map((map) => map.get(date)).filter((point): point is NonNullable<typeof point> => Boolean(point));
+      return points.length === 0 ? [] : [{
+        date,
+        label,
+        stress: roundTo(mean(points.map((point) => point.stress)), 0),
+        sleepScore: roundTo(mean(points.map((point) => point.sleepScore)), 0),
+      }];
+    }),
+    multiFactorReadiness: datePoints.flatMap(({ date, label }) => {
+      const points = multifactorByPlayer.map((map) => map.get(date)).filter((point): point is NonNullable<typeof point> => Boolean(point));
+      const readiness = getTeamReadinessForDate(players, date).average;
+      return points.length === 0 || readiness == null ? [] : [{
+        date,
+        label,
+        readinessScore: roundTo(readiness, 0),
+        sleepScore: roundTo(mean(points.map((point) => point.sleepScore)), 0),
+        energyScore: roundTo(mean(points.map((point) => point.energyScore)), 0),
+        fatigueScore: roundTo(mean(points.map((point) => point.fatigueScore)), 0),
+        stressScore: roundTo(mean(points.map((point) => point.stressScore)), 0),
+        loadScore: roundTo(mean(points.map((point) => point.loadScore)), 0),
+      }];
+    }),
   };
 
   return { labels: datePoints.map((point) => point.label), datePoints, averages };
@@ -157,8 +162,13 @@ function buildIndividualsByLabel(players: TeamPlayerDataset[], datePoints: DateL
   const multifactorByPlayer = players.map((player) => new Map(player.analytics.multiFactorReadiness.map((point) => [point.date, point])));
 
   return datePoints.reduce<Record<string, TeamPlayerComparisonPoint[]>>((accumulator, point) => {
-    accumulator[point.label] = players.map((dataset, playerIndex) => {
-      const readinessScore = readinessByPlayer[playerIndex].get(point.date)?.readinessScore ?? 0;
+    accumulator[point.label] = players.flatMap((dataset, playerIndex) => {
+      const readinessPoint = readinessByPlayer[playerIndex].get(point.date);
+      if (!readinessPoint) {
+        return [];
+      }
+
+      const readinessScore = readinessPoint.readinessScore;
       const fatigue = energyFatigueLoadByPlayer[playerIndex].get(point.date)?.fatigue ?? 0;
       const energy = energyFatigueLoadByPlayer[playerIndex].get(point.date)?.energy ?? 0;
       const stress = stressByPlayer[playerIndex].get(point.date)?.stress ?? 0;
@@ -166,7 +176,7 @@ function buildIndividualsByLabel(players: TeamPlayerDataset[], datePoints: DateL
       const acuteTrainingLoad = energyFatigueLoadByPlayer[playerIndex].get(point.date)?.acuteTrainingLoad ?? 0;
       const loadScore = multifactorByPlayer[playerIndex].get(point.date)?.loadScore ?? 0;
 
-      return {
+      return [{
         playerId: dataset.player.id,
         playerName: dataset.player.name,
         label: point.label,
@@ -177,7 +187,7 @@ function buildIndividualsByLabel(players: TeamPlayerDataset[], datePoints: DateL
         sleepScore: clamp(roundTo(sleepScore, 0), 0, 100),
         acuteTrainingLoad: roundTo(acuteTrainingLoad, 0),
         loadScore: clamp(roundTo(loadScore, 0), 0, 100),
-      };
+      }];
     });
     return accumulator;
   }, {});

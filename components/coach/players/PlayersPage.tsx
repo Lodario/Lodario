@@ -78,6 +78,7 @@ function InjuryStatusCard({
         </span>
       </div>
       {injuryStatus.description ? <p className="mt-2 text-xs text-gray-300">{injuryStatus.description}</p> : null}
+      {injuryStatus.reportedAgo ? <p className="mt-1 text-[11px] text-gray-400">{injuryStatus.reportedAgo}</p> : null}
       {injuryStatus.expectedReturn ? <p className="mt-1 text-[11px] text-gray-400">Expected return: {injuryStatus.expectedReturn}</p> : null}
       {injuryStatus.state === 'unavailable' ? (
         <p className="mt-2 text-xs text-gray-400">{injuryStatus.message ?? 'Injury data is not available for this player.'}</p>
@@ -152,6 +153,7 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
             title="Multi-Factor Inputs vs Readiness Score"
             data={playerDataset.analytics.multiFactorReadiness}
             leftDomain={[0, 100]}
+            interactiveLegend
             series={[
               { dataKey: 'readinessScore', name: 'Readiness Score', color: 'var(--metric-readiness)', type: 'bar' },
               { dataKey: 'sleepScore', name: 'Sleep Score', color: 'var(--metric-sleep-score)' },

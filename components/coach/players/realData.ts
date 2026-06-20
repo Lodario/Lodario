@@ -1,8 +1,15 @@
 import { format, getDay, isBefore, parseISO } from 'date-fns';
 import { supabase } from '@/lib/supabase';
-import { calculateReadiness } from '@/lib/readiness';
+import { calculatePlayerReadinessForDate } from '@/lib/readiness';
 import { generateRecommendation } from '@/lib/recommendations';
-import { analyzeTrainingLoad } from '@/lib/training-load';
+import { analyzeTrainingLoad, calculateSessionLoad } from '@/lib/training-load';
+import {
+  describePainSignal,
+  formatReportedAgo,
+  getLatestPainStatus,
+  isPainReported,
+  type PainStatusSignal,
+} from '@/lib/injury-status';
 import {
   dedupeCalendarEventsById,
   isBuiltInActivityEventType,
@@ -35,6 +42,7 @@ interface TeamPlayerRpcRow {
 interface WellnessRow {
   user_id: string;
   date: string;
+  created_at: string;
   energy: number;
   fatigue: number;
   stress: number;
@@ -52,6 +60,7 @@ interface TrainingRow {
   id: string;
   user_id: string;
   date: string;
+  created_at: string;
   duration: number;
   intensity: number;
   session_type: string;
@@ -342,14 +351,38 @@ function buildTrainingNotes(trainingRows: TrainingRow[]): PlayerNoteItem[] {
     .slice(0, 6);
 }
 
-function resolveInjuryStatus(rows: InjuryRow[] | undefined, injuryQueryError: string | null): PlayerInjuryStatus {
-  if (injuryQueryError) {
-    return {
-      state: 'unavailable',
-      message: injuryQueryError,
-    };
-  }
+function buildPainSignals(
+  wellnessRows: WellnessRow[],
+  trainingRows: TrainingRow[]
+): PainStatusSignal[] {
+  return [
+    ...wellnessRows.map((row) => ({
+      id: `wellness-${row.user_id}-${row.date}`,
+      date: row.date,
+      createdAt: row.created_at,
+      source: 'wellness' as const,
+      painActive: Boolean(row.pain_active),
+      painLevel: row.pain_level,
+      painNotes: row.pain_notes,
+    })),
+    ...trainingRows.map((row) => ({
+      id: `training-${row.id}`,
+      date: row.date,
+      createdAt: row.created_at,
+      source: 'training' as const,
+      painActive: Boolean(row.pain_active),
+      painLevel: row.pain_level,
+      painNotes: row.pain_notes,
+    })),
+  ];
+}
 
+function resolveInjuryStatus(
+  rows: InjuryRow[] | undefined,
+  injuryQueryError: string | null,
+  wellnessRows: WellnessRow[],
+  trainingRows: TrainingRow[]
+): PlayerInjuryStatus {
   const injuries = [...(rows ?? [])].sort((first, second) => second.created_at.localeCompare(first.created_at));
   const activeOrRecovering = injuries.filter((row) => {
     const state = normalizeInjuryState(row.status);
@@ -363,6 +396,25 @@ function resolveInjuryStatus(rows: InjuryRow[] | undefined, injuryQueryError: st
       state: normalizedState === 'recovering' ? 'recovering' : 'active',
       description: latest.description,
       expectedReturn: latest.expected_return ?? undefined,
+      reportedDate: latest.created_at.slice(0, 10),
+      reportedAgo: formatReportedAgo(latest.created_at.slice(0, 10)),
+    };
+  }
+
+  const latestPainStatus = getLatestPainStatus(buildPainSignals(wellnessRows, trainingRows));
+  if (latestPainStatus && isPainReported(latestPainStatus)) {
+    return {
+      state: 'active',
+      description: describePainSignal(latestPainStatus),
+      reportedDate: latestPainStatus.date,
+      reportedAgo: formatReportedAgo(latestPainStatus.date),
+    };
+  }
+
+  if (injuryQueryError) {
+    return {
+      state: 'unavailable',
+      message: injuryQueryError,
     };
   }
 
@@ -519,14 +571,7 @@ function resolveTodaysGuidance(params: {
     return null;
   }
 
-  const load = analyzeTrainingLoad(trainingLogs, wellnessLogs);
-  const readiness = calculateReadiness(
-    todaysLog,
-    wellnessLogs,
-    load.loadScore,
-    load.hasAcuteData,
-    load.hasChronicData
-  );
+  const { load, readiness } = calculatePlayerReadinessForDate(wellnessLogs, trainingLogs);
 
   const activeInjuries = mapInjuryRowsToInjuryRecords(injuryRows).filter((injury) => injury.status === 'active');
   const playerProfile: UserProfile = {
@@ -559,38 +604,36 @@ function buildDatasetForPlayer(params: {
   injuryQueryError: string | null;
 }): TeamPlayerDataset {
   const { player, wellnessRows, trainingRows, calendarRows, activityByPlayerAndType, injuryRows, injuryQueryError } = params;
-  const latestWellness = wellnessRows[wellnessRows.length - 1];
+  const wellnessLogs = mapWellnessRowsToWellnessLogs(wellnessRows);
+  const trainingLogs = mapTrainingRowsToTrainingLogs(trainingRows);
+  const currentLoad = analyzeTrainingLoad(trainingLogs, wellnessLogs);
+  const todayKey = getLocalDateKey();
+  const todayWellness = wellnessRows.find((row) => row.date === todayKey);
 
-  const loadByDate = trainingRows.reduce<Record<string, number>>((accumulator, row) => {
-    const dayLoad = row.duration * row.intensity;
-    accumulator[row.date] = (accumulator[row.date] ?? 0) + dayLoad;
-    return accumulator;
-  }, {});
-
-  const allDates = Array.from(
-    new Set([
-      ...wellnessRows.map((row) => row.date),
-      ...trainingRows.map((row) => row.date),
-    ])
-  )
+  const analyticsDates = Array.from(new Set([
+    ...wellnessRows.map((row) => row.date),
+    ...trainingRows.map((row) => row.date),
+  ]))
     .sort((a, b) => a.localeCompare(b))
     .slice(-14);
 
-  const analyticsRows = allDates.map((dateValue) => {
+  const analyticsRows = analyticsDates.map((dateValue) => {
     const wellness = wellnessRows.find((row) => row.date === dateValue);
     const energy = wellness?.energy ?? 0;
     const fatigue = wellness?.fatigue ?? 0;
     const stress = wellness?.stress ?? 0;
     const sleepHours = toNumber(wellness?.sleep_duration);
     const sleepQuality = wellness?.sleep_quality ?? 0;
-    const load = loadByDate[dateValue] ?? 0;
-    const loadScore = clamp(Math.round(load / 10), 0, 100);
-    const sleepScore = clamp(Math.round(((sleepQuality * 10) + (sleepHours * 10)) / 2), 0, 100);
-    const readinessScore = clamp(
-      Math.round((energy * 10) * 0.35 + sleepScore * 0.35 + (100 - fatigue * 10) * 0.2 + (100 - stress * 10) * 0.1 - loadScore * 0.1),
-      0,
-      100
+    const { readiness, load } = calculatePlayerReadinessForDate(
+      wellnessLogs,
+      trainingLogs,
+      parseISO(dateValue)
     );
+    const dailyTrainingLoad = trainingLogs
+      .filter((log) => log.date === dateValue)
+      .reduce((sum, log) => sum + calculateSessionLoad(log), 0);
+    const sleepScore = readiness.breakdown.sleep;
+    const readinessScore = readiness.score;
 
     return {
       dateValue,
@@ -601,9 +644,13 @@ function buildDatasetForPlayer(params: {
       sleepHours,
       sleepQuality,
       sleepScore,
-      load,
-      loadScore,
+      hasWellness: Boolean(wellness),
+      acuteTrainingLoad: Math.round(dailyTrainingLoad),
+      loadScore: Math.round(load.loadScore),
       readinessScore,
+      energyScore: readiness.breakdown.energy,
+      fatigueScore: readiness.breakdown.fatigue,
+      stressScore: readiness.breakdown.stress,
       bedTime: wellness?.sleep_time ?? '--:--',
       wakeTime: wellness?.wake_time ?? '--:--',
     };
@@ -615,12 +662,15 @@ function buildDatasetForPlayer(params: {
   return {
     player,
     wellness: {
-      readinessScore: analyticsRows[analyticsRows.length - 1]?.readinessScore ?? 0,
-      fatigue: toNumber(latestWellness?.fatigue) * 10,
-      loadScore: analyticsRows[analyticsRows.length - 1]?.loadScore ?? 0,
+      readinessScore: analyticsRows.find((row) => row.dateValue === todayKey && row.hasWellness)?.readinessScore ?? 0,
+      fatigue: toNumber(todayWellness?.fatigue) * 10,
+      loadScore: currentLoad.hasAcuteData ? Math.round(currentLoad.loadScore) : 0,
+      acuteTrainingLoad: Math.round(currentLoad.acuteLoad),
+      sevenDayTrainingLoad: Math.round(currentLoad.sevenDayLoad),
+      hasAcuteTrainingData: currentLoad.hasAcuteData,
     },
     analytics: {
-      readinessTrend: analyticsRows.map((row) => ({
+      readinessTrend: analyticsRows.filter((row) => row.hasWellness).map((row) => ({
         date: row.dateValue,
         label: row.label,
         readinessScore: row.readinessScore,
@@ -630,9 +680,9 @@ function buildDatasetForPlayer(params: {
         label: row.label,
         energy: row.energy,
         fatigue: row.fatigue,
-        acuteTrainingLoad: Math.round(row.load),
+        acuteTrainingLoad: row.acuteTrainingLoad,
       })),
-      sleepQualityAndTiming: analyticsRows.map((row) => ({
+      sleepQualityAndTiming: analyticsRows.filter((row) => row.hasWellness).map((row) => ({
         date: row.dateValue,
         label: row.label,
         sleepHours: row.sleepHours,
@@ -641,20 +691,20 @@ function buildDatasetForPlayer(params: {
         bedTime: row.bedTime,
         wakeTime: row.wakeTime,
       })),
-      stressVsSleepScore: analyticsRows.map((row) => ({
+      stressVsSleepScore: analyticsRows.filter((row) => row.hasWellness).map((row) => ({
         date: row.dateValue,
         label: row.label,
         stress: row.stress * 10,
         sleepScore: row.sleepScore,
       })),
-      multiFactorReadiness: analyticsRows.map((row) => ({
+      multiFactorReadiness: analyticsRows.filter((row) => row.hasWellness).map((row) => ({
         date: row.dateValue,
         label: row.label,
         readinessScore: row.readinessScore,
         sleepScore: row.sleepScore,
-        energyScore: row.energy * 10,
-        fatigueScore: row.fatigue * 10,
-        stressScore: row.stress * 10,
+        energyScore: row.energyScore,
+        fatigueScore: row.fatigueScore,
+        stressScore: row.stressScore,
         loadScore: row.loadScore,
       })),
     },
@@ -694,7 +744,7 @@ function buildDatasetForPlayer(params: {
     }),
     wellnessNotes: buildWellnessNotes(wellnessRows),
     trainingNotes: buildTrainingNotes(trainingRows),
-    injuryStatus: resolveInjuryStatus(injuryRows, injuryQueryError),
+    injuryStatus: resolveInjuryStatus(injuryRows, injuryQueryError, wellnessRows, trainingRows),
     todaysGuidance: resolveTodaysGuidance({
       player,
       wellnessRows,
@@ -725,12 +775,12 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
   const [wellnessResult, trainingResult, calendarResult, eventTypeActivityResult, injuriesResult] = await Promise.all([
     supabase
       .from('wellness_logs')
-      .select('user_id, date, energy, fatigue, stress, sleep_quality, sleep_duration, sleep_time, wake_time, notes, pain_notes, pain_active, pain_level')
+      .select('user_id, date, created_at, energy, fatigue, stress, sleep_quality, sleep_duration, sleep_time, wake_time, notes, pain_notes, pain_active, pain_level')
       .in('user_id', playerIds)
       .order('date', { ascending: true }),
     supabase
       .from('training_logs')
-      .select('id, user_id, date, duration, intensity, session_type, sprinting, performance, pain_active, pain_level, notes, pain_notes')
+      .select('id, user_id, date, created_at, duration, intensity, session_type, sprinting, performance, pain_active, pain_level, notes, pain_notes')
       .in('user_id', playerIds)
       .order('date', { ascending: true }),
     loadCalendarRowsForPlayers(playerIds),

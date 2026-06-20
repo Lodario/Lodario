@@ -4,12 +4,14 @@ export type AnalyticsViewMode = 'averages' | 'individuals';
 
 export interface TeamReadinessTrendPoint {
   [key: string]: string | number;
+  date: string;
   label: string;
   readinessScore: number;
 }
 
 export interface TeamEnergyFatigueLoadPoint {
   [key: string]: string | number;
+  date: string;
   label: string;
   energy: number;
   fatigue: number;
@@ -18,6 +20,7 @@ export interface TeamEnergyFatigueLoadPoint {
 
 export interface TeamSleepQualityAndTimingPoint {
   [key: string]: string | number;
+  date: string;
   label: string;
   sleepHours: number;
   sleepQualityScore: number;
@@ -28,6 +31,7 @@ export interface TeamSleepQualityAndTimingPoint {
 
 export interface TeamStressVsSleepScorePoint {
   [key: string]: string | number;
+  date: string;
   label: string;
   stress: number;
   sleepScore: number;
@@ -35,6 +39,7 @@ export interface TeamStressVsSleepScorePoint {
 
 export interface TeamMultiFactorReadinessPoint {
   [key: string]: string | number;
+  date: string;
   label: string;
   readinessScore: number;
   sleepScore: number;

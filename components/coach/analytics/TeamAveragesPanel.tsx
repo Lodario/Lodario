@@ -25,7 +25,12 @@ export function TeamAveragesPanel({ metrics, graphNumber = 6, className }: TeamA
               key={metric.label}
               className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2.5 py-2"
             >
-              <p className="text-[10px] uppercase tracking-wide text-gray-400">{metric.label}</p>
+              <p
+                className="text-[10px] uppercase tracking-wide text-gray-400"
+                title={metric.label === 'Average Load' ? "Average of each reporting player's total acute training load across the past 7 days." : undefined}
+              >
+                {metric.label === 'Average Load' ? 'Average Load (7 days)' : metric.label}
+              </p>
               <p className="mt-0.5 text-xs font-semibold text-white">{metric.value}</p>
             </article>
           ))}

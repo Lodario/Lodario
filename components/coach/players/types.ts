@@ -34,6 +34,9 @@ export interface PlayerWellnessMetrics {
   readinessScore: number;
   fatigue: number;
   loadScore: number;
+  acuteTrainingLoad: number;
+  sevenDayTrainingLoad: number;
+  hasAcuteTrainingData: boolean;
 }
 
 export interface PlayerCalendarEvent {
@@ -72,6 +75,8 @@ export interface PlayerInjuryStatus {
   state: 'healthy' | 'active' | 'recovering' | 'resolved' | 'unavailable';
   description?: string;
   expectedReturn?: string;
+  reportedDate?: string;
+  reportedAgo?: string;
   message?: string;
 }
 

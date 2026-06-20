@@ -35,12 +35,12 @@ function Sparkline({ points }: SparklineProps) {
     <svg viewBox={`0 0 ${width} ${height}`} className="h-16 w-full" preserveAspectRatio="none" aria-hidden>
       <defs>
         <linearGradient id="overviewTrendFill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="rgba(var(--accent-secondary-rgb),0.34)" />
+          <stop offset="0%" stopColor="rgba(var(--accent-tertiary-rgb),0.4)" />
           <stop offset="100%" stopColor="rgba(var(--accent-secondary-rgb),0.02)" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill="url(#overviewTrendFill)" />
-      <path d={path} fill="none" stroke="var(--metric-load)" strokeWidth="2.5" strokeLinecap="round" />
+      <path d={path} fill="none" stroke="var(--accent-secondary)" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -128,7 +128,7 @@ export function CoachOverviewPage() {
                 Avg readiness {overviewData.summary.averageReadiness == null ? '--' : `${overviewData.summary.averageReadiness}%`}
               </span>
               <span className="rounded-full border border-[rgba(var(--metric-load-rgb),0.35)] bg-[rgba(var(--metric-load-rgb),0.12)] px-2.5 py-1 font-medium text-[var(--metric-load)]">
-                Avg load {overviewData.summary.averageLoad == null ? '--' : overviewData.summary.averageLoad}
+                Average Load (7 days) {overviewData.summary.averageLoad == null ? '--' : overviewData.summary.averageLoad}
               </span>
             </div>
           </div>
@@ -162,7 +162,7 @@ export function CoachOverviewPage() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-white">Players Needing Attention</h2>
-              <p className="mt-1 text-xs text-gray-400">Based on readiness, fatigue, load, sleep, and stress signals.</p>
+              <p className="mt-1 text-xs text-gray-400">Based on injury reports, readiness, fatigue, load, sleep, and stress signals.</p>
             </div>
             <Link
               href="/coach/players"
@@ -191,9 +191,11 @@ export function CoachOverviewPage() {
                     </div>
 
                     <div className="flex items-center gap-2">
-                      <span className="rounded-md border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.05)] px-2 py-0.5 text-xs font-semibold text-white">
-                        {player.scoreLabel}: {player.scoreValue}
-                      </span>
+                      {player.scoreValue == null ? null : (
+                        <span className="rounded-md border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.05)] px-2 py-0.5 text-xs font-semibold text-white">
+                          {player.scoreLabel}: {player.scoreValue}
+                        </span>
+                      )}
                       <span
                         className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${player.statusClassName}`}
                       >

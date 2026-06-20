@@ -10,6 +10,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import { useState } from 'react';
 
 interface AnalyticsSeries {
   dataKey: string;
@@ -27,6 +28,7 @@ interface PlayerAnalyticsChartProps {
   leftDomain?: [number, number];
   rightDomain?: [number, number];
   footerNote?: string;
+  interactiveLegend?: boolean;
 }
 
 export function PlayerAnalyticsChart({
@@ -37,9 +39,52 @@ export function PlayerAnalyticsChart({
   leftDomain,
   rightDomain,
   footerNote,
+  interactiveLegend = false,
 }: PlayerAnalyticsChartProps) {
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
   const hasBars = series.some((item) => item.type === 'bar');
   const hasRightAxis = series.some((item) => item.yAxisId === 'right');
+  const isSeriesHidden = (dataKey: string) => interactiveLegend && hiddenSeries.has(dataKey);
+  const toggleSeries = (dataKey: string) => {
+    if (!interactiveLegend) return;
+
+    setHiddenSeries((current) => {
+      const next = new Set(current);
+      if (next.has(dataKey)) {
+        next.delete(dataKey);
+      } else {
+        next.add(dataKey);
+      }
+      return next;
+    });
+  };
+  const legendContent = interactiveLegend
+    ? () => (
+        <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 pt-1 text-[10px]">
+          {series.map((item) => {
+            const isHidden = isSeriesHidden(item.dataKey);
+
+            return (
+              <button
+                key={item.dataKey}
+                type="button"
+                aria-pressed={!isHidden}
+                onClick={() => toggleSeries(item.dataKey)}
+                className={`flex touch-manipulation items-center gap-1.5 rounded-full px-1.5 py-1 transition-opacity ${
+                  isHidden ? 'opacity-50 grayscale' : 'opacity-100'
+                }`}
+              >
+                <span
+                  className="h-2 w-2 rounded-full"
+                  style={{ backgroundColor: isHidden ? 'rgba(156,163,175,0.75)' : item.color }}
+                />
+                <span className={isHidden ? 'text-gray-500' : 'text-gray-300'}>{item.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      )
+    : undefined;
 
   return (
     <article className="glass-card relative h-72 p-4 sm:p-5">
@@ -82,7 +127,7 @@ export function PlayerAnalyticsChart({
                   borderRadius: '10px',
                 }}
               />
-              <Legend wrapperStyle={{ fontSize: '10px' }} iconType="circle" />
+              <Legend wrapperStyle={{ fontSize: '10px' }} iconType="circle" content={legendContent} />
               {series.map((item) =>
                 item.type === 'bar' ? (
                   <Bar
@@ -92,6 +137,7 @@ export function PlayerAnalyticsChart({
                     name={item.name}
                     fill={item.color}
                     fillOpacity={0.62}
+                    hide={isSeriesHidden(item.dataKey)}
                     radius={[4, 4, 0, 0]}
                     barSize={12}
                   />
@@ -105,6 +151,7 @@ export function PlayerAnalyticsChart({
                     stroke={item.color}
                     strokeWidth={2.2}
                     dot={{ r: 2, strokeWidth: 0 }}
+                    hide={isSeriesHidden(item.dataKey)}
                   />
                 )
               )}
@@ -139,7 +186,7 @@ export function PlayerAnalyticsChart({
                   borderRadius: '10px',
                 }}
               />
-              <Legend wrapperStyle={{ fontSize: '10px' }} iconType="circle" />
+              <Legend wrapperStyle={{ fontSize: '10px' }} iconType="circle" content={legendContent} />
               {series.map((item) => (
                 <Line
                   key={item.dataKey}
@@ -150,6 +197,7 @@ export function PlayerAnalyticsChart({
                   stroke={item.color}
                   strokeWidth={2.2}
                   dot={{ r: 2, strokeWidth: 0 }}
+                  hide={isSeriesHidden(item.dataKey)}
                 />
               ))}
             </LineChart>

@@ -3,6 +3,7 @@ import { differenceInDays, parseISO } from 'date-fns';
 
 export interface LoadResult {
   acuteLoad: number;
+  sevenDayLoad: number;
   chronicLoad: number;
   acuteChronicRatio: number;
   loadScore: number;
@@ -203,6 +204,7 @@ export function analyzeTrainingLoad(
 
   return {
     acuteLoad,
+    sevenDayLoad: weeklyLoad,
     chronicLoad,
     acuteChronicRatio: ratio,
     loadScore,

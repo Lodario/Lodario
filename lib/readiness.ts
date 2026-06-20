@@ -108,9 +108,12 @@ export function calculateReadiness(
 
   // 3. Sleep Consistency (7 day stdev)
   let sleepConsistencyScore = 80; // Default if not enough data
-  const last7Days = historicalLogs.filter(
-    (l) => differenceInDays(asOfDate, parseISO(l.date)) <= 7
-  );
+  const last7Days = historicalLogs
+    .filter((l) => {
+      const daysAgo = differenceInDays(asOfDate, parseISO(l.date));
+      return daysAgo >= 0 && daysAgo <= 7;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
   if (last7Days.length >= 3) {
     const avgSleep = last7Days.reduce((sum, l) => sum + l.sleepDuration, 0) / last7Days.length;
     let variance = last7Days.reduce((sum, l) => sum + Math.pow(l.sleepDuration - avgSleep, 2), 0) / last7Days.length;
