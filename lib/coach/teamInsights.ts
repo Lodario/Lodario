@@ -16,35 +16,19 @@ import {
   parseRecurrenceConfig,
 } from '@/lib/calendar/events';
 import { supabase } from '@/lib/supabase';
+import { getTeamReadinessForDate } from '@/lib/coach/teamMetrics';
+import {
+  describePainSignal,
+  formatReportedAgo,
+  getLatestPainStatus,
+  isPainReported,
+  sortPainSignalsNewestFirst,
+  type PainStatusSignal,
+} from '@/lib/injury-status';
 
 interface TeamMembershipRow {
   team_id: string | null;
   user_id: string | null;
-}
-
-interface PlayerProfileRow {
-  id: string;
-  date_of_birth: string | null;
-  height_cm: number | string | null;
-  weight_kg: number | string | null;
-  positions: string[] | null;
-}
-
-interface WellnessSummaryRow {
-  user_id: string;
-  date: string;
-  sleep_duration: number | string;
-  sleep_quality: number;
-  energy: number;
-  fatigue: number;
-  stress: number;
-}
-
-interface TrainingSummaryRow {
-  user_id: string;
-  date: string;
-  duration: number | string;
-  intensity: number | string;
 }
 
 interface TeamReference {
@@ -84,12 +68,18 @@ export interface CoachTeamInjuryAlert {
   playerName: string;
   description: string;
   status: 'active' | 'recovering';
+  source: 'injury-record' | 'wellness' | 'training';
+  isCurrent: boolean;
+  reportedDate: string;
+  reportedAgo: string;
   expectedReturn: string | null;
   createdAt: string;
 }
 
 export interface CoachTeamProfileAverages {
   players: number;
+  readinessPlayers: number;
+  loadPlayers: number;
   averageAge: number | null;
   averageHeightCm: number | null;
   averageWeightKg: number | null;
@@ -138,10 +128,6 @@ function round(value: number): number {
   return Math.round(value);
 }
 
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value));
-}
-
 function average(values: number[]): number {
   if (values.length === 0) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -150,72 +136,6 @@ function average(values: number[]): number {
 function averageOrNull(values: number[]): number | null {
   if (values.length === 0) return null;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
-}
-
-function toPositiveNumber(value: number | string | null | undefined): number | null {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) && value > 0 ? value : null;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
-  }
-
-  return null;
-}
-
-function toFiniteNumber(value: number | string | null | undefined): number | null {
-  if (typeof value === 'number') {
-    return Number.isFinite(value) ? value : null;
-  }
-
-  if (typeof value === 'string') {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-
-  return null;
-}
-
-function ageFromDateOfBirth(dateOfBirth: string | null): number | null {
-  if (!dateOfBirth) return null;
-
-  const parsed = new Date(`${dateOfBirth}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) return null;
-
-  const now = new Date();
-  let age = now.getFullYear() - parsed.getFullYear();
-  const birthdayPassedThisYear =
-    now.getMonth() > parsed.getMonth() ||
-    (now.getMonth() === parsed.getMonth() && now.getDate() >= parsed.getDate());
-
-  if (!birthdayPassedThisYear) {
-    age -= 1;
-  }
-
-  return age >= 0 && age <= 120 ? age : null;
-}
-
-function computeReadinessFromWellnessRow(row: WellnessSummaryRow): number {
-  const sleepDuration = toFiniteNumber(row.sleep_duration) ?? 0;
-  const sleepQuality = row.sleep_quality;
-  const energy = row.energy;
-  const fatigue = row.fatigue;
-  const stress = row.stress;
-
-  const sleepScore = clamp(Math.round(((sleepQuality * 10) + (sleepDuration * 10)) / 2), 0, 100);
-
-  return clamp(
-    Math.round(
-      (energy * 10) * 0.35 +
-      sleepScore * 0.35 +
-      (100 - fatigue * 10) * 0.2 +
-      (100 - stress * 10) * 0.1
-    ),
-    0,
-    100
-  );
 }
 
 function toDateAndTime(isoValue: string): { date: string; time: string } {
@@ -349,9 +269,8 @@ function getTodayWellnessSnapshot(dataset: TeamPlayerDataset, todayDateKey: stri
   };
 }
 
-function getTodayTrainingLoad(dataset: TeamPlayerDataset, todayDateKey: string): number | null {
-  const todayLoad = dataset.analytics.energyFatigueLoad.find((point) => point.date === todayDateKey)?.acuteTrainingLoad ?? 0;
-  return todayLoad > 0 ? todayLoad : null;
+function getCurrentTrainingLoad(dataset: TeamPlayerDataset): number | null {
+  return dataset.wellness.hasAcuteTrainingData ? dataset.wellness.acuteTrainingLoad : null;
 }
 
 function formatMetricValue(value: number | null, suffix = ''): string {
@@ -368,14 +287,16 @@ function buildCalendarAverages(players: TeamPlayerDataset[]): TeamCalendarDatase
   const wellnessSnapshots = players
     .map((dataset) => getTodayWellnessSnapshot(dataset, todayDateKey))
     .filter((snapshot): snapshot is NonNullable<typeof snapshot> => Boolean(snapshot));
-  const readiness = wellnessSnapshots.map((snapshot) => snapshot.readinessScore).filter((value) => value > 0);
+  const readinessSummary = getTeamReadinessForDate(players, todayDateKey);
   const energy = wellnessSnapshots.map((snapshot) => snapshot.energy).filter((value) => value > 0);
   const fatigue = wellnessSnapshots.map((snapshot) => snapshot.fatigue * 10).filter((value) => value > 0);
   const sleepScore = wellnessSnapshots.map((snapshot) => snapshot.sleepScore).filter((value) => value > 0);
   const sleepHours = wellnessSnapshots.map((snapshot) => snapshot.sleepHours).filter((value) => value > 0);
   const sleepQuality = wellnessSnapshots.map((snapshot) => snapshot.sleepQualityScore).filter((value) => value > 0);
   const stress = wellnessSnapshots.map((snapshot) => snapshot.stress).filter((value) => value > 0);
-  const loadScore = wellnessSnapshots.map((snapshot) => snapshot.loadScore).filter((value) => value > 0);
+  const loadScore = players
+    .filter((dataset) => dataset.wellness.hasAcuteTrainingData)
+    .map((dataset) => dataset.wellness.loadScore);
   const sleepTimes = wellnessSnapshots
     .map((snapshot) => hhmmToMinutes(snapshot.bedTime))
     .filter((value): value is number => value != null);
@@ -383,15 +304,18 @@ function buildCalendarAverages(players: TeamPlayerDataset[]): TeamCalendarDatase
     .map((snapshot) => hhmmToMinutes(snapshot.wakeTime))
     .filter((value): value is number => value != null);
   const load = players
-    .map((dataset) => getTodayTrainingLoad(dataset, todayDateKey))
+    .map((dataset) => getCurrentTrainingLoad(dataset))
     .filter((value): value is number => value != null && Number.isFinite(value));
+  const sevenDayLoad = players
+    .filter((dataset) => dataset.wellness.hasAcuteTrainingData)
+    .map((dataset) => dataset.wellness.sevenDayTrainingLoad);
 
   const meanSleepTime = minutesToHHmm(averageOrNull(sleepTimes));
   const meanWakeTime = minutesToHHmm(averageOrNull(wakeTimes));
 
   return [
     { label: 'Players', value: String(players.length) },
-    { label: 'Team Readiness', value: formatMetricValue(averageOrNull(readiness), '%') },
+    { label: 'Team Readiness', value: formatMetricValue(readinessSummary.average, '%') },
     { label: 'Team Energy', value: formatMetricValue(averageOrNull(energy)) },
     { label: 'Team Fatigue', value: formatMetricValue(averageOrNull(fatigue)) },
     { label: 'Team Stress', value: formatMetricValue(averageOrNull(stress)) },
@@ -403,6 +327,7 @@ function buildCalendarAverages(players: TeamPlayerDataset[]): TeamCalendarDatase
     { label: 'Team Sleep Quality', value: formatMetricValue(averageOrNull(sleepQuality)) },
     { label: 'Acute Training Load', value: formatMetricValue(averageOrNull(load)) },
     { label: 'Load Score', value: formatMetricValue(averageOrNull(loadScore)) },
+    { label: 'Average Load', value: formatMetricValue(averageOrNull(sevenDayLoad)) },
     { label: 'Average Sleep Time', value: meanSleepTime ?? '--' },
     { label: 'Average Wake Time', value: meanWakeTime ?? '--' },
   ];
@@ -527,6 +452,8 @@ export async function loadTeamProfileAveragesByTeamIds(teamIds: string[]): Promi
   const emptyAveragesByTeamId = normalizedTeamIds.reduce<Record<string, CoachTeamProfileAverages>>((accumulator, teamId) => {
     accumulator[teamId] = {
       players: 0,
+      readinessPlayers: 0,
+      loadPlayers: 0,
       averageAge: null,
       averageHeightCm: null,
       averageWeightKg: null,
@@ -541,179 +468,49 @@ export async function loadTeamProfileAveragesByTeamIds(teamIds: string[]): Promi
     return { averagesByTeamId: {}, error: null };
   }
 
-  const { data: membershipRows, error: membershipError } = await supabase
-    .from('team_memberships')
-    .select('team_id, user_id')
-    .in('team_id', normalizedTeamIds)
-    .eq('role', 'player')
-    .eq('status', 'active');
-
-  if (membershipError) {
-    console.error('[teamInsights/loadTeamProfileAveragesByTeamIds] Error loading active player memberships:', membershipError, { teamIds: normalizedTeamIds });
-    return { averagesByTeamId: emptyAveragesByTeamId, error: membershipError.message || 'Unable to load team player memberships.' };
-  }
-
-  const membershipPairs = (membershipRows ?? [])
-    .filter((row): row is TeamMembershipRow => Boolean(row.team_id) && Boolean(row.user_id))
-    .map((row) => ({ teamId: row.team_id as string, userId: row.user_id as string }));
-
-  if (membershipPairs.length === 0) {
-    return { averagesByTeamId: emptyAveragesByTeamId, error: null };
-  }
-
-  const uniqueMembershipPairs = Array.from(
-    new Map(membershipPairs.map((pair) => [`${pair.teamId}:${pair.userId}`, pair])).values()
-  );
-  const userIds = Array.from(new Set(uniqueMembershipPairs.map((pair) => pair.userId)));
-
-  const { data: profileRows, error: profilesError } = await supabase
-    .from('profiles')
-    .select('id, date_of_birth, height_cm, weight_kg, positions')
-    .in('id', userIds);
-
-  if (profilesError) {
-    console.error('[teamInsights/loadTeamProfileAveragesByTeamIds] Error loading player profiles:', profilesError, { teamIds: normalizedTeamIds, userCount: userIds.length });
-    return { averagesByTeamId: emptyAveragesByTeamId, error: profilesError.message || 'Unable to load team player profiles.' };
-  }
-
   const todayDateKey = getLocalDateKey();
-
-  const [wellnessResult, trainingResult] = await Promise.all([
-    supabase
-      .from('wellness_logs')
-      .select('user_id, date, sleep_duration, sleep_quality, energy, fatigue, stress')
-      .in('user_id', userIds)
-      .eq('date', todayDateKey),
-    supabase
-      .from('training_logs')
-      .select('user_id, date, duration, intensity')
-      .in('user_id', userIds)
-      .eq('date', todayDateKey),
-  ]);
-
-  let partialError: string | null = null;
-  if (wellnessResult.error) {
-    console.error('[teamInsights/loadTeamProfileAveragesByTeamIds] Error loading wellness logs for readiness averages:', wellnessResult.error, {
-      teamIds: normalizedTeamIds,
-      userCount: userIds.length,
-    });
-    partialError = 'Unable to load team wellness logs.';
-  }
-
-  if (trainingResult.error) {
-    console.error('[teamInsights/loadTeamProfileAveragesByTeamIds] Error loading training logs for load averages:', trainingResult.error, {
-      teamIds: normalizedTeamIds,
-      userCount: userIds.length,
-    });
-    partialError = partialError ? `${partialError} Unable to load team training logs.` : 'Unable to load team training logs.';
-  }
-
-  const profileByUserId = new Map<string, PlayerProfileRow>(
-    ((profileRows ?? []) as PlayerProfileRow[]).map((row) => [row.id, row])
+  const results = await Promise.all(
+    normalizedTeamIds.map(async (teamId) => ({
+      teamId,
+      result: await loadRealTeamPlayerDatasets(teamId),
+    }))
   );
 
-  const todayWellnessByUserId = new Map<string, WellnessSummaryRow>();
-  if (!wellnessResult.error) {
-    for (const row of (wellnessResult.data ?? []) as WellnessSummaryRow[]) {
-      if (!todayWellnessByUserId.has(row.user_id)) {
-        todayWellnessByUserId.set(row.user_id, row);
-      }
-    }
-  }
+  const averagesByTeamId = { ...emptyAveragesByTeamId };
+  const errors: string[] = [];
 
-  const todayTrainingLoadByUserId = new Map<string, number>();
-  if (!trainingResult.error) {
-    for (const row of (trainingResult.data ?? []) as TrainingSummaryRow[]) {
-      const duration = toFiniteNumber(row.duration) ?? 0;
-      const intensity = toFiniteNumber(row.intensity) ?? 0;
-      const computedLoad = duration > 0 && intensity > 0 ? duration * intensity : 0;
-      todayTrainingLoadByUserId.set(
-        row.user_id,
-        (todayTrainingLoadByUserId.get(row.user_id) ?? 0) + computedLoad
-      );
+  for (const { teamId, result } of results) {
+    if (result.error) {
+      errors.push(result.error);
+      continue;
     }
-  }
 
-  const accumulators = normalizedTeamIds.reduce<Record<string, {
-    players: number;
-    ages: number[];
-    heights: number[];
-    weights: number[];
-    readinessScores: number[];
-    loadScores: number[];
-    positions: Set<string>;
-  }>>((accumulator, teamId) => {
-    accumulator[teamId] = {
-      players: 0,
-      ages: [],
-      heights: [],
-      weights: [],
-      readinessScores: [],
-      loadScores: [],
-      positions: new Set<string>(),
+    const readinessSummary = getTeamReadinessForDate(result.data, todayDateKey);
+    const sevenDayLoads = result.data
+      .filter((dataset) => dataset.wellness.hasAcuteTrainingData)
+      .map((dataset) => dataset.wellness.sevenDayTrainingLoad);
+    const ages = result.data.map((dataset) => dataset.player.age).filter((value) => value > 0);
+    const heights = result.data.map((dataset) => dataset.player.heightCm).filter((value) => value > 0);
+    const weights = result.data.map((dataset) => dataset.player.weightKg).filter((value) => value > 0);
+    const positions = new Set(result.data.flatMap((dataset) => dataset.player.positions).filter(Boolean));
+
+    averagesByTeamId[teamId] = {
+      players: result.data.length,
+      readinessPlayers: readinessSummary.reportingPlayers,
+      loadPlayers: sevenDayLoads.length,
+      averageAge: averageOrNull(ages),
+      averageHeightCm: averageOrNull(heights),
+      averageWeightKg: averageOrNull(weights),
+      averageReadiness: readinessSummary.average,
+      averageLoad: averageOrNull(sevenDayLoads),
+      positions: Array.from(positions).sort((first, second) => first.localeCompare(second)),
     };
-    return accumulator;
-  }, {});
-
-  for (const pair of uniqueMembershipPairs) {
-    const teamAccumulator = accumulators[pair.teamId];
-    if (!teamAccumulator) continue;
-
-    teamAccumulator.players += 1;
-
-    const todayWellness = todayWellnessByUserId.get(pair.userId);
-    if (todayWellness) {
-      teamAccumulator.readinessScores.push(computeReadinessFromWellnessRow(todayWellness));
-    }
-
-    const todayLoad = todayTrainingLoadByUserId.get(pair.userId);
-    if (typeof todayLoad === 'number' && Number.isFinite(todayLoad) && todayLoad > 0) {
-      teamAccumulator.loadScores.push(todayLoad);
-    }
-
-    const profile = profileByUserId.get(pair.userId);
-    if (!profile) continue;
-
-    const age = ageFromDateOfBirth(profile.date_of_birth);
-    if (age !== null) {
-      teamAccumulator.ages.push(age);
-    }
-
-    const height = toPositiveNumber(profile.height_cm);
-    if (height !== null) {
-      teamAccumulator.heights.push(height);
-    }
-
-    const weight = toPositiveNumber(profile.weight_kg);
-    if (weight !== null) {
-      teamAccumulator.weights.push(weight);
-    }
-
-    for (const position of profile.positions ?? []) {
-      const normalizedPosition = position.trim();
-      if (normalizedPosition) {
-        teamAccumulator.positions.add(normalizedPosition);
-      }
-    }
   }
 
-  const averagesByTeamId = normalizedTeamIds.reduce<Record<string, CoachTeamProfileAverages>>((accumulator, teamId) => {
-    const teamAccumulator = accumulators[teamId];
-
-    accumulator[teamId] = {
-      players: teamAccumulator.players,
-      averageAge: averageOrNull(teamAccumulator.ages),
-      averageHeightCm: averageOrNull(teamAccumulator.heights),
-      averageWeightKg: averageOrNull(teamAccumulator.weights),
-      averageReadiness: averageOrNull(teamAccumulator.readinessScores),
-      averageLoad: averageOrNull(teamAccumulator.loadScores),
-      positions: Array.from(teamAccumulator.positions).sort((first, second) => first.localeCompare(second)),
-    };
-
-    return accumulator;
-  }, {});
-
-  return { averagesByTeamId, error: partialError };
+  return {
+    averagesByTeamId,
+    error: errors.length > 0 ? Array.from(new Set(errors)).join(' ') : null,
+  };
 }
 
 export async function loadCoachCalendarItemsForTeams(teams: TeamReference[]): Promise<{
@@ -861,19 +658,40 @@ export async function loadCoachTeamInjuryAlertsForTeams(teams: TeamReference[]):
     return { alerts: [], error: rpcErrorMessage };
   }
 
-  const { data: injuryRows, error: injuriesError } = await supabase
-    .from('injuries')
-    .select('id, user_id, description, status, expected_return, created_at')
-    .in('user_id', userIds)
-    .in('status', ['active', 'recovering'])
-    .order('created_at', { ascending: false });
+  const recentDateKey = getLocalDateKey(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000));
+  const [injuriesResult, wellnessResult, trainingResult] = await Promise.all([
+    supabase
+      .from('injuries')
+      .select('id, user_id, description, status, expected_return, created_at')
+      .in('user_id', userIds)
+      .in('status', ['active', 'recovering'])
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('wellness_logs')
+      .select('id, user_id, date, pain_active, pain_level, pain_notes, created_at')
+      .in('user_id', userIds)
+      .gte('date', recentDateKey)
+      .order('date', { ascending: false }),
+    supabase
+      .from('training_logs')
+      .select('id, user_id, date, pain_active, pain_level, pain_notes, created_at')
+      .in('user_id', userIds)
+      .gte('date', recentDateKey)
+      .order('date', { ascending: false }),
+  ]);
 
-  if (injuriesError) {
-    console.error('[teamInsights/loadCoachTeamInjuryAlertsForTeams] Error loading injuries for managed players:', injuriesError, { teamCount: normalizedTeams.length, userCount: userIds.length });
-    return { alerts: [], error: injuriesError.message || 'Unable to load injury alerts.' };
+  const queryErrors = [injuriesResult.error, wellnessResult.error, trainingResult.error]
+    .filter((error): error is NonNullable<typeof error> => Boolean(error));
+  if (queryErrors.length > 0) {
+    queryErrors.forEach((error) => {
+      console.error('[teamInsights/loadCoachTeamInjuryAlertsForTeams] Error loading injury signals:', error, {
+        teamCount: normalizedTeams.length,
+        userCount: userIds.length,
+      });
+    });
   }
 
-  const alerts = ((injuryRows ?? []) as InjuryAlertRow[]).flatMap((injuryRow) => {
+  const injuryAlerts = (((injuriesResult.data ?? []) as InjuryAlertRow[])).flatMap((injuryRow) => {
     if (injuryRow.status !== 'active' && injuryRow.status !== 'recovering') {
       return [];
     }
@@ -886,12 +704,78 @@ export async function loadCoachTeamInjuryAlertsForTeams(teams: TeamReference[]):
       playerName: playerNameByUserId.get(injuryRow.user_id) ?? `Player ${injuryRow.user_id.slice(0, 8)}`,
       description: injuryRow.description,
       status: injuryRow.status as 'active' | 'recovering',
+      source: 'injury-record' as const,
+      isCurrent: true,
+      reportedDate: injuryRow.created_at.slice(0, 10),
+      reportedAgo: formatReportedAgo(injuryRow.created_at.slice(0, 10)),
       expectedReturn: injuryRow.expected_return,
       createdAt: injuryRow.created_at,
     }));
   });
 
-  return { alerts, error: rpcErrorMessage };
+  type PainAlertRow = {
+    id: string;
+    user_id: string;
+    date: string;
+    pain_active: boolean;
+    pain_level: number | null;
+    pain_notes: string | null;
+    created_at: string;
+  };
+
+  const painSignalsByUserId = new Map<string, PainStatusSignal[]>();
+  const addPainRows = (rows: PainAlertRow[], source: 'wellness' | 'training') => {
+    rows.forEach((row) => {
+      const signals = painSignalsByUserId.get(row.user_id) ?? [];
+      signals.push({
+        id: row.id,
+        date: row.date,
+        createdAt: row.created_at,
+        source,
+        painActive: Boolean(row.pain_active),
+        painLevel: row.pain_level,
+        painNotes: row.pain_notes,
+      });
+      painSignalsByUserId.set(row.user_id, signals);
+    });
+  };
+
+  addPainRows((wellnessResult.data ?? []) as PainAlertRow[], 'wellness');
+  addPainRows((trainingResult.data ?? []) as PainAlertRow[], 'training');
+
+  const reportedPainAlerts = Array.from(painSignalsByUserId.entries()).flatMap(([userId, signals]) => {
+    const sortedSignals = sortPainSignalsNewestFirst(signals);
+    const latestStatus = getLatestPainStatus(sortedSignals);
+    const latestReport = sortedSignals.find(isPainReported);
+    if (!latestReport) return [];
+
+    const isCurrent = Boolean(latestStatus && isPainReported(latestStatus));
+    return (teamIdsByUserId.get(userId) ?? []).map((teamId) => ({
+      id: `${latestReport.source}-${latestReport.id}-${teamId}`,
+      teamId,
+      playerId: userId,
+      playerName: playerNameByUserId.get(userId) ?? `Player ${userId.slice(0, 8)}`,
+      description: describePainSignal(latestReport),
+      status: 'active' as const,
+      source: latestReport.source,
+      isCurrent,
+      reportedDate: latestReport.date,
+      reportedAgo: formatReportedAgo(latestReport.date),
+      expectedReturn: null,
+      createdAt: latestReport.createdAt || `${latestReport.date}T00:00:00`,
+    }));
+  });
+
+  const alerts = [
+    ...injuryAlerts,
+    ...reportedPainAlerts,
+  ].sort((first, second) => second.createdAt.localeCompare(first.createdAt));
+
+  const queryErrorMessage = queryErrors.length > 0
+    ? 'Some injury signals could not be loaded.'
+    : null;
+
+  return { alerts, error: rpcErrorMessage ?? queryErrorMessage };
 }
 
 export function useCoachTeamPlayerCounts(teamIds: string[]) {
@@ -1151,7 +1035,7 @@ export function useCoachSelectedTeamInsights(teamId: string) {
     const metricsByLabel = new Map(baseCalendarData.averages.map((metric) => [metric.label, metric.value]));
     metricsByLabel.set('Players', String(summaryPlayers));
     metricsByLabel.set('Team Readiness', formatMetricValue(summaryReadiness, '%'));
-    metricsByLabel.set('Acute Training Load', formatMetricValue(summaryLoad));
+    metricsByLabel.set('Average Load', formatMetricValue(summaryLoad));
 
     const orderedLabels = [
       'Players',
@@ -1164,6 +1048,7 @@ export function useCoachSelectedTeamInsights(teamId: string) {
       'Team Sleep Quality',
       'Acute Training Load',
       'Load Score',
+      'Average Load',
       'Average Sleep Time',
       'Average Wake Time',
     ];

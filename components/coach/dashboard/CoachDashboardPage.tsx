@@ -27,6 +27,8 @@ interface TeamCardData {
   name: string;
   code: string;
   players: number | null;
+  readinessPlayers: number;
+  loadPlayers: number;
   averageReadiness: number | null;
   averageLoad: number | null;
   statusBadge: TeamStatusBadge;
@@ -44,6 +46,7 @@ interface DashboardAlert {
   id: string;
   teamName: string;
   message: string;
+  metaItems?: string[];
   toneClass: string;
   sortKey: number;
 }
@@ -104,6 +107,8 @@ export function CoachDashboardPage() {
       players: Object.prototype.hasOwnProperty.call(profileAveragesByTeamId, team.id)
         ? profileAveragesByTeamId[team.id]?.players ?? 0
         : null,
+      readinessPlayers: profileAveragesByTeamId[team.id]?.readinessPlayers ?? 0,
+      loadPlayers: profileAveragesByTeamId[team.id]?.loadPlayers ?? 0,
       averageReadiness: profileAveragesByTeamId[team.id]?.averageReadiness ?? null,
       averageLoad: profileAveragesByTeamId[team.id]?.averageLoad ?? null,
       statusBadge:
@@ -116,19 +121,15 @@ export function CoachDashboardPage() {
   const todaySummary = useMemo(() => {
     const totalPlayers = teamCards.reduce((sum, team) => sum + (team.players ?? 0), 0);
     const hasUnknownPlayerCounts = teamCards.some((team) => team.players === null);
-    const readinessValues = teamCards
-      .map((team) => team.averageReadiness)
-      .filter((value): value is number => value != null && Number.isFinite(value));
-    const loadValues = teamCards
-      .map((team) => team.averageLoad)
-      .filter((value): value is number => value != null && Number.isFinite(value));
+    const readinessPlayers = teamCards.reduce((sum, team) => sum + team.readinessPlayers, 0);
+    const loadPlayers = teamCards.reduce((sum, team) => sum + team.loadPlayers, 0);
     const averageReadiness =
-      readinessValues.length > 0
-        ? readinessValues.reduce((sum, value) => sum + value, 0) / readinessValues.length
+      readinessPlayers > 0
+        ? teamCards.reduce((sum, team) => sum + (team.averageReadiness ?? 0) * team.readinessPlayers, 0) / readinessPlayers
         : null;
     const averageLoad =
-      loadValues.length > 0
-        ? loadValues.reduce((sum, value) => sum + value, 0) / loadValues.length
+      loadPlayers > 0
+        ? teamCards.reduce((sum, team) => sum + (team.averageLoad ?? 0) * team.loadPlayers, 0) / loadPlayers
         : null;
 
     return {
@@ -161,12 +162,27 @@ export function CoachDashboardPage() {
     const alerts: DashboardAlert[] = [];
 
     injuryAlerts.forEach((injuryAlert) => {
-      const statusLabel = injuryAlert.status === 'active' ? 'Active injury' : 'Recovering injury';
+      const statusLabel =
+        injuryAlert.source === 'wellness' || injuryAlert.source === 'training'
+          ? injuryAlert.isCurrent
+            ? injuryAlert.source === 'wellness'
+              ? 'Current morning wellness injury'
+              : 'Current training injury'
+            : injuryAlert.source === 'wellness'
+              ? 'Recent morning wellness injury'
+              : 'Recent training injury'
+            : injuryAlert.status === 'active'
+              ? 'Active injury'
+              : 'Recovering injury';
       alerts.push({
         id: `${injuryAlert.id}-injury`,
         teamName: teamNameById.get(injuryAlert.teamId) ?? 'Unknown Team',
         message: `${statusLabel}: ${injuryAlert.playerName} - ${injuryAlert.description}`,
-        toneClass: injuryAlert.status === 'active' ? 'text-[var(--status-red)]' : 'text-[var(--status-orange)]',
+        metaItems: [
+          injuryAlert.reportedAgo,
+          ...(injuryAlert.isCurrent ? [] : ['latest status is healthy']),
+        ],
+        toneClass: injuryAlert.isCurrent ? 'text-[var(--status-red)]' : 'text-[var(--status-orange)]',
         sortKey: new Date(injuryAlert.createdAt).getTime(),
       });
     });
@@ -186,7 +202,7 @@ export function CoachDashboardPage() {
         alerts.push({
           id: `${team.id}-load`,
           teamName: team.name,
-          message: `High acute load (${Math.round(team.averageLoad)}).`,
+          message: `High seven-day training load (${Math.round(team.averageLoad)}).`,
           toneClass: 'text-[var(--status-orange)]',
           sortKey: Number.MAX_SAFE_INTEGER - 2,
         });
@@ -226,7 +242,7 @@ export function CoachDashboardPage() {
                 Avg readiness {todaySummary.averageReadiness == null ? '--' : `${Math.round(todaySummary.averageReadiness)}%`}
               </span>
               <span className="rounded-full border border-[rgba(var(--metric-load-rgb),0.35)] bg-[rgba(var(--metric-load-rgb),0.12)] px-2.5 py-1 font-medium text-[var(--metric-load)]">
-                Avg load {todaySummary.averageLoad == null ? '--' : Math.round(todaySummary.averageLoad)}
+                Average Load (7 days) {todaySummary.averageLoad == null ? '--' : Math.round(todaySummary.averageLoad)}
               </span>
               <span className="rounded-full border border-[rgba(var(--accent-primary-rgb),0.28)] bg-[rgba(var(--accent-primary-rgb),0.1)] px-2.5 py-1 font-medium text-[var(--accent-primary)]">
                 Selected team: {selectedTeam.name}
@@ -288,7 +304,9 @@ export function CoachDashboardPage() {
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <dt className="text-gray-300">Avg load</dt>
+                    <dt className="text-gray-300" title="Average of each reporting player's total acute training load across the past 7 days.">
+                      Average Load (7 days)
+                    </dt>
                     <dd className="font-semibold text-[var(--metric-load)]">
                       {team.averageLoad == null ? '--' : Math.round(team.averageLoad)}
                     </dd>
@@ -383,7 +401,21 @@ export function CoachDashboardPage() {
                   className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3"
                 >
                   <p className="text-sm font-semibold text-white">{alert.teamName}</p>
-                  <p className={`mt-1 text-xs ${alert.toneClass}`}>{alert.message}</p>
+                  <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <p className={`min-w-0 flex-1 text-xs ${alert.toneClass}`}>{alert.message}</p>
+                    {alert.metaItems && alert.metaItems.length > 0 ? (
+                      <div className="flex shrink-0 flex-wrap gap-1.5 sm:max-w-[45%] sm:justify-end">
+                        {alert.metaItems.map((item) => (
+                          <span
+                            key={item}
+                            className={`rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.04)] px-2 py-0.5 text-[10px] font-semibold ${alert.toneClass}`}
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </article>
               ))}
             </div>

@@ -1,6 +1,8 @@
 import type { TeamAnalyticsDataset } from '@/components/coach/analytics/types';
 import type { TeamCalendarDataset } from '@/components/coach/calendar/types';
 import type { TeamPlayerDataset } from '@/components/coach/players/types';
+import { format } from 'date-fns';
+import { getTeamReadinessForDate } from '@/lib/coach/teamMetrics';
 
 export interface OverviewSummaryStatus {
   label: 'Stable' | 'High Load' | 'Needs Attention';
@@ -25,8 +27,8 @@ export interface OverviewAttentionItem {
   playerName: string;
   issue: string;
   scoreLabel: string;
-  scoreValue: number;
-  statusLabel: 'Needs Attention' | 'Monitor';
+  scoreValue: number | null;
+  statusLabel: 'Injury' | 'Needs Attention' | 'Monitor';
   statusClassName: string;
 }
 
@@ -57,6 +59,7 @@ export interface TeamOverviewData {
 }
 
 const STATUS_CLASS_BY_LABEL: Record<OverviewAttentionItem['statusLabel'], string> = {
+  Injury: 'text-[var(--status-red)] border-[rgba(255,107,107,0.5)] bg-[rgba(255,107,107,0.16)]',
   'Needs Attention': 'text-[var(--status-red)] border-[rgba(255,107,107,0.4)] bg-[rgba(255,107,107,0.12)]',
   Monitor: 'text-[var(--status-yellow)] border-[rgba(255,212,59,0.4)] bg-[rgba(255,212,59,0.12)]',
 };
@@ -119,12 +122,16 @@ function buildAttentionIssue({
   loadScore,
   sleepScore,
   stress,
+  injuryDescription,
+  injuryReportedAgo,
 }: {
   readiness: number;
   fatigue: number;
   loadScore: number;
   sleepScore: number;
   stress: number;
+  injuryDescription?: string;
+  injuryReportedAgo?: string;
 }) {
   const checks = [
     {
@@ -163,6 +170,19 @@ function buildAttentionIssue({
       severity: stress - 56,
     },
   ].filter((check) => check.triggered);
+
+  if (injuryDescription) {
+    const secondaryIssue = checks.sort((a, b) => b.severity - a.severity)[0];
+    const injuryIssue = injuryReportedAgo ? `Injury ${injuryReportedAgo}` : 'Reported injury';
+    return {
+      issue: secondaryIssue ? `${injuryIssue} • ${secondaryIssue.issue}` : injuryIssue,
+      scoreLabel: secondaryIssue?.scoreLabel ?? 'Injury',
+      scoreValue: secondaryIssue ? rounded(secondaryIssue.scoreValue) : null,
+      statusLabel: 'Injury' as const,
+      statusClassName: STATUS_CLASS_BY_LABEL.Injury,
+      severity: 1000,
+    };
+  }
 
   if (checks.length === 0) {
     return null;
@@ -218,14 +238,16 @@ export function buildTeamOverviewData({
   const hasCalendarData = calendarData.items.length > 0 || calendarData.averages.length > 0;
   const hasData = hasAnalyticsData || hasPlayerData || hasCalendarData;
 
-  const latestReadiness = analyticsData.averages.readinessTrend[analyticsData.averages.readinessTrend.length - 1];
+  const todayDateKey = format(new Date(), 'yyyy-MM-dd');
+  const todayReadinessSummary = getTeamReadinessForDate(players, todayDateKey);
+  const latestReadiness = analyticsData.averages.readinessTrend.find((point) => point.date === todayDateKey);
   const latestEnergyFatigueLoad = analyticsData.averages.energyFatigueLoad[analyticsData.averages.energyFatigueLoad.length - 1];
   const latestSleep = analyticsData.averages.sleepQualityAndTiming[analyticsData.averages.sleepQualityAndTiming.length - 1];
   const latestStressSleep = analyticsData.averages.stressVsSleepScore[analyticsData.averages.stressVsSleepScore.length - 1];
   const latestMultiFactor = analyticsData.averages.multiFactorReadiness[analyticsData.averages.multiFactorReadiness.length - 1];
-  const averageLoadMetric = calendarData.averages.find((metric) => metric.label === 'Acute Training Load');
+  const averageLoadMetric = calendarData.averages.find((metric) => metric.label === 'Average Load');
 
-  const averageReadiness = latestReadiness ? rounded(latestReadiness.readinessScore) : null;
+  const averageReadiness = todayReadinessSummary.average == null ? null : rounded(todayReadinessSummary.average);
   const averageLoad = averageLoadMetric
     ? (() => {
         const parsed = parseMetricNumber(averageLoadMetric.value);
@@ -297,17 +319,32 @@ export function buildTeamOverviewData({
 
   const playersNeedingAttention = players
     .map((dataset) => {
-      if (dataset.analytics.readinessTrend.length === 0 || dataset.analytics.energyFatigueLoad.length === 0) {
+      const hasReportedInjury = dataset.injuryStatus.state === 'active' || dataset.injuryStatus.state === 'recovering';
+      const todayReadiness = dataset.analytics.readinessTrend.find((point) => point.date === todayDateKey);
+      const todayEnergyFatigueLoad = dataset.analytics.energyFatigueLoad.find((point) => point.date === todayDateKey);
+      const todaySleep = dataset.analytics.sleepQualityAndTiming.find((point) => point.date === todayDateKey);
+      const todayStress = dataset.analytics.stressVsSleepScore.find((point) => point.date === todayDateKey);
+      const todayMultiFactor = dataset.analytics.multiFactorReadiness.find((point) => point.date === todayDateKey);
+
+      if (!hasReportedInjury && !todayReadiness) {
         return null;
       }
 
-      const readiness = dataset.analytics.readinessTrend[dataset.analytics.readinessTrend.length - 1]?.readinessScore ?? 0;
-      const fatigue = dataset.analytics.energyFatigueLoad[dataset.analytics.energyFatigueLoad.length - 1]?.fatigue ?? 0;
-      const sleepScore = dataset.analytics.sleepQualityAndTiming[dataset.analytics.sleepQualityAndTiming.length - 1]?.sleepScore ?? 0;
-      const stress = dataset.analytics.stressVsSleepScore[dataset.analytics.stressVsSleepScore.length - 1]?.stress ?? 0;
-      const loadScore = dataset.analytics.multiFactorReadiness[dataset.analytics.multiFactorReadiness.length - 1]?.loadScore ?? 0;
+      const readiness = todayReadiness?.readinessScore ?? 100;
+      const fatigue = todayEnergyFatigueLoad?.fatigue ?? 0;
+      const sleepScore = todaySleep?.sleepScore ?? 100;
+      const stress = todayStress?.stress ?? 0;
+      const loadScore = todayMultiFactor?.loadScore ?? 0;
 
-      const issue = buildAttentionIssue({ readiness, fatigue, loadScore, sleepScore, stress });
+      const issue = buildAttentionIssue({
+        readiness,
+        fatigue,
+        loadScore,
+        sleepScore,
+        stress,
+        injuryDescription: hasReportedInjury ? dataset.injuryStatus.description ?? 'Reported injury' : undefined,
+        injuryReportedAgo: hasReportedInjury ? dataset.injuryStatus.reportedAgo : undefined,
+      });
       if (!issue) return null;
 
       return {

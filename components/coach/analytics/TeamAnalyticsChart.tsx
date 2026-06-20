@@ -16,6 +16,7 @@ interface TeamAnalyticsChartProps {
   leftDomain?: [number, number];
   rightDomain?: [number, number];
   footerNote?: string;
+  interactiveLegend?: boolean;
 }
 
 export function TeamAnalyticsChart(props: TeamAnalyticsChartProps) {
