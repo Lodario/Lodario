@@ -20,7 +20,7 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
   const [sessionType, setSessionType] = useState<SessionType>(initialValues?.sessionType || 'Team');
   
   const [duration, setDuration] = useState<string>(
-    initialValues?.duration && initialValues.duration > 0 ? String(initialValues.duration) : '90'
+    initialValues?.duration && initialValues.duration > 0 ? String(initialValues.duration) : ''
   );
   const quickDurations = [30, 45, 60, 90];
 
@@ -39,7 +39,7 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
 
   useEffect(() => {
     setSessionType(initialValues?.sessionType || 'Team');
-    setDuration(initialValues?.duration && initialValues.duration > 0 ? String(initialValues.duration) : '90');
+    setDuration(initialValues?.duration && initialValues.duration > 0 ? String(initialValues.duration) : '');
     setDistance(initialValues?.distance != null ? String(initialValues.distance) : '');
     setIntensity(initialValues?.intensity ?? 7);
     setSprinting(initialValues?.sprinting || 'no');
