@@ -20,6 +20,16 @@ export function WellnessMetricsPanel({ metrics }: WellnessMetricsPanelProps) {
   return (
     <section className="glass-card p-4 sm:p-5">
       <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-300">Wellness Snapshot</h3>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wide text-gray-400">Load Risk</p>
+          <p className="mt-0.5 text-xs font-semibold text-white">{metrics.loadRiskLabel}</p>
+        </div>
+        <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wide text-gray-400">Recommendation</p>
+          <p className="mt-0.5 text-xs font-semibold text-white">{metrics.recommendationLabel ?? 'Not available'}</p>
+        </div>
+      </div>
       <div className="mt-4 space-y-4">
         {metricRows.map((metric) => (
           <div key={metric.label}>

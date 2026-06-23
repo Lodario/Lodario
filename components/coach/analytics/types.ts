@@ -77,6 +77,8 @@ export interface TeamPlayerComparisonPoint {
   sleepScore: number;
   acuteTrainingLoad: number;
   loadScore: number;
+  loadRiskLabel?: string;
+  recommendationLabel?: 'Recovery' | 'Light' | 'Moderate' | 'Intense';
 }
 
 export interface ComparisonMetricDefinition {

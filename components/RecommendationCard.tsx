@@ -1,6 +1,6 @@
 import React from 'react';
 import { RecommendationResult } from '../lib/recommendations';
-import { Target, Activity, Zap } from 'lucide-react';
+import { Target, Activity, Zap, Shield } from 'lucide-react';
 
 interface RecommendationCardProps {
   recommendation: RecommendationResult;
@@ -8,7 +8,7 @@ interface RecommendationCardProps {
 
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
   const getGradient = () => {
-    switch (recommendation.intensity) {
+    switch (recommendation.recommendationLabel) {
       case 'Intense': return 'from-[var(--status-green)] to-[var(--accent-tertiary)]';
       case 'Moderate': return 'from-[var(--status-yellow)] to-amber-500';
       case 'Light': return 'from-[var(--status-orange)] to-orange-600';
@@ -18,11 +18,11 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
   };
 
   const getIcon = () => {
-    switch (recommendation.intensity) {
+    switch (recommendation.recommendationLabel) {
       case 'Intense': return <Zap className="text-white opacity-80" />;
       case 'Moderate': return <Activity className="text-white opacity-80" />;
       case 'Light': return <Target className="text-white opacity-80" />;
-      case 'Recovery': return <span className="text-xl">🛡️</span>;
+      case 'Recovery': return <Shield className="text-white opacity-80" />;
       default: return <Activity className="text-white opacity-80" />;
     }
   };
@@ -35,13 +35,34 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
             {getIcon()}
           </div>
           <h3 className="text-lg font-bold text-white tracking-wide">
-            {recommendation.intensity} Session
+            {recommendation.recommendationLabel} Recommendation
           </h3>
         </div>
-        
+
+        <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
+          <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2.5 py-2">
+            <span className="block text-[10px] uppercase tracking-wider text-gray-400">Readiness</span>
+            <span className="mt-0.5 block font-semibold text-white">{recommendation.score} - {recommendation.readinessZoneLabel}</span>
+          </div>
+          <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2.5 py-2">
+            <span className="block text-[10px] uppercase tracking-wider text-gray-400">Load Risk</span>
+            <span className="mt-0.5 block font-semibold text-white">{recommendation.loadRiskLabel}</span>
+          </div>
+        </div>
+
         <p className="text-sm text-gray-300 leading-relaxed mb-4">
-          {recommendation.message}
+          {recommendation.reason}
         </p>
+
+        {recommendation.limitingFactors.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {recommendation.limitingFactors.map((factor) => (
+              <span key={factor} className="text-xs px-2 py-1 rounded-md bg-[rgba(255,255,255,0.08)] text-gray-200 border border-[rgba(255,255,255,0.08)]">
+                {factor}
+              </span>
+            ))}
+          </div>
+        )}
 
         {recommendation.focusAreas.length > 0 && (
           <div className="mt-2">

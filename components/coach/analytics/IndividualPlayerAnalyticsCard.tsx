@@ -6,7 +6,7 @@ interface IndividualPlayerAnalyticsCardProps {
 }
 
 function getStatus(player: TeamPlayerComparisonPoint, teamAverageLoad: number) {
-  const overloaded = player.acuteTrainingLoad > teamAverageLoad * 1.08 || player.loadScore >= 85;
+  const overloaded = player.acuteTrainingLoad > teamAverageLoad * 1.08 || player.loadRiskLabel === 'Elevated' || player.loadRiskLabel === 'Spike';
   const underRecovered = player.readinessScore < 70 || player.sleepScore < 70 || player.fatigue >= 7;
 
   if (overloaded || underRecovered) {
@@ -60,7 +60,11 @@ export function IndividualPlayerAnalyticsCard({
         </div>
       </div>
 
-      <p className="mt-2 text-[11px] text-gray-400">Acute load {Math.round(player.acuteTrainingLoad)}</p>
+      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-400">
+        <span>Acute load {Math.round(player.acuteTrainingLoad)}</span>
+        {player.loadRiskLabel ? <span>Load risk {player.loadRiskLabel}</span> : null}
+        {player.recommendationLabel ? <span>Recommendation {player.recommendationLabel}</span> : null}
+      </div>
     </article>
   );
 }

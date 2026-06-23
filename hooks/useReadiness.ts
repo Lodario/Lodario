@@ -3,7 +3,6 @@ import { format, isSameDay, parseISO, getDay, isBefore } from 'date-fns';
 import { useData } from '../lib/DataContext';
 import { calculatePlayerReadinessForDate, ReadinessResult } from '../lib/readiness';
 import { generateRecommendation, RecommendationResult } from '../lib/recommendations';
-import { useTrainingLoad } from './useTrainingLoad';
 import { CalendarEvent } from '../lib/types';
 
 export interface ComprehensiveReadiness {
@@ -14,15 +13,15 @@ export interface ComprehensiveReadiness {
 
 export function useReadiness(): ComprehensiveReadiness {
   const { wellnessLogs, trainingLogs, profile, injuries, calendarEvents } = useData();
-  const load = useTrainingLoad();
 
   return useMemo(() => {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const todayLog = wellnessLogs[todayStr];
-    const readinessResult = calculatePlayerReadinessForDate(
+    const readinessForDate = calculatePlayerReadinessForDate(
       Object.values(wellnessLogs),
       trainingLogs
-    ).readiness;
+    );
+    const readinessResult = readinessForDate.readiness;
 
     // Gather today's calendar events (including recurring) that have anticipatedIntensity
     const today = new Date();
@@ -54,10 +53,14 @@ export function useReadiness(): ComprehensiveReadiness {
 
     const recommendationResult = generateRecommendation(
       readinessResult,
-      load,
-      injuries.filter(i => i.status === 'active'),
+      readinessForDate.load,
+      injuries.filter(i => i.status === 'active' || i.status === 'recovering'),
       profile,
-      todaysEvents
+      todaysEvents,
+      {
+        todayWellness: todayLog,
+        recentTrainingLogs: trainingLogs.filter(log => log.date === todayStr),
+      }
     );
 
     return {
@@ -65,5 +68,5 @@ export function useReadiness(): ComprehensiveReadiness {
       recommendation: recommendationResult,
       hasWellnessToday: !!todayLog,
     };
-  }, [wellnessLogs, trainingLogs, load, injuries, profile, calendarEvents]);
+  }, [wellnessLogs, trainingLogs, injuries, profile, calendarEvents]);
 }

@@ -34,6 +34,9 @@ export interface PlayerWellnessMetrics {
   readinessScore: number;
   fatigue: number;
   loadScore: number;
+  loadRisk: 'low' | 'normal' | 'elevated' | 'spike';
+  loadRiskLabel: string;
+  recommendationLabel: 'Recovery' | 'Light' | 'Moderate' | 'Intense' | null;
   acuteTrainingLoad: number;
   sevenDayTrainingLoad: number;
   hasAcuteTrainingData: boolean;
@@ -125,4 +128,13 @@ export interface TeamPlayerDataset {
   trainingNotes: PlayerNoteItem[];
   injuryStatus: PlayerInjuryStatus;
   todaysGuidance: string | null;
+  todaysRecommendation: {
+    score: number;
+    readinessZoneLabel: string;
+    loadRisk: 'low' | 'normal' | 'elevated' | 'spike';
+    loadRiskLabel: string;
+    recommendationLabel: 'Recovery' | 'Light' | 'Moderate' | 'Intense';
+    reason: string;
+    limitingFactors: string[];
+  } | null;
 }
