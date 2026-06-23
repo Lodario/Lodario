@@ -1,7 +1,7 @@
 import { format, getDay, isBefore, parseISO } from 'date-fns';
 import { supabase } from '@/lib/supabase';
 import { calculatePlayerReadinessForDate } from '@/lib/readiness';
-import { generateRecommendation } from '@/lib/recommendations';
+import { generateRecommendation, type RecommendationResult } from '@/lib/recommendations';
 import { analyzeTrainingLoad, calculateSessionLoad } from '@/lib/training-load';
 import {
   describePainSignal,
@@ -554,13 +554,13 @@ function buildTodaysCalendarEventsForRecommendation(rows: CalendarRow[]): Calend
   return events;
 }
 
-function resolveTodaysGuidance(params: {
+function resolveTodaysRecommendation(params: {
   player: CoachPlayer;
   wellnessRows: WellnessRow[];
   trainingRows: TrainingRow[];
   calendarRows: CalendarRow[];
   injuryRows: InjuryRow[];
-}): string | null {
+}): RecommendationResult | null {
   const { player, wellnessRows, trainingRows, calendarRows, injuryRows } = params;
   const todayKey = getLocalDateKey();
   const wellnessLogs = mapWellnessRowsToWellnessLogs(wellnessRows);
@@ -573,25 +573,34 @@ function resolveTodaysGuidance(params: {
 
   const { load, readiness } = calculatePlayerReadinessForDate(wellnessLogs, trainingLogs);
 
-  const activeInjuries = mapInjuryRowsToInjuryRecords(injuryRows).filter((injury) => injury.status === 'active');
+  const activeInjuries = mapInjuryRowsToInjuryRecords(injuryRows).filter(
+    (injury) => injury.status === 'active' || injury.status === 'recovering'
+  );
   const playerProfile: UserProfile = {
     age: player.age > 0 ? player.age : 18,
     positions: [],
     priorities: [],
   };
 
-  const recommendation = generateRecommendation(
+  return generateRecommendation(
     readiness,
     load,
     activeInjuries,
     playerProfile,
-    buildTodaysCalendarEventsForRecommendation(calendarRows)
+    buildTodaysCalendarEventsForRecommendation(calendarRows),
+    {
+      todayWellness: todaysLog,
+      recentTrainingLogs: trainingLogs.filter((log) => log.date === todayKey),
+    }
   );
+}
 
-  if (recommendation.intensity === 'Intense') return 'High-intensity session';
-  if (recommendation.intensity === 'Moderate') return 'Moderate session';
-  if (recommendation.intensity === 'Light') return 'Light session';
-  return 'Recovery session';
+function formatTodaysGuidance(recommendation: RecommendationResult | null): string | null {
+  if (!recommendation) return null;
+  if (recommendation.recommendationLabel === 'Intense') return 'Intense recommendation';
+  if (recommendation.recommendationLabel === 'Moderate') return 'Moderate recommendation';
+  if (recommendation.recommendationLabel === 'Light') return 'Light or modified recommendation';
+  return 'Recovery or modified activity';
 }
 
 function buildDatasetForPlayer(params: {
@@ -656,6 +665,13 @@ function buildDatasetForPlayer(params: {
     };
   });
 
+  const todaysRecommendation = resolveTodaysRecommendation({
+    player,
+    wellnessRows,
+    trainingRows,
+    calendarRows,
+    injuryRows: injuryRows ?? [],
+  });
   const sortedCalendarRows = dedupeCalendarEventsById(calendarRows)
     .sort((a, b) => a.start_time.localeCompare(b.start_time));
 
@@ -665,6 +681,9 @@ function buildDatasetForPlayer(params: {
       readinessScore: analyticsRows.find((row) => row.dateValue === todayKey && row.hasWellness)?.readinessScore ?? 0,
       fatigue: toNumber(todayWellness?.fatigue) * 10,
       loadScore: currentLoad.hasAcuteData ? Math.round(currentLoad.loadScore) : 0,
+      loadRisk: todaysRecommendation?.loadRisk ?? currentLoad.loadRisk,
+      loadRiskLabel: todaysRecommendation?.loadRiskLabel ?? (currentLoad.loadRisk === 'low' ? 'Low' : currentLoad.loadRisk === 'normal' ? 'Normal' : currentLoad.loadRisk === 'elevated' ? 'Elevated' : 'Spike'),
+      recommendationLabel: todaysRecommendation?.recommendationLabel ?? null,
       acuteTrainingLoad: Math.round(currentLoad.acuteLoad),
       sevenDayTrainingLoad: Math.round(currentLoad.sevenDayLoad),
       hasAcuteTrainingData: currentLoad.hasAcuteData,
@@ -745,13 +764,18 @@ function buildDatasetForPlayer(params: {
     wellnessNotes: buildWellnessNotes(wellnessRows),
     trainingNotes: buildTrainingNotes(trainingRows),
     injuryStatus: resolveInjuryStatus(injuryRows, injuryQueryError, wellnessRows, trainingRows),
-    todaysGuidance: resolveTodaysGuidance({
-      player,
-      wellnessRows,
-      trainingRows,
-      calendarRows,
-      injuryRows: injuryRows ?? [],
-    }),
+    todaysGuidance: formatTodaysGuidance(todaysRecommendation),
+    todaysRecommendation: todaysRecommendation
+      ? {
+          score: todaysRecommendation.score,
+          readinessZoneLabel: todaysRecommendation.readinessZoneLabel,
+          loadRisk: todaysRecommendation.loadRisk,
+          loadRiskLabel: todaysRecommendation.loadRiskLabel,
+          recommendationLabel: todaysRecommendation.recommendationLabel,
+          reason: todaysRecommendation.reason,
+          limitingFactors: todaysRecommendation.limitingFactors,
+        }
+      : null,
   };
 }
 

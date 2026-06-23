@@ -2,10 +2,14 @@ import { TrainingLog, WellnessLog } from './types';
 import { analyzeTrainingLoad, LoadResult } from './training-load';
 import { differenceInDays, format, isAfter, parseISO } from 'date-fns';
 
+export type ReadinessZone = 'very_ready' | 'ready' | 'okay' | 'low_moderate' | 'poor';
+
 export interface ReadinessResult {
   score: number;
   color: string;
   label: string;
+  zone: ReadinessZone | 'no_data';
+  zoneLabel: string;
   breakdown: {
     sleep: number;
     energy: number;
@@ -21,6 +25,31 @@ export interface PlayerReadinessForDateResult {
   load: LoadResult;
 }
 
+export function getReadinessZone(score: number): ReadinessZone {
+  if (score >= 80) return 'very_ready';
+  if (score >= 67) return 'ready';
+  if (score >= 50) return 'okay';
+  if (score >= 35) return 'low_moderate';
+  return 'poor';
+}
+
+export function getReadinessZoneLabel(zone: ReadinessZone | 'no_data'): string {
+  switch (zone) {
+    case 'very_ready':
+      return 'Very ready';
+    case 'ready':
+      return 'Ready';
+    case 'okay':
+      return 'Okay';
+    case 'low_moderate':
+      return 'Low-moderate';
+    case 'poor':
+      return 'Poor';
+    case 'no_data':
+      return 'No Data';
+  }
+}
+
 export function calculateReadiness(
   todayLog: WellnessLog | undefined,
   historicalLogs: WellnessLog[],
@@ -34,6 +63,8 @@ export function calculateReadiness(
       score: 0,
       color: '#adb5bd',
       label: 'No Data',
+      zone: 'no_data',
+      zoneLabel: 'No Data',
       breakdown: { sleep: 0, energy: 0, fatigue: 0, stress: 0, load: 0 },
       loadStage: 'none',
     };
@@ -168,24 +199,24 @@ export function calculateReadiness(
 
   finalScore = Math.max(0, Math.min(100, finalScore));
 
+  const zone = getReadinessZone(finalScore);
+  const zoneLabel = getReadinessZoneLabel(zone);
   let color = '#ff6b6b'; // red
-  let label = 'Low Readiness';
 
-  if (finalScore >= 75) {
+  if (zone === 'very_ready' || zone === 'ready') {
     color = '#22c55e'; // green
-    label = 'Optimal';
-  } else if (finalScore >= 50) {
+  } else if (zone === 'okay') {
     color = '#ffd43b'; // yellow
-    label = 'Moderate';
-  } else if (finalScore >= 35) {
+  } else if (zone === 'low_moderate') {
     color = '#ff922b'; // orange
-    label = 'Caution';
   }
 
   return {
     score: finalScore,
     color,
-    label,
+    label: zoneLabel,
+    zone,
+    zoneLabel,
     breakdown: {
       sleep: Math.round(sleepQuantityScore * 0.5 + sleepQualityScore * 0.5),
       energy: Math.round(energyScore),

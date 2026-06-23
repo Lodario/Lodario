@@ -81,12 +81,14 @@ function getSummaryStatus({
   fatigue,
   stress,
   loadScore,
+  hasElevatedLoad,
   hasData,
 }: {
   averageReadiness: number | null;
   fatigue: number;
   stress: number;
   loadScore: number;
+  hasElevatedLoad: boolean;
   hasData: boolean;
 }): OverviewSummaryStatus {
   if (!hasData) {
@@ -103,7 +105,7 @@ function getSummaryStatus({
     };
   }
 
-  if (loadScore >= 84 || fatigue >= 6.5) {
+  if (hasElevatedLoad || loadScore < 70 || fatigue >= 6.5) {
     return {
       label: 'High Load',
       className: 'text-[var(--status-orange)] border-[rgba(255,146,43,0.4)] bg-[rgba(255,146,43,0.12)]',
@@ -120,6 +122,7 @@ function buildAttentionIssue({
   readiness,
   fatigue,
   loadScore,
+  loadRiskLabel,
   sleepScore,
   stress,
   injuryDescription,
@@ -128,6 +131,7 @@ function buildAttentionIssue({
   readiness: number;
   fatigue: number;
   loadScore: number;
+  loadRiskLabel?: string;
   sleepScore: number;
   stress: number;
   injuryDescription?: string;
@@ -149,11 +153,11 @@ function buildAttentionIssue({
       severity: (fatigue - 7) * 10,
     },
     {
-      issue: 'High load',
+      issue: loadRiskLabel === 'Spike' ? 'Load spike' : 'Elevated load',
       scoreLabel: 'Load score',
       scoreValue: loadScore,
-      triggered: loadScore >= 82,
-      severity: loadScore - 82,
+      triggered: loadRiskLabel === 'Elevated' || loadRiskLabel === 'Spike',
+      severity: loadRiskLabel === 'Spike' ? 24 : 14,
     },
     {
       issue: 'Poor sleep',
@@ -257,12 +261,14 @@ export function buildTeamOverviewData({
       ? rounded(latestEnergyFatigueLoad.acuteTrainingLoad)
       : null;
   const hasSignalData = Boolean(latestReadiness || latestEnergyFatigueLoad || latestSleep || latestStressSleep || latestMultiFactor);
+  const hasElevatedLoad = players.some((dataset) => dataset.wellness.loadRisk === 'elevated' || dataset.wellness.loadRisk === 'spike');
 
   const summaryStatus = getSummaryStatus({
     averageReadiness,
     fatigue: latestEnergyFatigueLoad?.fatigue ?? 0,
     stress: latestStressSleep?.stress ?? 0,
     loadScore: latestMultiFactor?.loadScore ?? 0,
+    hasElevatedLoad,
     hasData: hasData && hasSignalData,
   });
 
@@ -340,6 +346,7 @@ export function buildTeamOverviewData({
         readiness,
         fatigue,
         loadScore,
+        loadRiskLabel: dataset.wellness.loadRiskLabel,
         sleepScore,
         stress,
         injuryDescription: hasReportedInjury ? dataset.injuryStatus.description ?? 'Reported injury' : undefined,

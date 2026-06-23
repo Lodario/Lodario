@@ -15,7 +15,10 @@ export interface LoadResult {
   hasAutoInjury: boolean;
   hasAcuteData: boolean;   // true when there are sessions in the last 7 days
   hasChronicData: boolean; // true when there are sessions spanning enough of the 28-day window
+  loadRisk: LoadRisk;
 }
+
+export type LoadRisk = 'low' | 'normal' | 'elevated' | 'spike';
 
 const SESSION_TYPE_MULTIPLIER: Record<SessionType, number> = {
   Match: 1.3,
@@ -81,6 +84,32 @@ function standardDeviation(values: number[]): number {
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
   const variance = values.reduce((sum, value) => sum + Math.pow(value - mean, 2), 0) / values.length;
   return Math.sqrt(variance);
+}
+
+export function classifyLoadRisk(load: Omit<LoadResult, 'loadRisk'>): LoadRisk {
+  if (!load.hasAcuteData) return 'low';
+
+  if (
+    load.isSpike ||
+    load.acuteChronicRatio > 1.5 ||
+    load.loadScore <= 45 ||
+    (load.sustainedFatigue && load.acuteChronicRatio > 1.35)
+  ) {
+    return 'spike';
+  }
+
+  if (load.isLowWorkload) return 'low';
+
+  if (
+    load.acuteChronicRatio > 1.25 ||
+    load.loadScore < 70 ||
+    load.monotony > 2 ||
+    load.sustainedFatigue
+  ) {
+    return 'elevated';
+  }
+
+  return 'normal';
 }
 
 export function analyzeTrainingLoad(
@@ -202,7 +231,7 @@ export function analyzeTrainingLoad(
   // Chronic data: need sessions beyond the 7-day window to form a meaningful 28-day baseline
   const hasChronicData = hasAcuteData && numSessionsBeyond7 > 0;
 
-  return {
+  const resultWithoutRisk = {
     acuteLoad,
     sevenDayLoad: weeklyLoad,
     chronicLoad,
@@ -216,5 +245,10 @@ export function analyzeTrainingLoad(
     hasAutoInjury,
     hasAcuteData,
     hasChronicData,
+  };
+
+  return {
+    ...resultWithoutRisk,
+    loadRisk: classifyLoadRisk(resultWithoutRisk),
   };
 }

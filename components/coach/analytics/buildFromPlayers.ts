@@ -155,6 +155,7 @@ function buildTeamAverageSeries(players: TeamPlayerDataset[]) {
 }
 
 function buildIndividualsByLabel(players: TeamPlayerDataset[], datePoints: DateLabelPoint[]) {
+  const todayKey = format(new Date(), 'yyyy-MM-dd');
   const readinessByPlayer = players.map((player) => new Map(player.analytics.readinessTrend.map((point) => [point.date, point])));
   const energyFatigueLoadByPlayer = players.map((player) => new Map(player.analytics.energyFatigueLoad.map((point) => [point.date, point])));
   const sleepByPlayer = players.map((player) => new Map(player.analytics.sleepQualityAndTiming.map((point) => [point.date, point])));
@@ -187,6 +188,8 @@ function buildIndividualsByLabel(players: TeamPlayerDataset[], datePoints: DateL
         sleepScore: clamp(roundTo(sleepScore, 0), 0, 100),
         acuteTrainingLoad: roundTo(acuteTrainingLoad, 0),
         loadScore: clamp(roundTo(loadScore, 0), 0, 100),
+        loadRiskLabel: point.date === todayKey ? dataset.todaysRecommendation?.loadRiskLabel : undefined,
+        recommendationLabel: point.date === todayKey ? dataset.todaysRecommendation?.recommendationLabel : undefined,
       }];
     });
     return accumulator;

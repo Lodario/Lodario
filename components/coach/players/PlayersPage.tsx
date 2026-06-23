@@ -44,9 +44,11 @@ function NotesSection({
 function InjuryStatusCard({
   injuryStatus,
   todaysGuidance,
+  todaysRecommendation,
 }: {
   injuryStatus: PlayerInjuryStatus;
   todaysGuidance: string | null;
+  todaysRecommendation: TeamPlayerDataset['todaysRecommendation'];
 }) {
   const label =
     injuryStatus.state === 'active'
@@ -86,6 +88,16 @@ function InjuryStatusCard({
       <p className="mt-2 text-[11px] text-gray-300">
         Today&apos;s guidance: {todaysGuidance ?? 'Not available'}
       </p>
+      {todaysRecommendation ? (
+        <div className="mt-2 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-3 py-2">
+          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-300">
+            <span>Readiness: {todaysRecommendation.score}</span>
+            <span>Load Risk: {todaysRecommendation.loadRiskLabel}</span>
+            <span>Recommendation: {todaysRecommendation.recommendationLabel}</span>
+          </div>
+          <p className="mt-1.5 text-xs leading-relaxed text-gray-300">{todaysRecommendation.reason}</p>
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -342,6 +354,7 @@ export function PlayersPage() {
             <InjuryStatusCard
               injuryStatus={selectedPlayerDataset.injuryStatus}
               todaysGuidance={selectedPlayerDataset.todaysGuidance}
+              todaysRecommendation={selectedPlayerDataset.todaysRecommendation}
             />
           ) : null}
           {viewMode === 'calendar' ? <WellnessMetricsPanel metrics={selectedPlayerDataset.wellness} /> : null}
