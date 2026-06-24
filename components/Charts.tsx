@@ -140,7 +140,7 @@ function NoData() {
   return (
     <div className="h-64 w-full glass-card p-4 flex items-center justify-center flex-col">
       <p className="text-gray-500 font-medium">Not enough data</p>
-      <p className="text-xs text-gray-600 mt-1">Log wellness and training to view charts</p>
+      <p className="text-xs text-gray-600 mt-1 text-center">Trends appear after you log wellness and training for a few days.</p>
     </div>
   );
 }

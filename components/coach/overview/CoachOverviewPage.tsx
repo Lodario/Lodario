@@ -100,7 +100,7 @@ export function CoachOverviewPage() {
       <div className="mx-auto w-full max-w-7xl space-y-6">
         <header className="glass-card p-5 sm:p-6">
           <h1 className="text-2xl font-bold tracking-tight text-white">Overview</h1>
-          <p className="mt-2 text-sm text-gray-400">Create or select a team first to view overview data.</p>
+          <p className="mt-2 text-sm text-gray-400">Create or select a team first. Overview data appears after players join and start logging.</p>
         </header>
       </div>
     );
@@ -144,7 +144,12 @@ export function CoachOverviewPage() {
       <section>
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">Key Team Metrics</h2>
         {overviewData.keyMetrics.length === 0 ? (
-          <div className="mt-3 glass-card p-4 text-sm text-gray-300">No team metrics available yet.</div>
+          <div className="mt-3 glass-card p-4 text-sm text-gray-300">
+            <p>No team metrics available yet.</p>
+            <p className="mt-2 text-xs text-gray-500">
+              Metrics appear once players log wellness and training. Wellness averages only include players who checked in.
+            </p>
+          </div>
         ) : (
           <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
             {overviewData.keyMetrics.map((metric) => (
@@ -176,6 +181,9 @@ export function CoachOverviewPage() {
           {overviewData.playersNeedingAttention.length === 0 ? (
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-5">
               <p className="text-sm text-gray-300">No players are currently flagged.</p>
+              <p className="mt-2 text-xs text-gray-500">
+                Flags appear when player logs show low readiness, high fatigue, elevated load, poor sleep, stress, or injury signals.
+              </p>
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -234,6 +242,7 @@ export function CoachOverviewPage() {
           {overviewData.upcomingActivities.length === 0 ? (
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-5">
               <p className="text-sm text-gray-300">No upcoming activities yet.</p>
+              <p className="mt-2 text-xs text-gray-500">Add team training, games, gym blocks, or tasks from the calendar.</p>
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -268,7 +277,10 @@ export function CoachOverviewPage() {
       <section>
         <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">Recent Trends</h2>
         {overviewData.trends.length === 0 ? (
-          <div className="mt-3 glass-card p-4 text-sm text-gray-300">No trend data available yet.</div>
+          <div className="mt-3 glass-card p-4 text-sm text-gray-300">
+            <p>No trend data available yet.</p>
+            <p className="mt-2 text-xs text-gray-500">Trends build after several days of player wellness and training logs.</p>
+          </div>
         ) : (
           <div className="mt-3 grid grid-cols-1 gap-3 lg:grid-cols-3">
             {overviewData.trends.map((trend) => (

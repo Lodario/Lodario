@@ -224,7 +224,7 @@ export function CoachDashboardPage() {
             <p className="mt-2 text-sm text-gray-400">
               {todaySummary.totalTeams > 0
                 ? (todaySummary.averageReadiness == null && todaySummary.averageLoad == null
-                    ? 'No readiness or load logs have been recorded for your teams yet.'
+                    ? 'No readiness or load logs have been recorded for your teams yet. Invite players and ask them to start logging.'
                     : 'Team readiness and load metrics are connected from real player logs.')
                 : 'Create your first team to start your coach workspace.'}
             </p>
@@ -270,7 +270,10 @@ export function CoachDashboardPage() {
         </div>
 
         {teamCards.length === 0 ? (
-          <div className="glass-card p-4 text-sm text-gray-300">No teams available yet.</div>
+          <div className="glass-card p-4 text-sm text-gray-300">
+            <p>No teams available yet.</p>
+            <p className="mt-2 text-xs text-gray-500">Create a team from Teams, then share its invite code with players.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
             {teamCards.map((team) => (
@@ -353,7 +356,7 @@ export function CoachDashboardPage() {
 
           {upcomingActivities.length === 0 ? (
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3 text-sm text-gray-300">
-              No upcoming activities yet.
+              No upcoming activities yet. Add team events or tasks from Calendar.
             </div>
           ) : (
             <div className="space-y-2.5">

@@ -151,7 +151,10 @@ export function CoachTeamsFoundation() {
         <section className="glass-card border-[rgba(255,255,255,0.16)] p-6 text-center sm:p-8">
           <h2 className="text-lg font-semibold text-white">No teams yet</h2>
           <p className="mt-2 text-sm text-gray-400">
-            Create your first team above to start managing players, analytics, and calendar planning.
+            Create your first team above. Lodario will generate an invite code you can share with players.
+          </p>
+          <p className="mt-2 text-xs text-gray-500">
+            Once players join and start logging, team averages, readiness, load, and calendars will appear.
           </p>
         </section>
       ) : (

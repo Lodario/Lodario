@@ -275,7 +275,7 @@ export function PlayersPage() {
       <div className="mx-auto w-full max-w-6xl">
         <header className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight text-white">Players</h1>
-          <p className="mt-2 text-sm text-gray-400">Create or select a team first to view players.</p>
+          <p className="mt-2 text-sm text-gray-400">Create or select a team first, then share its invite code with players.</p>
         </header>
       </div>
     );
@@ -308,7 +308,10 @@ export function PlayersPage() {
       <div className="mx-auto w-full max-w-6xl">
         <header className="mb-6">
           <h1 className="text-2xl font-bold tracking-tight text-white">Players</h1>
-          <p className="mt-2 text-sm text-gray-400">No joined players are in {selectedTeam.name} yet.</p>
+          <p className="mt-2 text-sm text-gray-400">No players have joined {selectedTeam.name} yet.</p>
+          <p className="mt-2 text-xs text-gray-500">
+            Share the team invite code from Teams. Player wellness, training, and calendar data appears after they join and start logging.
+          </p>
         </header>
       </div>
     );

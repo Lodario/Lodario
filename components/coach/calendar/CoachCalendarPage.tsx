@@ -427,7 +427,7 @@ export function CoachCalendarPage() {
       <div className="mx-auto w-full max-w-7xl space-y-6">
         <header>
           <h1 className="text-2xl font-bold tracking-tight text-white">Calendar</h1>
-          <p className="mt-2 text-sm text-gray-400">Create or select a team first to view team calendar data.</p>
+          <p className="mt-2 text-sm text-gray-400">Create or select a team first, then schedule team events or invite players.</p>
         </header>
       </div>
     );
@@ -441,7 +441,11 @@ export function CoachCalendarPage() {
         <p className="mt-3 text-xs font-medium text-[var(--accent-secondary)]">Selected team: {selectedTeam.name}</p>
         {isLoading ? <p className="mt-2 text-xs text-gray-400">Loading team calendar data...</p> : null}
         {error ? <p className="mt-2 text-xs text-[var(--status-red)]">Unable to load calendar data: {error}</p> : null}
-        {!isLoading && !error && !hasCalendarData ? <p className="mt-2 text-xs text-gray-400">No team calendar data yet.</p> : null}
+        {!isLoading && !error && !hasCalendarData ? (
+          <p className="mt-2 text-xs text-gray-400">
+            No team calendar data yet. Add training, games, tasks, or gym blocks once players have joined.
+          </p>
+        ) : null}
       </header>
 
       <div className="grid gap-4 xl:grid-cols-[250px_minmax(0,1fr)_340px] xl:items-stretch">

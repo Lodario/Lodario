@@ -101,6 +101,7 @@ function computeOverlapGroups(events: RenderedEvent[], maxCols: number): Map<str
 
 export default function CalendarPage() {
   const router = useRouter();
+  const { calendarEvents } = useData();
   const [view, setView] = useState<'Day' | 'Week'>('Week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showEventModal, setShowEventModal] = useState(false);
@@ -225,6 +226,15 @@ export default function CalendarPage() {
           <ChevronRight size={20} />
         </button>
       </div>
+
+      {calendarEvents.length === 0 ? (
+        <div className="mb-4 glass-card border-dashed border-[rgba(255,255,255,0.18)] p-4 text-sm text-gray-300">
+          <p className="font-medium text-white">Your calendar is empty.</p>
+          <p className="mt-1 text-xs leading-relaxed text-gray-400">
+            Add training, matches, gym, school, and recovery blocks so your week and guidance have more context.
+          </p>
+        </div>
+      ) : null}
 
       {/* Main View Area */}
       <div className="flex-1 min-h-[400px]">

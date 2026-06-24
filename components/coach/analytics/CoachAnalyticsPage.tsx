@@ -250,7 +250,7 @@ export function CoachAnalyticsPage() {
       <div className="mx-auto w-full max-w-7xl space-y-6">
         <header>
           <h1 className="text-2xl font-bold tracking-tight text-white">Analytics</h1>
-          <p className="mt-2 text-sm text-gray-400">Create or select a team first to view analytics.</p>
+          <p className="mt-2 text-sm text-gray-400">Create or select a team first. Analytics appear once players join and log wellness or training.</p>
         </header>
       </div>
     );
@@ -285,7 +285,12 @@ export function CoachAnalyticsPage() {
             averages={teamAnalytics.averages}
           />
         ) : (
-          <section className="glass-card p-6 text-sm text-gray-300">No analytics data available for this team yet.</section>
+          <section className="glass-card p-6 text-sm text-gray-300">
+            <p>No analytics data available for this team yet.</p>
+            <p className="mt-2 text-xs text-gray-500">
+              Team trends appear after players log wellness and training. Wellness averages only include players who logged for that day.
+            </p>
+          </section>
         )
       ) : isLoading ? (
         <section className="glass-card p-6 text-sm text-gray-300">Loading individual player analytics...</section>
@@ -298,7 +303,12 @@ export function CoachAnalyticsPage() {
           teamAverageLoad={teamAverageLoadForSelectedDay}
         />
       ) : (
-        <section className="glass-card p-6 text-sm text-gray-300">No individual player data available for this team yet.</section>
+        <section className="glass-card p-6 text-sm text-gray-300">
+          <p>No individual player data available for this team yet.</p>
+          <p className="mt-2 text-xs text-gray-500">
+            Ask players to complete daily wellness and log sessions so comparison cards can populate.
+          </p>
+        </section>
       )}
     </div>
   );

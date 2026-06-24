@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { AlertTriangle, Bell, Eye, Lock, Settings2, Shield, Users } from 'lucide-react';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
 import { useAuth } from '@/lib/AuthContext';
+import { FeedbackButton } from '@/components/FeedbackModal';
 
 interface ToggleRowProps {
   label: string;
@@ -149,6 +150,11 @@ export function CoachSettingsPage() {
           </div>
         </div>
         <p className="mt-3 text-xs text-gray-400">To edit your name or email, open the Profile page and save your updates.</p>
+        <FeedbackButton
+          contextLabel="Coach Settings"
+          iconSize={14}
+          className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.1)] px-3 py-2 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:bg-[rgba(var(--accent-secondary-rgb),0.16)]"
+        />
       </section>
 
       <div className="grid gap-4 xl:grid-cols-2">

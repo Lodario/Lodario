@@ -5,6 +5,7 @@ import { ProfileForm } from '@/components/ProfileForm';
 import { InjuryTracker } from '@/components/InjuryTracker';
 import { WeeklyAvailabilityGrid } from '@/components/WeeklyAvailabilityGrid';
 import { TrainingResourcePicker } from '@/components/TrainingResourcePicker';
+import { FeedbackButton } from '@/components/FeedbackModal';
 import { useData } from '@/lib/DataContext';
 import { useAuth } from '@/lib/AuthContext';
 import { LogOut, Mail, Save, ChevronDown } from 'lucide-react';
@@ -55,7 +56,7 @@ export default function ProfilePage() {
       {!profile && (
         <div className="mt-4 mb-2 p-4 bg-[rgba(255,255,255,0.05)] rounded-2xl border border-[rgba(255,255,255,0.2)]">
           <p className="text-sm text-gray-300">
-            Welcome to Lodario! Let&apos;s set up your profile so the AI guide can properly contextualize your training load and development.
+            Welcome to Lodario! Set up your profile so guidance can better reflect your training load and development.
           </p>
         </div>
       )}
@@ -152,6 +153,11 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+
+          <FeedbackButton
+            contextLabel="Player Profile"
+            className="mb-3 flex w-full items-center justify-center space-x-2 rounded-xl border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.1)] py-3 text-sm font-bold text-[var(--accent-secondary)] transition-colors hover:bg-[rgba(var(--accent-secondary-rgb),0.16)] touch-target"
+          />
 
           <button
             id="sign-out-button"

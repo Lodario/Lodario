@@ -17,7 +17,9 @@ export function TeamAveragesPanel({ metrics, graphNumber = 6, className }: TeamA
       </div>
 
       {metrics.length === 0 ? (
-        <p className="text-sm text-gray-400">No team averages available yet.</p>
+        <p className="text-sm text-gray-400">
+          No team averages yet. Wellness metrics reflect players who logged; training load appears once sessions are recorded.
+        </p>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2 xl:grid-flow-col xl:grid-rows-3 xl:auto-cols-fr">
           {metrics.map((metric) => (

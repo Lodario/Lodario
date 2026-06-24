@@ -233,6 +233,11 @@ export function ProfileForm() {
         <label className="block text-xs font-medium text-gray-400 mb-2">
           Team / Coach Code <span className="text-gray-600">(optional)</span>
         </label>
+        {!profile?.teamCode ? (
+          <p className="mb-2 text-[11px] leading-relaxed text-gray-500">
+            If your coach created a team, ask for the invite code and join here. Your coach will then see your logged wellness, training, and calendar activity for that team.
+          </p>
+        ) : null}
         <div className="space-y-2">
           <div className="flex gap-2">
             <input

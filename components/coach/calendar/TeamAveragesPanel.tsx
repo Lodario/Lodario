@@ -10,7 +10,9 @@ export function TeamAveragesPanel({ metrics, className }: TeamAveragesPanelProps
     <section className={`glass-card flex min-h-0 flex-col p-4 sm:p-5 ${className ?? ''}`}>
       <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-300">Team Averages</h2>
       {metrics.length === 0 ? (
-        <p className="mt-4 text-sm text-gray-400">No team averages available yet.</p>
+        <p className="mt-4 text-sm text-gray-400">
+          No team averages yet. Wellness averages appear when players check in; load averages appear once sessions are logged.
+        </p>
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
           {metrics.map((metric) => (

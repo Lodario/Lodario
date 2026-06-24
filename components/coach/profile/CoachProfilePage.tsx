@@ -157,7 +157,9 @@ export function CoachProfilePage() {
           <section className="glass-card p-5">
             <h3 className="text-sm font-semibold text-white">Connected Teams</h3>
             {teams.length === 0 ? (
-              <p className="mt-3 text-xs text-gray-400">No teams connected yet.</p>
+              <p className="mt-3 text-xs text-gray-400">
+                No teams connected yet. Create a team from Teams, then share the invite code with players.
+              </p>
             ) : (
               <div className="mt-3 space-y-2.5">
                 {teams.map((team) => (

@@ -91,7 +91,10 @@ export default function Home() {
               <AlertTriangle size={24} className="text-[var(--status-yellow)]" />
             </div>
             <p className="text-sm text-gray-200 font-medium leading-relaxed">
-              Complete today&apos;s Daily Wellness check-in to receive an accurate training recommendation.
+              Complete today&apos;s Daily Wellness check-in to unlock guidance for training intensity.
+            </p>
+            <p className="mt-2 text-xs text-gray-400 leading-relaxed">
+              Readiness becomes more useful after a few days of wellness and training logs.
             </p>
             <Link href="/log" className="mt-3 text-xs font-bold text-[var(--accent-primary)] hover:underline">
               Go to Log Activity &rarr;
@@ -113,6 +116,9 @@ export default function Home() {
           <div className="glass-card p-6 flex flex-col items-center justify-center text-gray-400 border-dashed border-[rgba(255,255,255,0.2)]">
             <CalendarIcon size={32} className="mb-2 opacity-50" />
             <p className="text-sm">No events scheduled today</p>
+            <p className="mt-1 text-center text-xs text-gray-500">
+              Add training, matches, gym, school, or recovery work to organize your week.
+            </p>
           </div>
         ) : (
           <div className="space-y-3">
