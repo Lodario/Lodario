@@ -304,7 +304,7 @@ export function CoachDashboardPage() {
                     </dd>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <dt className="text-gray-300" title="Average of each reporting player's total acute training load across the past 7 days.">
+                    <dt className="text-gray-300" title="Total seven-day training load divided by all players on the team.">
                       Average Load (7 days)
                     </dt>
                     <dd className="font-semibold text-[var(--metric-load)]">

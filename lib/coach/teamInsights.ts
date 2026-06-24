@@ -16,7 +16,7 @@ import {
   parseRecurrenceConfig,
 } from '@/lib/calendar/events';
 import { supabase } from '@/lib/supabase';
-import { getTeamReadinessForDate } from '@/lib/coach/teamMetrics';
+import { getTeamReadinessForDate, getTeamTrainingAverage } from '@/lib/coach/teamMetrics';
 import {
   describePainSignal,
   formatReportedAgo,
@@ -294,21 +294,17 @@ function buildCalendarAverages(players: TeamPlayerDataset[]): TeamCalendarDatase
   const sleepHours = wellnessSnapshots.map((snapshot) => snapshot.sleepHours).filter((value) => value > 0);
   const sleepQuality = wellnessSnapshots.map((snapshot) => snapshot.sleepQualityScore).filter((value) => value > 0);
   const stress = wellnessSnapshots.map((snapshot) => snapshot.stress).filter((value) => value > 0);
-  const loadScore = players
-    .filter((dataset) => dataset.wellness.hasAcuteTrainingData)
-    .map((dataset) => dataset.wellness.loadScore);
+  const loadScore = getTeamTrainingAverage(players, (dataset) =>
+    dataset.wellness.hasAcuteTrainingData ? dataset.wellness.loadScore : 0
+  );
   const sleepTimes = wellnessSnapshots
     .map((snapshot) => hhmmToMinutes(snapshot.bedTime))
     .filter((value): value is number => value != null);
   const wakeTimes = wellnessSnapshots
     .map((snapshot) => hhmmToMinutes(snapshot.wakeTime))
     .filter((value): value is number => value != null);
-  const load = players
-    .map((dataset) => getCurrentTrainingLoad(dataset))
-    .filter((value): value is number => value != null && Number.isFinite(value));
-  const sevenDayLoad = players
-    .filter((dataset) => dataset.wellness.hasAcuteTrainingData)
-    .map((dataset) => dataset.wellness.sevenDayTrainingLoad);
+  const load = getTeamTrainingAverage(players, getCurrentTrainingLoad);
+  const sevenDayLoad = getTeamTrainingAverage(players, (dataset) => dataset.wellness.sevenDayTrainingLoad);
 
   const meanSleepTime = minutesToHHmm(averageOrNull(sleepTimes));
   const meanWakeTime = minutesToHHmm(averageOrNull(wakeTimes));
@@ -325,9 +321,9 @@ function buildCalendarAverages(players: TeamPlayerDataset[]): TeamCalendarDatase
       value: averageOrNull(sleepHours) == null ? '--' : `${formatDecimal(averageOrNull(sleepHours), 1)} h`,
     },
     { label: 'Team Sleep Quality', value: formatMetricValue(averageOrNull(sleepQuality)) },
-    { label: 'Acute Training Load', value: formatMetricValue(averageOrNull(load)) },
-    { label: 'Load Score', value: formatMetricValue(averageOrNull(loadScore)) },
-    { label: 'Average Load', value: formatMetricValue(averageOrNull(sevenDayLoad)) },
+    { label: 'Acute Training Load', value: formatMetricValue(load) },
+    { label: 'Load Score', value: formatMetricValue(loadScore) },
+    { label: 'Average Load', value: formatMetricValue(sevenDayLoad) },
     { label: 'Average Sleep Time', value: meanSleepTime ?? '--' },
     { label: 'Average Wake Time', value: meanWakeTime ?? '--' },
   ];
@@ -486,9 +482,7 @@ export async function loadTeamProfileAveragesByTeamIds(teamIds: string[]): Promi
     }
 
     const readinessSummary = getTeamReadinessForDate(result.data, todayDateKey);
-    const sevenDayLoads = result.data
-      .filter((dataset) => dataset.wellness.hasAcuteTrainingData)
-      .map((dataset) => dataset.wellness.sevenDayTrainingLoad);
+    const averageSevenDayLoad = getTeamTrainingAverage(result.data, (dataset) => dataset.wellness.sevenDayTrainingLoad);
     const ages = result.data.map((dataset) => dataset.player.age).filter((value) => value > 0);
     const heights = result.data.map((dataset) => dataset.player.heightCm).filter((value) => value > 0);
     const weights = result.data.map((dataset) => dataset.player.weightKg).filter((value) => value > 0);
@@ -497,12 +491,12 @@ export async function loadTeamProfileAveragesByTeamIds(teamIds: string[]): Promi
     averagesByTeamId[teamId] = {
       players: result.data.length,
       readinessPlayers: readinessSummary.reportingPlayers,
-      loadPlayers: sevenDayLoads.length,
+      loadPlayers: result.data.length,
       averageAge: averageOrNull(ages),
       averageHeightCm: averageOrNull(heights),
       averageWeightKg: averageOrNull(weights),
       averageReadiness: readinessSummary.average,
-      averageLoad: averageOrNull(sevenDayLoads),
+      averageLoad: averageSevenDayLoad,
       positions: Array.from(positions).sort((first, second) => first.localeCompare(second)),
     };
   }

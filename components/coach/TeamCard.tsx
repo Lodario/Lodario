@@ -189,7 +189,7 @@ export function TeamCard({ team, averages, selected, onSelect, onUpdateTeam, onD
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3 text-sm">
-          <dt className="text-gray-300" title="Average of each reporting player's total acute training load across the past 7 days.">
+          <dt className="text-gray-300" title="Total seven-day training load divided by all players on the team.">
             Average Load (7 days)
           </dt>
           <dd className="rounded-md border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.12)] px-2 py-0.5 text-xs font-semibold text-[var(--accent-secondary)]">

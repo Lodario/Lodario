@@ -15,7 +15,16 @@ interface RootAppShellProps {
 
 export function RootAppShell({ children }: RootAppShellProps) {
   const pathname = usePathname();
+  const publicRoute = pathname === '/beta';
   const coachRoute = isCoachRoute(pathname);
+
+  if (publicRoute) {
+    return (
+      <div className="min-h-screen bg-[var(--background)]">
+        {children}
+      </div>
+    );
+  }
 
   if (coachRoute) {
     return (

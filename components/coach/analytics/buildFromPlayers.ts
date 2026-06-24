@@ -1,6 +1,10 @@
 import { format } from 'date-fns';
 import type { TeamPlayerDataset } from '@/components/coach/players/types';
-import { getTeamReadinessForDate } from '@/lib/coach/teamMetrics';
+import {
+  getTeamReadinessForDate,
+  getTeamTrainingAverageForDate,
+  getTeamTrainingLoadForDate,
+} from '@/lib/coach/teamMetrics';
 import {
   analyticsLegendItems,
   type TeamAnalyticsDataset,
@@ -109,10 +113,7 @@ function buildTeamAverageSeries(players: TeamPlayerDataset[]) {
       label,
       energy: roundTo(meanDefined(energyFatigueLoadByPlayer.map((map) => map.get(date)?.energy)), 1),
       fatigue: roundTo(meanDefined(energyFatigueLoadByPlayer.map((map) => map.get(date)?.fatigue)), 1),
-      acuteTrainingLoad: roundTo(
-        meanDefined(energyFatigueLoadByPlayer.map((map) => map.get(date)?.acuteTrainingLoad)),
-        0
-      ),
+      acuteTrainingLoad: roundTo(getTeamTrainingLoadForDate(players, date) ?? 0, 0),
     })),
     sleepQualityAndTiming: datePoints.flatMap(({ date, label }) => {
       const points = sleepByPlayer.map((map) => map.get(date)).filter((point): point is NonNullable<typeof point> => Boolean(point));
@@ -146,7 +147,14 @@ function buildTeamAverageSeries(players: TeamPlayerDataset[]) {
         energyScore: roundTo(mean(points.map((point) => point.energyScore)), 0),
         fatigueScore: roundTo(mean(points.map((point) => point.fatigueScore)), 0),
         stressScore: roundTo(mean(points.map((point) => point.stressScore)), 0),
-        loadScore: roundTo(mean(points.map((point) => point.loadScore)), 0),
+        loadScore: roundTo(
+          getTeamTrainingAverageForDate(
+            players,
+            date,
+            (dataset) => dataset.analytics.multiFactorReadiness.find((point) => point.date === date)?.loadScore
+          ) ?? 0,
+          0
+        ),
       }];
     }),
   };

@@ -6,6 +6,11 @@ interface RecommendationCardProps {
   recommendation: RecommendationResult;
 }
 
+function formatLimitingFactor(factor: string): string {
+  if (factor === 'Sleep') return 'Sleep affected readiness';
+  return factor;
+}
+
 export function RecommendationCard({ recommendation }: RecommendationCardProps) {
   const getGradient = () => {
     switch (recommendation.recommendationLabel) {
@@ -58,22 +63,9 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
           <div className="mb-4 flex flex-wrap gap-2">
             {recommendation.limitingFactors.map((factor) => (
               <span key={factor} className="text-xs px-2 py-1 rounded-md bg-[rgba(255,255,255,0.08)] text-gray-200 border border-[rgba(255,255,255,0.08)]">
-                {factor}
+                {formatLimitingFactor(factor)}
               </span>
             ))}
-          </div>
-        )}
-
-        {recommendation.focusAreas.length > 0 && (
-          <div className="mt-2">
-            <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Suggested Focus</h4>
-            <div className="flex flex-wrap gap-2">
-              {recommendation.focusAreas.map((area, idx) => (
-                <span key={idx} className="text-xs px-2 py-1 rounded-md bg-[rgba(255,255,255,0.1)] text-white border border-[rgba(255,255,255,0.05)]">
-                  {area}
-                </span>
-              ))}
-            </div>
           </div>
         )}
       </div>
