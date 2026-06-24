@@ -1,9 +1,11 @@
 import React from 'react';
 import { RecommendationResult } from '../lib/recommendations';
+import type { PlayerDailyContext } from '../lib/player-context';
 import { Target, Activity, Zap, Shield } from 'lucide-react';
 
 interface RecommendationCardProps {
   recommendation: RecommendationResult;
+  playerContext?: PlayerDailyContext;
 }
 
 function formatLimitingFactor(factor: string): string {
@@ -11,7 +13,65 @@ function formatLimitingFactor(factor: string): string {
   return factor;
 }
 
-export function RecommendationCard({ recommendation }: RecommendationCardProps) {
+function buildGuidanceDetail(
+  recommendation: RecommendationResult,
+  context: PlayerDailyContext | undefined
+): string | null {
+  if (!context) return null;
+
+  const todayWellness = context.wellness.todayLog;
+  const { readinessLoad, wellness, training, painInjury, missedLogs } = context;
+
+  if (painInjury.hasPainToday || painInjury.hasActiveOrRecoveringInjury || painInjury.hasAutoInjury) {
+    return 'Pain or injury signals are present, so keep football work modified and avoid extra intensity.';
+  }
+
+  if (wellness.loggedDays < 3) {
+    return `Only ${wellness.loggedDays} recent wellness check-in${wellness.loggedDays === 1 ? '' : 's'} logged, so use this as a cautious guide while the picture builds.`;
+  }
+
+  if (!readinessLoad.load.hasAcuteData && training.sessions === 0) {
+    return 'Recent training load is limited, so base today on controlled ball work and how you feel during the warm-up.';
+  }
+
+  if ((todayWellness?.sleepDuration ?? 10) < 6 || readinessLoad.readiness.breakdown.sleep < 55) {
+    return 'Sleep is the main limiter today; keep the session sharp, technical, and avoid piling on extra running.';
+  }
+
+  if ((todayWellness?.fatigue ?? 0) >= 7 || readinessLoad.readiness.breakdown.fatigue < 45) {
+    return 'Fatigue is the main limiter today; prioritize quality touches and keep repeat sprints controlled.';
+  }
+
+  if ((todayWellness?.stress ?? 0) >= 7 || readinessLoad.readiness.breakdown.stress < 45) {
+    return 'Stress is elevated today; keep the work simple, focused, and easy to adjust after the warm-up.';
+  }
+
+  if (readinessLoad.loadRisk === 'spike') {
+    return 'Recent load has spiked, so avoid adding extra high-speed work on top of planned football.';
+  }
+
+  if (readinessLoad.loadRisk === 'elevated') {
+    return 'Recent load is elevated; make today purposeful and leave some reserve for the next session.';
+  }
+
+  if (missedLogs.recentWellnessMissedDays >= 3) {
+    return 'A few recent wellness check-ins are missing, so keep logging daily to make guidance more reliable.';
+  }
+
+  if (recommendation.recommendationLabel === 'Intense') {
+    return "Wellness and load look clear enough for purposeful intensity if it fits today's football plan.";
+  }
+
+  if (recommendation.recommendationLabel === 'Moderate') {
+    return 'Signals look balanced; keep the session controlled and build intensity only if the warm-up feels good.';
+  }
+
+  return null;
+}
+
+export function RecommendationCard({ recommendation, playerContext }: RecommendationCardProps) {
+  const guidanceDetail = buildGuidanceDetail(recommendation, playerContext);
+
   const getGradient = () => {
     switch (recommendation.recommendationLabel) {
       case 'Intense': return 'from-[var(--status-green)] to-[var(--accent-tertiary)]';
@@ -55,9 +115,15 @@ export function RecommendationCard({ recommendation }: RecommendationCardProps) 
           </div>
         </div>
 
-        <p className="text-sm text-gray-300 leading-relaxed mb-4">
+        <p className={`text-sm text-gray-300 leading-relaxed ${guidanceDetail ? 'mb-2' : 'mb-4'}`}>
           {recommendation.reason}
         </p>
+
+        {guidanceDetail ? (
+          <p className="mb-4 text-xs leading-relaxed text-gray-400">
+            {guidanceDetail}
+          </p>
+        ) : null}
 
         {recommendation.limitingFactors.length > 0 && (
           <div className="mb-4 flex flex-wrap gap-2">

@@ -9,11 +9,19 @@ import { format, isSameDay, parseISO } from 'date-fns';
 import { Calendar as CalendarIcon, AlertTriangle, ShieldAlert } from 'lucide-react';
 import Link from 'next/link';
 import { useTrainingLoad } from '@/hooks/useTrainingLoad';
+import { buildPlayerDailyContext } from '@/lib/player-context';
 
 export default function Home() {
   const { readiness, recommendation, hasWellnessToday } = useReadiness();
-  const { calendarEvents, injuries } = useData();
+  const { calendarEvents, injuries, profile, wellnessLogs, trainingLogs } = useData();
   const load = useTrainingLoad();
+  const guidanceContext = React.useMemo(() => buildPlayerDailyContext({
+    profile,
+    wellnessLogs,
+    trainingLogs,
+    calendarEvents,
+    injuries,
+  }), [profile, wellnessLogs, trainingLogs, calendarEvents, injuries]);
 
   const activeInjuries = injuries.filter(i => i.status === 'active');
   const showInjuryAlert = activeInjuries.length > 0 || load.hasAutoInjury;
@@ -76,7 +84,7 @@ export default function Home() {
       <section className="mb-8" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
         <h2 className="text-sm font-bold text-white uppercase tracking-wider pl-1 font-sans">Today&apos;s Guidance</h2>
         {hasWellnessToday ? (
-          <RecommendationCard recommendation={recommendation} />
+          <RecommendationCard recommendation={recommendation} playerContext={guidanceContext} />
         ) : (
           <div className="mt-4 glass-card p-5 flex flex-col items-center text-center animate-slide-up">
             <div className="w-12 h-12 rounded-full bg-[rgba(255,212,59,0.15)] flex items-center justify-center mb-3">
