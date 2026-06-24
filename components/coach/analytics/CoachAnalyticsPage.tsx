@@ -131,17 +131,14 @@ function IndividualsView({
   selectedDayLabel,
   onSelectDayLabel,
   playersForDay,
+  teamAverageLoad,
 }: {
   labels: string[];
   selectedDayLabel: string;
   onSelectDayLabel: (label: string) => void;
   playersForDay: TeamPlayerComparisonPoint[];
+  teamAverageLoad: number;
 }) {
-  const teamAverageLoad =
-    playersForDay.length > 0
-      ? playersForDay.reduce((sum, player) => sum + player.acuteTrainingLoad, 0) / playersForDay.length
-      : 0;
-
   const topReadiness = getExtremePlayer(playersForDay, 'readinessScore', 'highest');
   const lowReadiness = getExtremePlayer(playersForDay, 'readinessScore', 'lowest');
   const topLoad = getExtremePlayer(playersForDay, 'acuteTrainingLoad', 'highest');
@@ -243,6 +240,10 @@ export function CoachAnalyticsPage() {
     if (!selectedDayLabel) return [];
     return teamAnalytics.individualsByLabel[selectedDayLabel] ?? [];
   }, [selectedDayLabel, teamAnalytics.individualsByLabel]);
+  const teamAverageLoadForSelectedDay = useMemo(() => {
+    if (!selectedDayLabel) return 0;
+    return teamAnalytics.averages.energyFatigueLoad.find((point) => point.label === selectedDayLabel)?.acuteTrainingLoad ?? 0;
+  }, [selectedDayLabel, teamAnalytics.averages.energyFatigueLoad]);
 
   if (!selectedTeam.id) {
     return (
@@ -294,6 +295,7 @@ export function CoachAnalyticsPage() {
           selectedDayLabel={selectedDayLabel}
           onSelectDayLabel={setSelectedDayLabel}
           playersForDay={playersForSelectedDay}
+          teamAverageLoad={teamAverageLoadForSelectedDay}
         />
       ) : (
         <section className="glass-card p-6 text-sm text-gray-300">No individual player data available for this team yet.</section>

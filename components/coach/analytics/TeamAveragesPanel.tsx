@@ -27,7 +27,7 @@ export function TeamAveragesPanel({ metrics, graphNumber = 6, className }: TeamA
             >
               <p
                 className="text-[10px] uppercase tracking-wide text-gray-400"
-                title={metric.label === 'Average Load' ? "Average of each reporting player's total acute training load across the past 7 days." : undefined}
+                title={metric.label === 'Average Load' ? 'Total seven-day training load divided by all players on the team.' : undefined}
               >
                 {metric.label === 'Average Load' ? 'Average Load (7 days)' : metric.label}
               </p>
