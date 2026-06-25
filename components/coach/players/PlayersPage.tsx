@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
 import { PlayerAnalyticsChart } from '@/components/coach/players/PlayerAnalyticsChart';
 import { PlayerAnalyticsLegend } from '@/components/coach/players/PlayerAnalyticsLegend';
@@ -195,6 +196,37 @@ const analyticsLegendItems = [
   'Multi-factor readiness inputs',
 ];
 
+function DailyWellnessStatusStrip({
+  completedToday,
+  isChecking,
+}: {
+  completedToday: boolean;
+  isChecking: boolean;
+}) {
+  if (isChecking) {
+    return (
+      <div className="flex items-center gap-2 rounded-xl border border-[rgba(255,255,255,0.12)] bg-[rgba(255,255,255,0.04)] px-3 py-2 text-xs text-gray-300">
+        <Loader2 size={14} className="shrink-0 animate-spin text-gray-400" />
+        <span className="font-semibold uppercase tracking-wide">Checking wellness...</span>
+      </div>
+    );
+  }
+
+  const Icon = completedToday ? CheckCircle2 : XCircle;
+  const toneClass = completedToday
+    ? 'border-[rgba(var(--status-green-rgb),0.35)] bg-[rgba(var(--status-green-rgb),0.1)] text-[var(--status-green)]'
+    : 'border-[rgba(255,146,43,0.35)] bg-[rgba(255,146,43,0.1)] text-[var(--status-orange)]';
+
+  return (
+    <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${toneClass}`}>
+      <Icon size={14} className="shrink-0" />
+      <span className="font-semibold uppercase tracking-wide">
+        Daily wellness: {completedToday ? 'Completed today' : 'Not completed today'}
+      </span>
+    </div>
+  );
+}
+
 function CalendarView({
   playerDataset,
   onEventCreated,
@@ -281,7 +313,7 @@ export function PlayersPage() {
     );
   }
 
-  if (isLoadingPlayers) {
+  if (isLoadingPlayers && !selectedPlayerDataset) {
     return (
       <div className="mx-auto w-full max-w-6xl">
         <header className="mb-6">
@@ -353,6 +385,10 @@ export function PlayersPage() {
       >
         <div className="space-y-4">
           <PlayerProfileCard player={selectedPlayerDataset.player} teamName={selectedTeam.name} />
+          <DailyWellnessStatusStrip
+            completedToday={selectedPlayerDataset.dailyWellness.completedToday}
+            isChecking={isLoadingPlayers}
+          />
           {viewMode === 'analytics' ? (
             <InjuryStatusCard
               injuryStatus={selectedPlayerDataset.injuryStatus}

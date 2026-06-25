@@ -328,7 +328,9 @@ export default function LogPage() {
                       </div>
                       <div>
                         <p className="text-[10px] text-gray-500 uppercase">Performance</p>
-                        <p className="text-sm font-bold text-white">{training.performance}/10</p>
+                        <p className="text-sm font-bold text-white">
+                          {training.performance == null ? 'Not recorded' : `${training.performance}/10`}
+                        </p>
                       </div>
                     </div>
                     {training.notes && (

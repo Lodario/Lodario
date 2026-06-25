@@ -121,6 +121,10 @@ export interface PlayerAnalyticsData {
 
 export interface TeamPlayerDataset {
   player: CoachPlayer;
+  dailyWellness: {
+    date: string;
+    completedToday: boolean;
+  };
   wellness: PlayerWellnessMetrics;
   analytics: PlayerAnalyticsData;
   calendarEvents: PlayerCalendarEvent[];

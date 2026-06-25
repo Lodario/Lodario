@@ -65,7 +65,7 @@ interface TrainingRow {
   intensity: number;
   session_type: string;
   sprinting: string;
-  performance: number;
+  performance: number | null;
   pain_active: boolean;
   pain_level: number | null;
   notes: string | null;
@@ -465,7 +465,7 @@ function mapTrainingRowsToTrainingLogs(rows: TrainingRow[]): TrainingLog[] {
     duration: toNumber(row.duration),
     intensity: toNumber(row.intensity),
     sprinting: toSprintingOption(row.sprinting),
-    performance: toNumber(row.performance, 5),
+    performance: row.performance == null ? undefined : toNumber(row.performance),
     painActive: Boolean(row.pain_active),
     painLevel: row.pain_level == null ? undefined : toNumber(row.pain_level),
     painNotes: row.pain_notes ?? undefined,
@@ -677,6 +677,10 @@ function buildDatasetForPlayer(params: {
 
   return {
     player,
+    dailyWellness: {
+      date: todayKey,
+      completedToday: Boolean(todayWellness),
+    },
     wellness: {
       readinessScore: analyticsRows.find((row) => row.dateValue === todayKey && row.hasWellness)?.readinessScore ?? 0,
       fatigue: toNumber(todayWellness?.fatigue) * 10,

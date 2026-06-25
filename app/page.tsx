@@ -10,10 +10,18 @@ import { Calendar as CalendarIcon, AlertTriangle, ShieldAlert } from 'lucide-rea
 import Link from 'next/link';
 import { useTrainingLoad } from '@/hooks/useTrainingLoad';
 import { buildPlayerDailyContext } from '@/lib/player-context';
+import { buildPlayerReminders } from '@/lib/player-reminders';
+import { PlayerReminders } from '@/components/PlayerReminders';
+
+const DISMISSED_REMINDERS_STORAGE_PREFIX = 'lodario.dismissedReminders';
+const SEEN_COACH_EVENTS_STORAGE_KEY = 'lodario.seenCoachCalendarEvents';
 
 export default function Home() {
   const { readiness, recommendation, hasWellnessToday } = useReadiness();
-  const { calendarEvents, injuries, profile, wellnessLogs, trainingLogs } = useData();
+  const { calendarEvents, customEventTypes, injuries, profile, wellnessLogs, trainingLogs } = useData();
+  const [now, setNow] = React.useState(() => new Date());
+  const [dismissedReminderIds, setDismissedReminderIds] = React.useState<Set<string>>(new Set());
+  const [seenCoachEventIds, setSeenCoachEventIds] = React.useState<Set<string>>(new Set());
   const load = useTrainingLoad();
   const guidanceContext = React.useMemo(() => buildPlayerDailyContext({
     profile,
@@ -26,10 +34,77 @@ export default function Home() {
   const activeInjuries = injuries.filter(i => i.status === 'active');
   const showInjuryAlert = activeInjuries.length > 0 || load.hasAutoInjury;
 
-  const todayStr = format(new Date(), 'yyyy-MM-dd');
+  const todayStr = format(now, 'yyyy-MM-dd');
+  const dismissedStorageKey = `${DISMISSED_REMINDERS_STORAGE_PREFIX}.${todayStr}`;
+  const playerReminders = React.useMemo(() => buildPlayerReminders({
+    wellnessLogs,
+    trainingLogs,
+    calendarEvents,
+    customEventTypes,
+    now,
+    dismissedReminderIds,
+    seenCoachEventIds,
+  }), [wellnessLogs, trainingLogs, calendarEvents, customEventTypes, now, dismissedReminderIds, seenCoachEventIds]);
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  React.useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(dismissedStorageKey);
+      const parsed = stored ? JSON.parse(stored) : [];
+      setDismissedReminderIds(new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []));
+    } catch {
+      setDismissedReminderIds(new Set());
+    }
+  }, [dismissedStorageKey]);
+
+  React.useEffect(() => {
+    try {
+      const stored = window.localStorage.getItem(SEEN_COACH_EVENTS_STORAGE_KEY);
+      const parsed = stored ? JSON.parse(stored) : [];
+      setSeenCoachEventIds(new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []));
+    } catch {
+      setSeenCoachEventIds(new Set());
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const visibleCoachEventIds = playerReminders
+      .filter(reminder => reminder.type === 'coach-added-event' && reminder.sourceEventId)
+      .map(reminder => reminder.sourceEventId as string);
+
+    if (visibleCoachEventIds.length === 0) return;
+
+    try {
+      const stored = window.localStorage.getItem(SEEN_COACH_EVENTS_STORAGE_KEY);
+      const parsed = stored ? JSON.parse(stored) : [];
+      const next = new Set(Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : []);
+      visibleCoachEventIds.forEach(id => next.add(id));
+      window.localStorage.setItem(SEEN_COACH_EVENTS_STORAGE_KEY, JSON.stringify(Array.from(next)));
+    } catch {
+      // Local seen tracking is best-effort only.
+    }
+  }, [playerReminders]);
+
+  const handleDismissReminder = React.useCallback((id: string) => {
+    setDismissedReminderIds(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      try {
+        window.localStorage.setItem(dismissedStorageKey, JSON.stringify(Array.from(next)));
+      } catch {
+        // Dismissal is session-only if localStorage is unavailable.
+      }
+      return next;
+    });
+  }, [dismissedStorageKey]);
+
   const todaysEvents = calendarEvents.filter(e => {
     // simplified check: just matches start day
-    return isSameDay(parseISO(e.start), new Date());
+    return isSameDay(parseISO(e.start), now);
   });
 
   return (
@@ -101,6 +176,11 @@ export default function Home() {
             </Link>
           </div>
         )}
+        <PlayerReminders
+          reminders={playerReminders}
+          onDismiss={handleDismissReminder}
+          className="mt-4"
+        />
       </section>
 
       {/* Today's Schedule */}

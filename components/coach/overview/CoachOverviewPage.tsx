@@ -1,11 +1,12 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { ArrowUpRight, CalendarPlus, CalendarRange, ChevronRight, ClipboardList, LineChart } from 'lucide-react';
+import { ArrowUpRight, CalendarPlus, CalendarRange, CheckCircle2, ChevronDown, ChevronRight, ClipboardList, LineChart, XCircle } from 'lucide-react';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
 import { useCoachSelectedTeamInsights } from '@/lib/coach/teamInsights';
-import type { OverviewTrend } from '@/components/coach/overview/buildFromInsights';
+import type { OverviewDailyWellnessStatus, OverviewTrend } from '@/components/coach/overview/buildFromInsights';
 
 interface SparklineProps {
   points: number[];
@@ -61,6 +62,116 @@ function TrendCard({ trend }: { trend: OverviewTrend }) {
       </div>
       <Sparkline points={trend.points} />
     </article>
+  );
+}
+
+function DailyWellnessDropdown({
+  status,
+  isLoading,
+}: {
+  status: OverviewDailyWellnessStatus;
+  isLoading: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [selectedTab, setSelectedTab] = useState<'incomplete' | 'completed'>('incomplete');
+  const rootRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+    };
+  }, [open]);
+
+  const visiblePlayers = useMemo(() => (
+    selectedTab === 'completed' ? status.completedPlayers : status.incompletePlayers
+  ), [selectedTab, status.completedPlayers, status.incompletePlayers]);
+
+  const emptyLabel = selectedTab === 'completed'
+    ? 'No players have completed today\'s wellness yet.'
+    : 'Everyone has completed today\'s wellness.';
+
+  return (
+    <div ref={rootRef} className="relative w-full sm:w-auto">
+      <button
+        type="button"
+        onClick={() => setOpen((previous) => !previous)}
+        className="flex w-full items-center justify-between gap-2 rounded-full border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.1)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:border-[rgba(var(--accent-secondary-rgb),0.55)] hover:bg-[rgba(var(--accent-secondary-rgb),0.16)] sm:w-auto"
+        aria-expanded={open}
+      >
+        <span>Daily wellness {status.completedCount}/{status.totalCount}</span>
+        <ChevronDown size={14} className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open ? (
+        <div className="absolute left-0 right-0 z-30 mt-2 max-h-[min(24rem,70vh)] overflow-hidden rounded-xl border border-[rgba(255,255,255,0.14)] bg-[rgba(var(--surface-shell-rgb),0.98)] shadow-[0_16px_32px_rgba(0,0,0,0.38)] sm:left-auto sm:right-0 sm:w-80">
+          <div className="border-b border-[rgba(255,255,255,0.08)] p-2">
+            <div className="grid grid-cols-2 gap-1.5">
+              <button
+                type="button"
+                onClick={() => setSelectedTab('completed')}
+                className={`flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+                  selectedTab === 'completed'
+                    ? 'border border-[rgba(var(--status-green-rgb),0.35)] bg-[rgba(var(--status-green-rgb),0.12)] text-[var(--status-green)]'
+                    : 'border border-transparent text-gray-300 hover:bg-[rgba(255,255,255,0.06)]'
+                }`}
+              >
+                <CheckCircle2 size={13} />
+                Completed
+              </button>
+              <button
+                type="button"
+                onClick={() => setSelectedTab('incomplete')}
+                className={`flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11px] font-semibold uppercase tracking-wide transition-colors ${
+                  selectedTab === 'incomplete'
+                    ? 'border border-[rgba(255,146,43,0.35)] bg-[rgba(255,146,43,0.12)] text-[var(--status-orange)]'
+                    : 'border border-transparent text-gray-300 hover:bg-[rgba(255,255,255,0.06)]'
+                }`}
+              >
+                <XCircle size={13} />
+                Incomplete
+              </button>
+            </div>
+          </div>
+
+          <div className="max-h-72 overflow-y-auto p-2">
+            {isLoading ? (
+              <p className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-3 py-3 text-sm text-gray-300">
+                Checking today&apos;s wellness...
+              </p>
+            ) : visiblePlayers.length === 0 ? (
+              <p className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-3 py-3 text-sm text-gray-300">
+                {emptyLabel}
+              </p>
+            ) : (
+              <ul className="space-y-1.5">
+                {visiblePlayers.map((player) => (
+                  <li
+                    key={player.playerId}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.035)] px-3 py-2"
+                  >
+                    <span className="truncate text-sm font-medium text-white">{player.playerName}</span>
+                    {selectedTab === 'completed' ? (
+                      <CheckCircle2 size={14} className="shrink-0 text-[var(--status-green)]" />
+                    ) : (
+                      <XCircle size={14} className="shrink-0 text-[var(--status-orange)]" />
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -133,11 +244,14 @@ export function CoachOverviewPage() {
             </div>
           </div>
 
-          <span
-            className={`h-fit rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${overviewData.summary.status.className}`}
-          >
-            {overviewData.summary.status.label}
-          </span>
+          <div className="flex h-fit w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
+            <DailyWellnessDropdown status={overviewData.dailyWellness} isLoading={isLoading} />
+            <span
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${overviewData.summary.status.className}`}
+            >
+              {overviewData.summary.status.label}
+            </span>
+          </div>
         </div>
       </header>
 

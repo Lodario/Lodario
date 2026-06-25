@@ -17,6 +17,7 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
   const { saveTrainingLog } = useData();
 
   const sessionTypes: SessionType[] = ['Solo', 'Partner', 'Team', 'Match', 'Gym', 'Other'];
+  const defaultPerformanceEnabled = (type: SessionType) => type === 'Team' || type === 'Match';
   const [sessionType, setSessionType] = useState<SessionType>(initialValues?.sessionType || 'Team');
   
   const [duration, setDuration] = useState<string>(
@@ -28,6 +29,9 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
   const [intensity, setIntensity] = useState<number>(7);
   const [sprinting, setSprinting] = useState<SprintingOption>('no');
   const [performance, setPerformance] = useState<number>(5);
+  const [performanceEnabled, setPerformanceEnabled] = useState<boolean>(
+    initialValues?.performance != null || defaultPerformanceEnabled(initialValues?.sessionType || 'Team')
+  );
   
   const [painActive, setPainActive] = useState<boolean>(false);
   const [painLevel, setPainLevel] = useState<number>(1);
@@ -38,17 +42,24 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
   const isEditing = !!initialValues?.id;
 
   useEffect(() => {
-    setSessionType(initialValues?.sessionType || 'Team');
+    const nextSessionType = initialValues?.sessionType || 'Team';
+    setSessionType(nextSessionType);
     setDuration(initialValues?.duration && initialValues.duration > 0 ? String(initialValues.duration) : '');
     setDistance(initialValues?.distance != null ? String(initialValues.distance) : '');
     setIntensity(initialValues?.intensity ?? 7);
     setSprinting(initialValues?.sprinting || 'no');
     setPerformance(initialValues?.performance ?? 5);
+    setPerformanceEnabled(initialValues?.id ? initialValues.performance != null : defaultPerformanceEnabled(nextSessionType));
     setPainActive(initialValues?.painActive ?? false);
     setPainLevel(initialValues?.painLevel || 1);
     setPainNotes(initialValues?.painNotes || '');
     setNotes(initialValues?.notes || '');
   }, [initialValues, selectedDate]);
+
+  const handleSessionTypeChange = (type: SessionType) => {
+    setSessionType(type);
+    setPerformanceEnabled(defaultPerformanceEnabled(type));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,7 +79,7 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
       distance: distance ? parseFloat(distance) : undefined,
       intensity,
       sprinting,
-      performance,
+      performance: performanceEnabled ? performance : undefined,
       painActive,
       painLevel: painActive ? painLevel : undefined,
       painNotes: painActive ? painNotes : undefined,
@@ -100,7 +111,7 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
           {sessionTypes.map(type => (
             <div 
               key={type}
-              onClick={() => setSessionType(type)}
+              onClick={() => handleSessionTypeChange(type)}
               className={`text-center py-2 px-1 rounded-lg text-sm transition-colors touch-target flex justify-center items-center ${
                 sessionType === type 
                   ? 'bg-[var(--accent-primary)] text-black font-bold' 
@@ -177,7 +188,36 @@ export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingF
           </div>
         </div>
 
-        <Slider label="Personal Performance" value={performance} onChangeValue={setPerformance} />
+        <div className="mb-4">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium text-gray-200">Personal Performance</p>
+              {!performanceEnabled && (
+                <p className="mt-1 text-xs text-gray-500">No performance level recorded</p>
+              )}
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={performanceEnabled}
+              aria-label="Toggle personal performance"
+              onClick={() => setPerformanceEnabled(value => !value)}
+              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${
+                performanceEnabled ? 'bg-[var(--accent-primary)]' : 'bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  performanceEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {performanceEnabled && (
+            <Slider label="Performance Level" value={performance} onChangeValue={setPerformance} />
+          )}
+        </div>
       </div>
 
       {/* Pain & Notes */}

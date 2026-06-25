@@ -149,7 +149,7 @@ export interface TrainingLog {
   distance?: number; // KM
   intensity: number; // 1-10
   sprinting: SprintingOption;
-  performance: number; // 1-10
+  performance?: number; // 1-10 when performance was assessed
   painActive: boolean;
   painLevel?: number; // 1-10
   painNotes?: string;

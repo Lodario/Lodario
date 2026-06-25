@@ -6,6 +6,7 @@ import { CalendarEvent, SessionType } from '../lib/types';
 import { useData } from '../lib/DataContext';
 import { Plus } from 'lucide-react';
 import { computeDurationMinutes, mapCalendarEventToSessionType } from '../lib/calendarLogSession';
+import { isBuiltInActivityEventType } from '../lib/calendar/events';
 
 interface RenderedEvent {
   event: CalendarEvent;
@@ -290,14 +291,19 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent, onEventLong
   const dayLayouts = dayEvents.map(evts => computeOverlapGroups(evts, 2)); // Weekly: max 2 cols
 
   // Feature 4: Recent activity highlight
-  const TRAINING_TYPE_IDS = ['team-training', 'personal-training', 'gym', 'match'];
   const shouldHighlightEvent = (re: RenderedEvent): boolean => {
-    if (!TRAINING_TYPE_IDS.includes(re.eventTypeId)) return false;
+    const customType = customEventTypes.find(type => type.id === re.eventTypeId);
+    if (!customType?.isActivity && !isBuiltInActivityEventType(re.eventTypeId)) return false;
     const now = new Date();
     const endDateTime = new Date(`${re.instanceDate}T${String(re.endHour).padStart(2, '0')}:${String(re.endMinute).padStart(2, '0')}:00`);
     const diffMs = now.getTime() - endDateTime.getTime();
     if (diffMs <= 0 || diffMs >= 12 * 60 * 60 * 1000) return false;
-    const hasLog = trainingLogs.some(log => log.date === re.instanceDate);
+    const sessionType = mapCalendarEventToSessionType(re.eventTypeId, customEventTypes, re.title);
+    const hasLog = trainingLogs.some(log => {
+      if (log.date !== re.instanceDate) return false;
+      if (log.sessionType === sessionType) return true;
+      return sessionType === 'Other';
+    });
     return !hasLog;
   };
 

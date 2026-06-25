@@ -50,8 +50,21 @@ export interface OverviewTrend {
   toneClass: string;
 }
 
+export interface OverviewDailyWellnessPlayer {
+  playerId: string;
+  playerName: string;
+}
+
+export interface OverviewDailyWellnessStatus {
+  completedCount: number;
+  totalCount: number;
+  completedPlayers: OverviewDailyWellnessPlayer[];
+  incompletePlayers: OverviewDailyWellnessPlayer[];
+}
+
 export interface TeamOverviewData {
   summary: OverviewTeamSummary;
+  dailyWellness: OverviewDailyWellnessStatus;
   keyMetrics: OverviewMetric[];
   playersNeedingAttention: OverviewAttentionItem[];
   upcomingActivities: OverviewUpcomingActivity[];
@@ -243,6 +256,17 @@ export function buildTeamOverviewData({
   const hasData = hasAnalyticsData || hasPlayerData || hasCalendarData;
 
   const todayDateKey = format(new Date(), 'yyyy-MM-dd');
+  const dailyWellnessPlayers = players.map((dataset) => ({
+    playerId: dataset.player.id,
+    playerName: dataset.player.name,
+    completedToday: dataset.dailyWellness.date === todayDateKey && dataset.dailyWellness.completedToday,
+  }));
+  const completedPlayers = dailyWellnessPlayers
+    .filter((player) => player.completedToday)
+    .map(({ playerId, playerName }) => ({ playerId, playerName }));
+  const incompletePlayers = dailyWellnessPlayers
+    .filter((player) => !player.completedToday)
+    .map(({ playerId, playerName }) => ({ playerId, playerName }));
   const todayReadinessSummary = getTeamReadinessForDate(players, todayDateKey);
   const latestReadiness = analyticsData.averages.readinessTrend.find((point) => point.date === todayDateKey);
   const latestEnergyFatigueLoad = analyticsData.averages.energyFatigueLoad[analyticsData.averages.energyFatigueLoad.length - 1];
@@ -422,6 +446,12 @@ export function buildTeamOverviewData({
       averageReadiness,
       averageLoad,
       status: summaryStatus,
+    },
+    dailyWellness: {
+      completedCount: completedPlayers.length,
+      totalCount: players.length,
+      completedPlayers,
+      incompletePlayers,
     },
     keyMetrics,
     playersNeedingAttention,

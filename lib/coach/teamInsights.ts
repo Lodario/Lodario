@@ -118,6 +118,12 @@ const emptyOverviewData: TeamOverviewData = {
       className: 'text-[var(--status-green)] border-[rgba(var(--status-green-rgb),0.4)] bg-[rgba(var(--status-green-rgb),0.12)]',
     },
   },
+  dailyWellness: {
+    completedCount: 0,
+    totalCount: 0,
+    completedPlayers: [],
+    incompletePlayers: [],
+  },
   keyMetrics: [],
   playersNeedingAttention: [],
   upcomingActivities: [],
