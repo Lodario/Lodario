@@ -129,6 +129,7 @@ export function BetaSignupForm() {
                 key={role}
                 type="button"
                 onClick={() => updateField('role', role)}
+                aria-pressed={form.role === role}
                 className={`rounded-xl border px-3 py-3 text-sm font-semibold transition-colors ${
                   form.role === role
                     ? 'border-[rgba(var(--accent-primary-rgb),0.65)] bg-[rgba(var(--accent-primary-rgb),0.16)] text-[var(--accent-primary)]'
@@ -181,7 +182,7 @@ export function BetaSignupForm() {
       </div>
 
       {error ? (
-        <p className="mt-4 rounded-xl border border-[rgba(255,107,107,0.22)] bg-[rgba(255,107,107,0.1)] px-3 py-2 text-sm text-[var(--status-red)]">
+        <p role="alert" className="mt-4 rounded-xl border border-[rgba(255,107,107,0.22)] bg-[rgba(255,107,107,0.1)] px-3 py-2 text-sm text-[var(--status-red)]">
           {error}
         </p>
       ) : null}

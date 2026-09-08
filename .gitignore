@@ -8,6 +8,8 @@
 
 # testing
 /coverage
+/backups/
+/.local-backups/
 
 # next.js
 /.next/
@@ -25,11 +27,17 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
+# local environment files (keep only the sanitised template trackable)
+.env
+.env.*
+!.env.example
 
 # vercel
 .vercel
+
+# local Supabase CLI state
+supabase/.temp/
+supabase/.branches/
 
 # typescript
 *.tsbuildinfo

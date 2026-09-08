@@ -5,6 +5,7 @@ import { StorageService } from './storage';
 import { useAuth } from './AuthContext';
 import { UserProfile, WellnessLog, TrainingLog, CalendarEvent, CalendarEventColorOverride, CustomEventType, InjuryRecord } from './types';
 import { supabase } from './supabase';
+import { PUBLIC_BETA_FEATURES } from './betaScope.mjs';
 
 interface DataContextType {
   profile: UserProfile | null;
@@ -86,7 +87,9 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     const loadData = async () => {
       setData(prev => ({ ...prev, isLoading: true }));
 
-      const { data: restricted } = await supabase.rpc('player_is_guardian_restricted', { p_player_id: user.id });
+      const { data: restricted } = PUBLIC_BETA_FEATURES.guardianAndMinorAccounts
+        ? await supabase.rpc('player_is_guardian_restricted', { p_player_id: user.id })
+        : { data: false };
       if (restricted === true) {
         const profile = await StorageService.getProfile();
         setData({ profile, wellnessLogs: {}, trainingLogs: [], calendarEvents: [], calendarEventColorOverrides: [], customEventTypes: [], injuries: [], isLoading: false });

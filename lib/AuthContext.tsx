@@ -4,6 +4,10 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { AppRole, isAppRole } from './routeRoles';
+import {
+  isPublicBetaRoleEnabled,
+  PUBLIC_BETA_UNAVAILABLE_MESSAGE,
+} from './betaScope.mjs';
 
 interface AuthContextType {
   user: User | null;
@@ -52,6 +56,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const resolveUserRole = async (activeUser: User): Promise<{ active: AppRole | null; roles: AppRole[] }> => {
     const metadataRole = isAppRole(activeUser.user_metadata?.role) ? activeUser.user_metadata.role : null;
+    const enabledMetadataRole = isPublicBetaRoleEnabled(metadataRole) ? metadataRole : null;
     const needsRoleSelection = activeUser.user_metadata?.needs_role_selection === true;
 
     const { data: profile, error } = await supabase
@@ -61,20 +66,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .maybeSingle();
 
     if (error) {
-      console.error('Error resolving user role from profile:', error);
-      return { active: metadataRole ?? 'player', roles: [metadataRole ?? 'player'] };
+      console.error('[auth] Unable to resolve account role.');
+      return enabledMetadataRole
+        ? { active: enabledMetadataRole, roles: [enabledMetadataRole] }
+        : { active: needsRoleSelection ? null : 'player', roles: needsRoleSelection ? [] : ['player'] };
     }
 
     if (!profile) {
-      if (metadataRole) return { active: metadataRole, roles: [metadataRole] };
+      if (enabledMetadataRole) return { active: enabledMetadataRole, roles: [enabledMetadataRole] };
       return { active: needsRoleSelection ? null : 'player', roles: needsRoleSelection ? [] : ['player'] };
     }
 
     const profileRole: AppRole = isAppRole(profile.role) ? profile.role : metadataRole ?? 'player';
     const { data: roleRows } = await supabase.from('user_account_roles').select('role').eq('user_id', activeUser.id).eq('status', 'active');
-    const roles = Array.from(new Set([profileRole, ...(roleRows ?? []).map(row => row.role).filter(isAppRole)]));
+    const roles = Array.from(
+      new Set([profileRole, ...(roleRows ?? []).map(row => row.role).filter(isAppRole)]),
+    ).filter(isPublicBetaRoleEnabled);
     const saved = typeof window !== 'undefined' ? window.localStorage.getItem(`lodario-active-role:${activeUser.id}`) : null;
-    return { active: isAppRole(saved) && roles.includes(saved) ? saved : profileRole, roles };
+    const active = isAppRole(saved) && roles.includes(saved)
+      ? saved
+      : isPublicBetaRoleEnabled(profileRole)
+        ? profileRole
+        : roles[0] ?? null;
+    return { active, roles };
   };
 
   useEffect(() => {
@@ -123,6 +137,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signUp = async (email: string, password: string, role?: AppRole): Promise<{ error: string | null }> => {
+    if (role && !isPublicBetaRoleEnabled(role)) {
+      return { error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
+    }
+
     const metadata: Record<string, unknown> = role
       ? { role, needs_role_selection: false }
       : { needs_role_selection: true };
@@ -144,6 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const setUserRole = async (role: AppRole): Promise<{ error: string | null }> => {
     if (!user) return { error: 'You must be signed in to choose a role.' };
+    if (!isPublicBetaRoleEnabled(role)) return { error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
 
     const { error: profileError } = await supabase
       .from('profiles')
@@ -168,7 +187,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     });
 
     if (metadataError) {
-      console.error('Error saving user role in auth metadata:', metadataError);
+      console.error('[auth] Unable to save account-role metadata.');
     }
 
     if (data.user) {
@@ -189,6 +208,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const switchRole = async (role: AppRole): Promise<{ error: string | null }> => {
     if (!user) return { error: 'Sign in to change workspace.' };
+    if (!isPublicBetaRoleEnabled(role)) return { error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
     let roles = availableRoles;
     if (!roles.includes(role)) {
       const resolved = await resolveUserRole(user);

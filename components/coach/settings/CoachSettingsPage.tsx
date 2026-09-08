@@ -5,6 +5,9 @@ import { AlertTriangle, Bell, Eye, Lock, Settings2, Shield, Users } from 'lucide
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
 import { useAuth } from '@/lib/AuthContext';
 import { FeedbackButton } from '@/components/FeedbackModal';
+import { PUBLIC_BETA_FEATURES } from '@/lib/betaScope.mjs';
+import { PublicLegalLinks } from '@/components/legal/PublicLegalLinks';
+import { AccountPrivacyActions } from '@/components/AccountPrivacyActions';
 
 interface ToggleRowProps {
   label: string;
@@ -108,7 +111,7 @@ export function CoachSettingsPage() {
       <header>
         <h1 className="text-2xl font-bold tracking-tight text-white">Settings</h1>
         <p className="mt-2 text-sm text-gray-400">
-          Manage account preferences, notifications, team controls, and privacy options.
+          Manage your account security, default team, and support requests.
         </p>
       </header>
 
@@ -155,41 +158,44 @@ export function CoachSettingsPage() {
           iconSize={14}
           className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.1)] px-3 py-2 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:bg-[rgba(var(--accent-secondary-rgb),0.16)]"
         />
+        <PublicLegalLinks className="mt-5 justify-start border-t border-white/10 pt-4" />
       </section>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <section className="glass-card p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <Bell size={16} className="text-[var(--accent-secondary)]" />
-            <h2 className="text-sm font-semibold text-white">Notification Preferences</h2>
-          </div>
-          <div className="space-y-2.5">
-            <ToggleRow
-              label="Daily Email Digest"
-              description="Receive one summary email for key team changes."
-              checked={emailDigestEnabled}
-              onChange={setEmailDigestEnabled}
-            />
-            <ToggleRow
-              label="Push Alerts"
-              description="Get in-app alerts for urgent coaching updates."
-              checked={pushAlertsEnabled}
-              onChange={setPushAlertsEnabled}
-            />
-            <ToggleRow
-              label="Calendar Reminders"
-              description="Notify before events, sessions, and deadlines."
-              checked={calendarRemindersEnabled}
-              onChange={setCalendarRemindersEnabled}
-            />
-            <ToggleRow
-              label="Player Risk Alerts"
-              description="Highlight readiness and recovery risks."
-              checked={playerRiskAlertsEnabled}
-              onChange={setPlayerRiskAlertsEnabled}
-            />
-          </div>
-        </section>
+        {PUBLIC_BETA_FEATURES.unfinishedFeatures ? (
+          <section className="glass-card p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <Bell size={16} className="text-[var(--accent-secondary)]" />
+              <h2 className="text-sm font-semibold text-white">Notification Preferences</h2>
+            </div>
+            <div className="space-y-2.5">
+              <ToggleRow
+                label="Daily Email Digest"
+                description="Receive one summary email for key team changes."
+                checked={emailDigestEnabled}
+                onChange={setEmailDigestEnabled}
+              />
+              <ToggleRow
+                label="Push Alerts"
+                description="Get in-app alerts for urgent coaching updates."
+                checked={pushAlertsEnabled}
+                onChange={setPushAlertsEnabled}
+              />
+              <ToggleRow
+                label="Calendar Reminders"
+                description="Notify before events, sessions, and deadlines."
+                checked={calendarRemindersEnabled}
+                onChange={setCalendarRemindersEnabled}
+              />
+              <ToggleRow
+                label="Player Risk Alerts"
+                description="Highlight readiness and recovery risks."
+                checked={playerRiskAlertsEnabled}
+                onChange={setPlayerRiskAlertsEnabled}
+              />
+            </div>
+          </section>
+        ) : null}
 
         <section className="glass-card p-5">
           <div className="mb-4 flex items-center gap-2">
@@ -198,18 +204,22 @@ export function CoachSettingsPage() {
           </div>
 
           <div className="space-y-2.5">
-            <ToggleRow
-              label="Auto-select Most Recent Team"
-              description="Open coach pages using your last active team."
-              checked={autoSelectRecentTeam}
-              onChange={setAutoSelectRecentTeam}
-            />
-            <ToggleRow
-              label="Highlight Team Warnings"
-              description="Elevate teams with high load and low readiness."
-              checked={highlightTeamWarnings}
-              onChange={setHighlightTeamWarnings}
-            />
+            {PUBLIC_BETA_FEATURES.unfinishedFeatures ? (
+              <>
+                <ToggleRow
+                  label="Auto-select Most Recent Team"
+                  description="Open coach pages using your last active team."
+                  checked={autoSelectRecentTeam}
+                  onChange={setAutoSelectRecentTeam}
+                />
+                <ToggleRow
+                  label="Highlight Team Warnings"
+                  description="Elevate teams with high load and low readiness."
+                  checked={highlightTeamWarnings}
+                  onChange={setHighlightTeamWarnings}
+                />
+              </>
+            ) : null}
 
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3">
               <p className="text-sm font-medium text-white">Default Team</p>
@@ -226,63 +236,74 @@ export function CoachSettingsPage() {
                 ))}
               </select>
             </div>
+            <AccountPrivacyActions />
           </div>
         </section>
 
-        <section className="glass-card p-5">
-          <div className="mb-4 flex items-center gap-2">
-            <Eye size={16} className="text-[var(--accent-secondary)]" />
-            <h2 className="text-sm font-semibold text-white">Appearance and Display</h2>
-          </div>
+        {PUBLIC_BETA_FEATURES.unfinishedFeatures ? (
+          <section className="glass-card p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <Eye size={16} className="text-[var(--accent-secondary)]" />
+              <h2 className="text-sm font-semibold text-white">Appearance and Display</h2>
+            </div>
 
-          <div className="space-y-2.5">
-            <ToggleRow
-              label="Compact Cards"
-              description="Reduce card spacing to display more data."
-              checked={compactCardsEnabled}
-              onChange={setCompactCardsEnabled}
-            />
-            <ToggleRow
-              label="Reduced Motion"
-              description="Minimize transition animations for comfort."
-              checked={reducedMotionEnabled}
-              onChange={setReducedMotionEnabled}
-            />
-          </div>
-        </section>
+            <div className="space-y-2.5">
+              <ToggleRow
+                label="Compact Cards"
+                description="Reduce card spacing to display more data."
+                checked={compactCardsEnabled}
+                onChange={setCompactCardsEnabled}
+              />
+              <ToggleRow
+                label="Reduced Motion"
+                description="Minimize transition animations for comfort."
+                checked={reducedMotionEnabled}
+                onChange={setReducedMotionEnabled}
+              />
+            </div>
+          </section>
+        ) : null}
 
         <section className="glass-card p-5">
           <div className="mb-4 flex items-center gap-2">
             <Shield size={16} className="text-[var(--accent-primary)]" />
-            <h2 className="text-sm font-semibold text-white">Privacy and Data</h2>
+            <h2 className="text-sm font-semibold text-white">Account Security</h2>
           </div>
 
           <div className="space-y-2.5">
-            <ToggleRow
-              label="Team-only Profile Visibility"
-              description="Limit your profile visibility to assigned teams."
-              checked={profileVisibilityTeamOnly}
-              onChange={setProfileVisibilityTeamOnly}
-            />
-            <ToggleRow
-              label="Enable Data Export Requests"
-              description="Allow future requests to export your account data."
-              checked={allowDataExport}
-              onChange={setAllowDataExport}
-            />
+            {PUBLIC_BETA_FEATURES.unfinishedFeatures ? (
+              <>
+                <ToggleRow
+                  label="Team-only Profile Visibility"
+                  description="Limit your profile visibility to assigned teams."
+                  checked={profileVisibilityTeamOnly}
+                  onChange={setProfileVisibilityTeamOnly}
+                />
+                <ToggleRow
+                  label="Enable Data Export Requests"
+                  description="Allow future requests to export your account data."
+                  checked={allowDataExport}
+                  onChange={setAllowDataExport}
+                />
+              </>
+            ) : null}
 
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3">
               <p className="text-sm font-medium text-white">Session Security</p>
               <p className="mt-0.5 text-xs text-gray-400">Update your account password.</p>
               <div className="mt-3 grid gap-2">
+                <label htmlFor="coach-new-password" className="sr-only">New password</label>
                 <input
+                  id="coach-new-password"
                   type="password"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                   placeholder="New password"
                   className="w-full rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(var(--surface-shell-rgb),0.96)] px-3 py-2 text-sm text-white outline-none transition-colors focus:border-[var(--accent-secondary)]"
                 />
+                <label htmlFor="coach-confirm-password" className="sr-only">Confirm new password</label>
                 <input
+                  id="coach-confirm-password"
                   type="password"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
@@ -297,7 +318,7 @@ export function CoachSettingsPage() {
                 >
                   {isUpdatingPassword ? 'Updating...' : 'Update Password'}
                 </button>
-                {passwordError ? <p className="text-xs text-[var(--status-red)]">{passwordError}</p> : null}
+                {passwordError ? <p role="alert" className="text-xs text-[var(--status-red)]">{passwordError}</p> : null}
                 {passwordSuccess ? <p className="text-xs text-[var(--status-green)]">{passwordSuccess}</p> : null}
               </div>
             </div>
@@ -305,36 +326,40 @@ export function CoachSettingsPage() {
         </section>
       </div>
 
-      <section className="glass-card border-[rgba(255,107,107,0.24)] p-5">
-        <div className="mb-3 flex items-center gap-2 text-[var(--status-red)]">
-          <AlertTriangle size={16} />
-          <h2 className="text-sm font-semibold">Danger Zone</h2>
-        </div>
-        <p className="text-sm text-gray-300">
-          Future destructive account actions will appear here. These controls are placeholders and are intentionally non-destructive.
-        </p>
+      {PUBLIC_BETA_FEATURES.unfinishedFeatures ? (
+        <>
+          <section className="glass-card border-[rgba(255,107,107,0.24)] p-5">
+            <div className="mb-3 flex items-center gap-2 text-[var(--status-red)]">
+              <AlertTriangle size={16} />
+              <h2 className="text-sm font-semibold">Danger Zone</h2>
+            </div>
+            <p className="text-sm text-gray-300">
+              Future destructive account actions will appear here. These controls are placeholders and are intentionally non-destructive.
+            </p>
 
-        <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
-          <button
-            type="button"
-            className="rounded-lg border border-[rgba(255,107,107,0.4)] bg-[rgba(255,107,107,0.1)] px-3 py-2 text-sm font-semibold text-[var(--status-red)] transition-colors hover:bg-[rgba(255,107,107,0.16)]"
-          >
-            Request Account Deletion (Coming Soon)
-          </button>
-          <button
-            type="button"
-            className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.05)] px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-[rgba(255,255,255,0.1)]"
-          >
-            Log Out All Devices (Coming Soon)
-          </button>
-        </div>
+            <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
+              <button
+                type="button"
+                className="rounded-lg border border-[rgba(255,107,107,0.4)] bg-[rgba(255,107,107,0.1)] px-3 py-2 text-sm font-semibold text-[var(--status-red)] transition-colors hover:bg-[rgba(255,107,107,0.16)]"
+              >
+                Request Account Deletion (Coming Soon)
+              </button>
+              <button
+                type="button"
+                className="rounded-lg border border-[rgba(255,255,255,0.16)] bg-[rgba(255,255,255,0.05)] px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-[rgba(255,255,255,0.1)]"
+              >
+                Log Out All Devices (Coming Soon)
+              </button>
+            </div>
 
-        <p className="mt-3 text-xs text-gray-400">Destructive account actions are disabled until backend lifecycle flows are added.</p>
-      </section>
+            <p className="mt-3 text-xs text-gray-400">Destructive account actions are disabled until backend lifecycle flows are added.</p>
+          </section>
 
-      <section className="rounded-xl border border-[rgba(var(--accent-secondary-rgb),0.28)] bg-[rgba(var(--accent-secondary-rgb),0.08)] px-4 py-3 text-xs text-[var(--accent-secondary)]">
-        Notification, display, and privacy toggles currently save in local page state only.
-      </section>
+          <section className="rounded-xl border border-[rgba(var(--accent-secondary-rgb),0.28)] bg-[rgba(var(--accent-secondary-rgb),0.08)] px-4 py-3 text-xs text-[var(--accent-secondary)]">
+            Notification, display, and privacy toggles currently save in local page state only.
+          </section>
+        </>
+      ) : null}
     </div>
   );
 }

@@ -1,36 +1,29 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lodario
 
-## Getting Started
+Lodario is a mobile-first football training and team-management application for Players and Coaches. The current public-beta scope includes authentication, onboarding, profiles, teams, wellness and training logs, readiness and load guidance, injuries, calendars, analytics, RSVP/attendance, and feedback.
 
-First, run the development server:
+The public beta is restricted to users aged 18 or older. Deferred Guardian/minor, AI, subscription/payment, advertising, and health-integration code remains in the repository but is disabled.
+
+## Local development
+
+Copy the required local environment variables into `.env.local`, then run:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Useful validation commands:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
 
-## Learn More
+Do not apply Supabase migrations to a linked environment without reviewing `npx supabase db push --dry-run`, confirming a recoverable backup, and obtaining deployment approval.
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [`docs/launch/18-plus-beta-scope.md`](docs/launch/18-plus-beta-scope.md) for the beta feature boundary, controls, migration status, and remaining launch work.

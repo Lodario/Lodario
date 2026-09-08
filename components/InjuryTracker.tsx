@@ -23,17 +23,17 @@ export function InjuryTracker() {
     <div className="mt-8 animate-slide-up" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
       <h2 className="text-xl font-bold text-white tracking-tight mb-4 flex items-center">
         <ShieldAlert className="mr-2 text-[#ff6b6b]" size={24} />
-        Injury Protocol
+        Injury Support
       </h2>
 
       {load.hasAutoInjury && (
         <div className="glass-card p-5 mb-4 bg-[rgba(255,107,107,0.1)] border-[#ff6b6b]">
           <h3 className="text-[#ff6b6b] font-bold text-sm tracking-wide flex items-center mb-2">
-            <AlertCircle size={16} className="mr-1" /> Auto-Detected Protocol
+            <AlertCircle size={16} className="mr-1" /> Automatically Suggested Support
           </h3>
           <p className="text-gray-300 text-xs leading-relaxed mb-3">
-            The system has placed you in an active recovery protocol due to high pain levels logged over multiple days. 
-            This protocol will automatically clear after consecutive low-pain logs.
+            The system is showing active recovery guidance because high pain levels were logged over multiple days.
+            This guidance will automatically clear after consecutive low-pain logs.
           </p>
         </div>
       )}

@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
+import { getPublicSupabaseConfig } from './env/public';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const { url: supabaseUrl, anonKey: supabaseAnonKey } = getPublicSupabaseConfig();
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);

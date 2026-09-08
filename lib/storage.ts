@@ -95,7 +95,7 @@ export class StorageService {
         onboarding_completed: profile.onboardingCompleted ?? false,
       }, { onConflict: 'id' });
 
-    if (error) console.error('Error saving profile:', error);
+    if (error) console.error('[storage] Profile save failed.');
   }
 
   // --- Wellness Logs ---
@@ -156,7 +156,7 @@ export class StorageService {
         notes: log.notes ?? null,
       }, { onConflict: 'user_id,date' });
 
-    if (error) console.error('Error saving wellness log:', error);
+    if (error) console.error('[storage] Wellness save failed.');
   }
 
   // --- Training Logs ---
@@ -212,7 +212,7 @@ export class StorageService {
         notes: log.notes ?? null,
       }, { onConflict: 'id' });
 
-    if (error) console.error('Error saving training log:', error);
+    if (error) console.error('[storage] Training save failed.');
   }
 
   static async deleteTrainingLog(logId: string): Promise<void> {
@@ -221,7 +221,7 @@ export class StorageService {
       .delete()
       .eq('id', logId);
 
-    if (error) console.error('Error deleting training log:', error);
+    if (error) console.error('[storage] Training deletion failed.');
   }
 
   // --- Calendar Events ---
@@ -286,11 +286,11 @@ export class StorageService {
         .upsert(fallbackPayload, { onConflict: 'id' });
 
       if (!fallbackResult.error) return;
-      console.error('Error saving calendar event:', fallbackResult.error);
+      console.error('[storage] Calendar save failed.');
       return;
     }
 
-    console.error('Error saving calendar event:', error);
+    console.error('[storage] Calendar save failed.');
   }
 
   static async deleteCalendarEvent(eventId: string): Promise<void> {
@@ -299,7 +299,7 @@ export class StorageService {
       .delete()
       .eq('id', eventId);
 
-    if (error) console.error('Error deleting calendar event:', error);
+    if (error) console.error('[storage] Calendar deletion failed.');
   }
 
   // --- Player calendar color overrides ---
@@ -310,7 +310,7 @@ export class StorageService {
 
     if (error) {
       if (!StorageService.isMissingColorOverrideTableError(error)) {
-        console.error('Error loading calendar event color overrides:', error);
+        console.error('[storage] Calendar colour settings load failed.');
       }
       return [];
     }
@@ -354,7 +354,7 @@ export class StorageService {
 
     const existing = await query.maybeSingle();
     if (existing.error && !StorageService.isMissingColorOverrideTableError(existing.error)) {
-      console.error('Error finding calendar event color override:', existing.error);
+      console.error('[storage] Calendar colour setting lookup failed.');
       return null;
     }
 
@@ -374,7 +374,7 @@ export class StorageService {
     const { data, error } = await mutation;
     if (error) {
       if (!StorageService.isMissingColorOverrideTableError(error)) {
-        console.error('Error saving calendar event color override:', error);
+        console.error('[storage] Calendar colour setting save failed.');
       }
       return null;
     }
@@ -451,7 +451,7 @@ export class StorageService {
         is_deleted: false,
       }, { onConflict: 'id,user_id' });
 
-    if (error) console.error('Error saving custom event type:', error);
+    if (error) console.error('[storage] Event-type save failed.');
   }
 
   // Built-in/default event type IDs are defined in code, not the database, so
@@ -487,7 +487,7 @@ export class StorageService {
           is_deleted: true,
         }, { onConflict: 'id,user_id' });
 
-      if (error) console.error('Error hiding built-in event type:', error);
+      if (error) console.error('[storage] Event-type removal failed.');
       return;
     }
 
@@ -496,7 +496,7 @@ export class StorageService {
       .delete()
       .eq('id', typeId);
 
-    if (error) console.error('Error deleting custom event type:', error);
+    if (error) console.error('[storage] Event-type deletion failed.');
   }
 
   // --- Injuries ---
@@ -536,6 +536,6 @@ export class StorageService {
         auto_tracked: injury.autoTracked ?? false,
       }, { onConflict: 'id' });
 
-    if (error) console.error('Error saving injury:', error);
+    if (error) console.error('[storage] Injury-status save failed.');
   }
 }

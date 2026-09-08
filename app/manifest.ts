@@ -4,8 +4,10 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Lodario',
     short_name: 'Lodario',
-    description: 'Soccer training tracker and guidance app for young athletes.',
+    description: 'Football training, wellness, readiness, calendar, and team tools for adult players and coaches.',
+    id: '/',
     start_url: '/',
+    scope: '/',
     display: 'standalone',
     background_color: '#0d0d0c',
     theme_color: '#0d0d0c',

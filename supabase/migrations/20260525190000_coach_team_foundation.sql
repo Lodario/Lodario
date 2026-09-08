@@ -9,6 +9,14 @@
 --   * Existing tables are left untouched.
 --   * DDL is idempotent where possible (IF NOT EXISTS / guarded policy creation).
 
+-- Fresh local resets apply this migration before
+-- 20260525230000_add_profile_role.sql, while the policies below already depend
+-- on profiles.role. Create the identical nullable column here; the following
+-- migration remains responsible for backfilling existing profiles.
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS role TEXT
+  CHECK (role IN ('player', 'coach'));
+
 CREATE TABLE IF NOT EXISTS public.teams (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,

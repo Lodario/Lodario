@@ -11,6 +11,9 @@ import { useAuth } from '@/lib/AuthContext';
 import { LogOut, Mail, Save, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 import { TrainingResource, WeeklyAvailability } from '@/lib/types';
+import { PUBLIC_BETA_FEATURES } from '@/lib/betaScope.mjs';
+import { PublicLegalLinks } from '@/components/legal/PublicLegalLinks';
+import { AccountPrivacyActions } from '@/components/AccountPrivacyActions';
 
 export default function ProfilePage() {
   const { profile, saveProfile } = useData();
@@ -155,19 +158,25 @@ export default function ProfilePage() {
             </div>
           )}
 
-          <Link href="/profile/guardians" className="mb-3 flex min-h-12 w-full items-center justify-center rounded-xl border border-[rgba(var(--accent-primary-rgb),0.35)] bg-[rgba(var(--accent-primary-rgb),0.08)] text-sm font-bold text-[var(--accent-primary)]">
-            Guardians, permissions & privacy
-          </Link>
+          {PUBLIC_BETA_FEATURES.guardianAndMinorAccounts ? (
+            <Link href="/profile/guardians" className="mb-3 flex min-h-12 w-full items-center justify-center rounded-xl border border-[rgba(var(--accent-primary-rgb),0.35)] bg-[rgba(var(--accent-primary-rgb),0.08)] text-sm font-bold text-[var(--accent-primary)]">
+              Guardians, permissions & privacy
+            </Link>
+          ) : null}
 
           <FeedbackButton
             contextLabel="Player Profile"
             className="mb-3 flex w-full items-center justify-center space-x-2 rounded-xl border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.1)] py-3 text-sm font-bold text-[var(--accent-secondary)] transition-colors hover:bg-[rgba(var(--accent-secondary-rgb),0.16)] touch-target"
           />
 
+          <PublicLegalLinks className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] px-3 py-3" />
+
+          <AccountPrivacyActions />
+
           <button
             id="sign-out-button"
             onClick={handleSignOut}
-            className="w-full flex items-center justify-center space-x-2 py-3.5 rounded-xl border border-[rgba(255,107,107,0.3)] text-[#ff6b6b] font-bold text-sm hover:bg-[rgba(255,107,107,0.1)] transition-colors touch-target"
+            className="mt-4 w-full flex items-center justify-center space-x-2 py-3.5 rounded-xl border border-[rgba(255,107,107,0.3)] text-[#ff6b6b] font-bold text-sm hover:bg-[rgba(255,107,107,0.1)] transition-colors touch-target"
           >
             <LogOut size={18} />
             <span>Sign Out</span>

@@ -16,6 +16,10 @@ extra_search_path = ["public", "extensions"]
 # The maximum number of rows returns from a view, table, or stored procedure. Limits payload size
 # for accidental or malicious requests.
 max_rows = 1000
+# Lodario's linked project predates Supabase's 2026 opt-in Data API grants.
+# Keep fresh local resets compatible with the existing project; migrations and
+# RLS still explicitly revoke or restrict beta-inaccessible data.
+auto_expose_new_tables = true
 
 [api.tls]
 # Enable HTTPS endpoints locally using a self-signed certificate.

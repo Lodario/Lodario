@@ -423,7 +423,7 @@ export async function loadActivePlayerCountsByTeamIds(teamIds: string[]): Promis
     .eq('status', 'active');
 
   if (error) {
-    console.error('[teamInsights/loadActivePlayerCountsByTeamIds] Error loading active player membership counts:', error, { teamIds: normalizedTeamIds });
+    console.error('[coach-insights] Active Player count load failed.');
     return { countsByTeamId: {}, error: error.message || 'Unable to load team player counts.' };
   }
 
@@ -529,7 +529,7 @@ export async function loadCoachCalendarItemsForTeams(teams: TeamReference[]): Pr
     .eq('status', 'active');
 
   if (membershipError) {
-    console.error('[teamInsights/loadCoachCalendarItemsForTeams] Error loading team memberships:', membershipError, { teamIds });
+    console.error('[coach-insights] Team membership load failed.');
     return { items: [], error: membershipError.message || 'Unable to load team memberships for calendar items.' };
   }
 
@@ -551,7 +551,7 @@ export async function loadCoachCalendarItemsForTeams(teams: TeamReference[]): Pr
 
   const calendarResult = await loadCalendarRowsForPlayers(userIds);
   if (calendarResult.error) {
-    console.error('[teamInsights/loadCoachCalendarItemsForTeams] Error loading calendar events:', calendarResult.error, { teamIds, userCount: userIds.length });
+    console.error('[coach-insights] Team calendar load failed.');
     return { items: [], error: calendarResult.error };
   }
 
@@ -626,7 +626,7 @@ export async function loadCoachTeamInjuryAlertsForTeams(teams: TeamReference[]):
 
   for (const { teamId, result } of teamPlayersResults) {
     if (result.error) {
-      console.error('[teamInsights/loadCoachTeamInjuryAlertsForTeams] Error loading team players for injury alerts:', result.error, { teamId });
+      console.error('[coach-insights] Injury-alert roster load failed.');
       rpcErrorMessage = rpcErrorMessage ?? (result.error.message || 'Unable to load team players for injury alerts.');
       continue;
     }
@@ -683,12 +683,7 @@ export async function loadCoachTeamInjuryAlertsForTeams(teams: TeamReference[]):
   const queryErrors = [injuriesResult.error, wellnessResult.error, trainingResult.error]
     .filter((error): error is NonNullable<typeof error> => Boolean(error));
   if (queryErrors.length > 0) {
-    queryErrors.forEach((error) => {
-      console.error('[teamInsights/loadCoachTeamInjuryAlertsForTeams] Error loading injury signals:', error, {
-        teamCount: normalizedTeams.length,
-        userCount: userIds.length,
-      });
-    });
+    console.error('[coach-insights] Injury-signal load failed.');
   }
 
   const injuryAlerts = (((injuriesResult.data ?? []) as InjuryAlertRow[])).flatMap((injuryRow) => {
@@ -984,7 +979,7 @@ export function useCoachSelectedTeamInsights(teamId: string) {
       if (cancelled) return;
 
       if (result.error) {
-        console.error('[teamInsights/useCoachSelectedTeamInsights] Error loading selected team player datasets:', result.error, { teamId });
+        console.error('[coach-insights] Selected-team dataset load failed.');
         setPlayers([]);
         setPlayersError(result.error);
         setIsLoading(false);

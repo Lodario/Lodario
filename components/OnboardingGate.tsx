@@ -7,6 +7,7 @@ import { OnboardingFlow } from './OnboardingFlow';
 import { getPlayerAgeState, type PlayerAgeState } from '@/lib/guardian/onboarding';
 import { PlayerAgeSetup } from '@/components/guardian/PlayerAgeSetup';
 import { RestrictedPlayerPage } from '@/components/guardian/RestrictedPlayerPage';
+import { PUBLIC_BETA_FEATURES } from '@/lib/betaScope.mjs';
 
 interface OnboardingGateProps {
   children: React.ReactNode;
@@ -22,18 +23,29 @@ interface OnboardingGateProps {
 export function OnboardingGate({ children }: OnboardingGateProps) {
   const { profile, isLoading } = useData();
   const [ageState, setAgeState] = useState<PlayerAgeState | null>(null);
-  const [ageLoading, setAgeLoading] = useState(true);
+  const [ageLoading, setAgeLoading] = useState<boolean>(PUBLIC_BETA_FEATURES.guardianAndMinorAccounts);
   const [ageError, setAgeError] = useState<string | null>(null);
   const loadAgeState = useCallback(async () => {
+    if (!PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
+      setAgeState(null);
+      setAgeError(null);
+      setAgeLoading(false);
+      return;
+    }
+
     setAgeLoading(true);
     const result = await getPlayerAgeState();
     setAgeState(result.data);
     setAgeError(result.error);
     setAgeLoading(false);
   }, []);
-  useEffect(() => { void loadAgeState(); }, [loadAgeState]);
+  useEffect(() => {
+    if (PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
+      void loadAgeState();
+    }
+  }, [loadAgeState]);
 
-  if (isLoading || ageLoading) {
+  if (isLoading || (PUBLIC_BETA_FEATURES.guardianAndMinorAccounts && ageLoading)) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--background)]">
         <div className="relative">
@@ -45,12 +57,16 @@ export function OnboardingGate({ children }: OnboardingGateProps) {
     );
   }
 
-  if (ageError) {
+  if (PUBLIC_BETA_FEATURES.guardianAndMinorAccounts && ageError) {
     return <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4 text-white"><div className="glass-card max-w-md p-6"><h1 className="text-xl font-bold">Account setup unavailable</h1><p className="mt-2 text-sm text-gray-400">{ageError}</p><button onClick={loadAgeState} className="mt-5 rounded-xl bg-[var(--accent-primary)] px-5 py-3 font-bold text-black">Try again</button></div></div>;
   }
 
-  if (!ageState?.hasAgeIdentity) return <PlayerAgeSetup onComplete={state => { setAgeState(state); void loadAgeState(); }} />;
-  if (ageState.restricted) return <RestrictedPlayerPage state={ageState} onRefresh={loadAgeState} />;
+  if (PUBLIC_BETA_FEATURES.guardianAndMinorAccounts && !ageState?.hasAgeIdentity) {
+    return <PlayerAgeSetup onComplete={state => { setAgeState(state); void loadAgeState(); }} />;
+  }
+  if (PUBLIC_BETA_FEATURES.guardianAndMinorAccounts && ageState?.restricted) {
+    return <RestrictedPlayerPage state={ageState} onRefresh={loadAgeState} />;
+  }
 
   // No profile row yet OR profile exists but onboarding flag is not set.
   if (!profile || !profile.onboardingCompleted) {

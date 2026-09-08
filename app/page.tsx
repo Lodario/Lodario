@@ -425,7 +425,7 @@ export default function Home() {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[360px] bg-[linear-gradient(180deg,rgba(34,197,94,0.07),rgba(255,146,43,0.045)_48%,transparent)]" />
 
       <header className="relative mb-6 pl-1.5">
-        <h1 className="text-4xl font-black tracking-normal text-white">Prolaesio</h1>
+        <h1 className="text-4xl font-black tracking-normal text-white">Lodario</h1>
         <p className="mt-1 text-base font-semibold text-[var(--accent-secondary)]">Your personal training guide</p>
       </header>
 
@@ -433,11 +433,11 @@ export default function Home() {
         <div className="relative mb-6 flex items-start space-x-3 rounded-lg border border-[#ff6b6b] bg-[rgba(255,107,107,0.09)] p-4 shadow-[0_12px_28px_rgba(0,0,0,0.3)] backdrop-blur-md animate-slide-up touch-target">
           <ShieldAlert className="text-[#ff6b6b] mt-0.5" size={24} />
           <div>
-            <h3 className="text-[#ff6b6b] font-bold text-sm tracking-wide">Active Protocol</h3>
+            <h3 className="text-[#ff6b6b] font-bold text-sm tracking-wide">Active Guidance</h3>
             <p className="text-gray-300 text-xs mt-1 leading-relaxed">
               {load.hasAutoInjury
-                ? 'Pain or injury has triggered an active recovery protocol.'
-                : 'Active injury logged. Follow your prescribed recovery plan.'}
+                ? 'Pain or injury has triggered active recovery guidance.'
+                : 'Active injury logged. Follow your suggested recovery plan.'}
             </p>
           </div>
         </div>

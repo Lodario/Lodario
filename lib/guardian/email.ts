@@ -1,4 +1,8 @@
 import nodemailer from 'nodemailer';
+import {
+  EnvironmentConfigurationError,
+  getSmtpServerConfig,
+} from '@/lib/env/server';
 
 type GuardianEmailKind = 'invitation' | 'reminder' | 'accepted' | 'approved' | 'rejected' | 'relationship_suspended' | 'adult_reauthorised' | 'privacy_update';
 
@@ -39,17 +43,22 @@ function escapeHtml(value: string) {
 }
 
 export async function sendGuardianEmail(to: string, message: ReturnType<typeof buildGuardianEmail>) {
-  const user = process.env.GMAIL_SMTP_USER;
-  const pass = process.env.GMAIL_SMTP_APP_PASSWORD;
-  const from = process.env.EMAIL_FROM;
-  if (!user || !pass || !from) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.info('[guardian-email:development]', { to, subject: message.subject, text: message.text });
+  let config;
+  try {
+    config = getSmtpServerConfig();
+  } catch (error) {
+    if (error instanceof EnvironmentConfigurationError && process.env.NODE_ENV !== 'production') {
       return { delivered: false, development: true };
     }
-    throw new Error('Guardian email delivery is not configured.');
+    throw error;
   }
-  const transporter = nodemailer.createTransport({ host: 'smtp.gmail.com', port: 587, secure: false, requireTLS: true, auth: { user, pass } });
-  await transporter.sendMail({ from, to, ...message });
+  const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    requireTLS: true,
+    auth: { user: config.user, pass: config.appPassword },
+  });
+  await transporter.sendMail({ from: config.from, to, ...message });
   return { delivered: true, development: false };
 }

@@ -4,6 +4,7 @@ import React, { FormEvent, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Copy, MessageSquare, Send, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
 
 const FEEDBACK_EMAIL = 'contact.lodario@gmail.com';
@@ -19,10 +20,18 @@ interface FeedbackModalProps {
   onClose: () => void;
 }
 
+const FEEDBACK_CATEGORIES = [
+  { value: 'bug', label: 'Bug or broken feature' },
+  { value: 'account_access', label: 'Account access' },
+  { value: 'privacy_export_deletion', label: 'Privacy, export or deletion' },
+  { value: 'general', label: 'General feedback' },
+] as const;
+
 function buildFeedbackBody(params: {
   userEmail: string;
   loggedInUserEmail: string;
   userRole: string;
+  category: string;
   title: string;
   description: string;
   context: string;
@@ -34,6 +43,7 @@ function buildFeedbackBody(params: {
     `Logged-in user email: ${params.loggedInUserEmail || 'Not provided'}`,
     `Entered user email: ${params.userEmail || 'Not provided'}`,
     `User role: ${params.userRole || 'Not provided'}`,
+    `Category: ${params.category || 'Not provided'}`,
     `Title: ${params.title.trim() || 'Untitled feedback'}`,
     `Page/context: ${params.context}`,
     `Timestamp: ${params.timestamp}`,
@@ -80,9 +90,10 @@ export function FeedbackButton({ contextLabel, className, iconSize = 18 }: Feedb
 }
 
 export function FeedbackModal({ contextLabel, onClose }: FeedbackModalProps) {
-  const { user, userRole } = useAuth();
+  const { user, session, userRole } = useAuth();
   const pathname = usePathname();
   const [userEmail, setUserEmail] = useState('');
+  const [category, setCategory] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [sendNote, setSendNote] = useState<string | null>(null);
@@ -117,6 +128,7 @@ export function FeedbackModal({ contextLabel, onClose }: FeedbackModalProps) {
     userEmail,
     loggedInUserEmail: user?.email ?? '',
     userRole: userRole ?? '',
+    category,
     title,
     description,
     context,
@@ -132,8 +144,8 @@ export function FeedbackModal({ contextLabel, onClose }: FeedbackModalProps) {
     setSendNote(null);
     setSendError(null);
 
-    if (!trimmedTitle || !trimmedDescription) {
-      setSendError('Please add a title and description before sending.');
+    if (!category || !trimmedTitle || !trimmedDescription) {
+      setSendError('Please choose a category and add a title and description before sending.');
       return;
     }
 
@@ -142,11 +154,15 @@ export function FeedbackModal({ contextLabel, onClose }: FeedbackModalProps) {
     try {
       const response = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
         body: JSON.stringify({
           userEmail,
           loggedInUserEmail: user?.email ?? '',
           userRole,
+          category,
           title: trimmedTitle,
           description: trimmedDescription,
           pagePath: pathname,
@@ -168,6 +184,7 @@ export function FeedbackModal({ contextLabel, onClose }: FeedbackModalProps) {
       }
 
       setSendNote('Feedback sent. Thank you.');
+      setCategory('');
       setTitle('');
       setDescription('');
     } catch (error) {
@@ -224,10 +241,29 @@ export function FeedbackModal({ contextLabel, onClose }: FeedbackModalProps) {
             />
 
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <label htmlFor="feedback-category" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+                Category
+              </label>
+              <select
+                id="feedback-category"
+                required
+                value={category}
+                onChange={(event) => setCategory(event.target.value)}
+                className="w-full rounded-xl border border-[rgba(255,255,255,0.1)] bg-[var(--background)] p-3 text-white outline-none focus:border-[var(--accent-primary)]"
+              >
+                <option value="">Choose a category</option>
+                {FEEDBACK_CATEGORIES.map((entry) => (
+                  <option key={entry.value} value={entry.value}>{entry.label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="feedback-email" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
                 Your Email
               </label>
               <input
+                id="feedback-email"
                 type="email"
                 value={userEmail}
                 onChange={(event) => setUserEmail(event.target.value)}
@@ -237,10 +273,11 @@ export function FeedbackModal({ contextLabel, onClose }: FeedbackModalProps) {
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <label htmlFor="feedback-title" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
                 Feedback Title
               </label>
               <input
+                id="feedback-title"
                 type="text"
                 required
                 value={title}
@@ -251,10 +288,11 @@ export function FeedbackModal({ contextLabel, onClose }: FeedbackModalProps) {
             </div>
 
             <div>
-              <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
+              <label htmlFor="feedback-description" className="mb-2 block text-xs font-semibold uppercase tracking-wider text-gray-400">
                 Description
               </label>
               <textarea
+                id="feedback-description"
                 required
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
@@ -268,8 +306,14 @@ export function FeedbackModal({ contextLabel, onClose }: FeedbackModalProps) {
               <p className="text-xs leading-relaxed text-gray-300">
                 Feedback is sent directly to {FEEDBACK_EMAIL}. If sending fails, copy the feedback and send it manually.
               </p>
+              <p className="mt-2 text-xs text-gray-400">
+                Read our <Link href="/privacy" onClick={onClose} className="text-[var(--accent-secondary)] underline">Privacy Policy</Link> or visit <Link href="/support" onClick={onClose} className="text-[var(--accent-secondary)] underline">Support</Link>.
+              </p>
+              <p className="mt-2 text-xs text-amber-200">
+                Never submit passwords, access tokens, payment details, or highly sensitive medical information.
+              </p>
               {sendNote && <p className="mt-2 text-xs text-gray-400">{sendNote}</p>}
-              {sendError && <p className="mt-2 text-xs text-[#ff6b6b]">{sendError}</p>}
+              {sendError && <p role="alert" className="mt-2 text-xs text-[#ff6b6b]">{sendError}</p>}
             </div>
           </div>
 

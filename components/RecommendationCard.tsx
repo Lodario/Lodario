@@ -23,7 +23,7 @@ function buildGuidanceDetail(
   const { readinessLoad, wellness, training, painInjury, missedLogs } = context;
 
   if (painInjury.hasPainToday || painInjury.hasActiveOrRecoveringInjury || painInjury.hasAutoInjury) {
-    return 'Pain or injury signals are present, so keep football work modified and avoid extra intensity.';
+    return 'Pain or injury signals are present, so reduce football intensity and avoid adding extra high-intensity work.';
   }
 
   if (wellness.loggedDays < 3) {

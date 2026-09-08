@@ -19,6 +19,12 @@ import {
   UsersRound,
 } from 'lucide-react';
 import { AppRole, getDefaultRouteForRole } from '@/lib/routeRoles';
+import {
+  isPublicBetaRoleEnabled,
+  PUBLIC_BETA_FEATURES,
+  PUBLIC_BETA_UNAVAILABLE_MESSAGE,
+} from '@/lib/betaScope.mjs';
+import { PublicLegalLinks } from '@/components/legal/PublicLegalLinks';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -91,6 +97,11 @@ function RoleSelectionScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const handleSelectRole = async (role: AppRole) => {
+    if (!isPublicBetaRoleEnabled(role)) {
+      setError(PUBLIC_BETA_UNAVAILABLE_MESSAGE);
+      return;
+    }
+
     setSavingRole(role);
     setError(null);
     const result = await setUserRole(role);
@@ -109,7 +120,7 @@ function RoleSelectionScreen() {
         <div className="glass-card p-6 sm:p-8 animate-slide-up">
           <h2 className="text-2xl font-bold text-white">Choose your role</h2>
           <p className="text-sm text-gray-400 mt-2 mb-6 leading-relaxed">
-            Select how you use Lodario. Players get personal training guidance. Coaches get team dashboards and planning tools. Guardian accounts are created through the separate verified linking process.
+            Select how you use Lodario. Players get personal training guidance. Coaches get team dashboards and planning tools.
           </p>
 
           <div className="space-y-3">
@@ -127,14 +138,16 @@ function RoleSelectionScreen() {
               {savingRole === 'player' ? <Loader2 className="ml-auto animate-spin text-[var(--accent-primary)]" size={18} /> : null}
             </button>
 
-            <div className="w-full p-4 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] text-left flex items-center space-x-3 opacity-70">
-              <UsersRound className="text-gray-400 flex-shrink-0" size={22} />
-              <div>
-                <p className="text-sm font-bold text-white">Guardian</p>
-                <p className="text-xs text-gray-400">Available after a verified player relationship is created.</p>
+            {PUBLIC_BETA_FEATURES.guardianAndMinorAccounts ? (
+              <div className="w-full p-4 rounded-xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.02)] text-left flex items-center space-x-3 opacity-70">
+                <UsersRound className="text-gray-400 flex-shrink-0" size={22} />
+                <div>
+                  <p className="text-sm font-bold text-white">Guardian</p>
+                  <p className="text-xs text-gray-400">Available after a verified player relationship is created.</p>
+                </div>
+                <span className="ml-auto text-[10px] uppercase tracking-wide text-gray-500">Invite only</span>
               </div>
-              <span className="ml-auto text-[10px] uppercase tracking-wide text-gray-500">Invite only</span>
-            </div>
+            ) : null}
 
             <button
               type="button"
@@ -289,7 +302,7 @@ function AuthScreen() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
+              <label htmlFor="auth-email" className="block text-xs font-medium text-gray-400 mb-1.5">Email</label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                 <input
@@ -306,7 +319,7 @@ function AuthScreen() {
 
             {mode !== 'forgot' && (
               <div>
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
+                <label htmlFor="auth-password" className="block text-xs font-medium text-gray-400 mb-1.5">Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                   <input
@@ -342,7 +355,7 @@ function AuthScreen() {
 
             {mode === 'signup' && (
               <div className="animate-fade-in">
-                <label className="block text-xs font-medium text-gray-400 mb-1.5">Confirm Password</label>
+                <label htmlFor="auth-confirm-password" className="block text-xs font-medium text-gray-400 mb-1.5">Confirm Password</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
                   <input
@@ -359,7 +372,7 @@ function AuthScreen() {
             )}
 
             {error && (
-              <div className="flex items-start space-x-2 p-3 rounded-xl bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.2)] animate-fade-in">
+              <div role="alert" className="flex items-start space-x-2 p-3 rounded-xl bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.2)] animate-fade-in">
                 <AlertCircle className="text-[#ff6b6b] flex-shrink-0 mt-0.5" size={16} />
                 <p className="text-xs text-[#ff6b6b] leading-relaxed">{error}</p>
               </div>
@@ -411,9 +424,7 @@ function AuthScreen() {
           </div>
         </div>
 
-        <p className="text-center text-[10px] text-gray-600 mt-6">
-          Your data is securely stored and encrypted
-        </p>
+        <PublicLegalLinks className="mt-6" />
       </div>
     </div>
   );

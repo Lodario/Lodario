@@ -7,7 +7,14 @@ import { DataProvider } from '@/lib/DataContext';
 import { BottomNav } from '@/components/BottomNav';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { OnboardingGate } from '@/components/OnboardingGate';
+import { PublicBetaAgeGate } from '@/components/PublicBetaAgeGate';
+import { RequiredConsentGate } from '@/components/RequiredConsentGate';
 import { isCoachRoute, isGuardianRoute } from '@/lib/routeRoles';
+import {
+  getPublicBetaDisabledRouteRule,
+  isPublicBetaPublicRoute,
+  PUBLIC_BETA_FEATURES,
+} from '@/lib/betaScope.mjs';
 
 interface RootAppShellProps {
   children: React.ReactNode;
@@ -15,9 +22,15 @@ interface RootAppShellProps {
 
 export function RootAppShell({ children }: RootAppShellProps) {
   const pathname = usePathname();
-  const publicRoute = pathname === '/beta' || pathname.startsWith('/guardian/invite/');
+  const disabledRoute = getPublicBetaDisabledRouteRule(pathname);
+  const publicRoute = isPublicBetaPublicRoute(pathname)
+    || (PUBLIC_BETA_FEATURES.guardianAndMinorAccounts && pathname.startsWith('/guardian/invite/'));
   const coachRoute = isCoachRoute(pathname);
   const guardianRoute = isGuardianRoute(pathname);
+
+  if (disabledRoute) {
+    return null;
+  }
 
   if (publicRoute) {
     return (
@@ -30,14 +43,18 @@ export function RootAppShell({ children }: RootAppShellProps) {
   if (coachRoute) {
     return (
       <AuthGate requiredRole="coach">
-        <div className="min-h-screen bg-[var(--background)]">
-          {children}
-        </div>
+        <PublicBetaAgeGate>
+          <RequiredConsentGate>
+            <div className="min-h-screen bg-[var(--background)]">
+              {children}
+            </div>
+          </RequiredConsentGate>
+        </PublicBetaAgeGate>
       </AuthGate>
     );
   }
 
-  if (guardianRoute) {
+  if (guardianRoute && PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
     return (
       <AuthGate requiredRole="guardian">
         <div className="min-h-screen bg-[var(--background)]">
@@ -49,17 +66,21 @@ export function RootAppShell({ children }: RootAppShellProps) {
 
   return (
     <AuthGate requiredRole="player">
-      <DataProvider>
-        <OnboardingGate>
-          <div className="max-w-md mx-auto min-h-screen relative shadow-2xl bg-[var(--background)] overflow-hidden flex flex-col">
-            <OfflineBanner />
-            <main className="flex-1 overflow-y-auto pb-24">
-              {children}
-            </main>
-            <BottomNav />
-          </div>
-        </OnboardingGate>
-      </DataProvider>
+      <PublicBetaAgeGate>
+        <RequiredConsentGate>
+          <DataProvider>
+            <OnboardingGate>
+              <div className="max-w-md mx-auto min-h-screen relative shadow-2xl bg-[var(--background)] overflow-hidden flex flex-col">
+                <OfflineBanner />
+                <main className="flex-1 overflow-y-auto pb-24">
+                  {children}
+                </main>
+                <BottomNav />
+              </div>
+            </OnboardingGate>
+          </DataProvider>
+        </RequiredConsentGate>
+      </PublicBetaAgeGate>
     </AuthGate>
   );
 }

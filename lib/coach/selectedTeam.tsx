@@ -122,7 +122,7 @@ export function CoachTeamProvider({ children }: { children: React.ReactNode }) {
     ]);
 
     if (createdTeamsResult.error) {
-      console.error('Error loading coach-created teams:', createdTeamsResult.error);
+      console.error('[coach-teams] Owned-team load failed.');
       setTeams([]);
       setSelectedTeamId('');
       setUsingMockTeams(false);
@@ -132,7 +132,7 @@ export function CoachTeamProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (membershipResult.error) {
-      console.error('Error loading coach memberships:', membershipResult.error);
+      console.error('[coach-teams] Membership load failed.');
       setTeams([]);
       setSelectedTeamId('');
       setUsingMockTeams(false);
@@ -153,7 +153,7 @@ export function CoachTeamProvider({ children }: { children: React.ReactNode }) {
         .in('id', membershipTeamIds);
 
       if (membershipTeamsResult.error) {
-        console.error('Error loading membership teams:', membershipTeamsResult.error);
+        console.error('[coach-teams] Related-team load failed.');
         setTeams([]);
         setSelectedTeamId('');
         setUsingMockTeams(false);
@@ -198,8 +198,8 @@ export function CoachTeamProvider({ children }: { children: React.ReactNode }) {
         if (storedTeamId) {
           preferredTeamId = storedTeamId;
         }
-      } catch (error) {
-        console.error('Unable to read stored coach selected team id:', error);
+      } catch {
+        console.error('[coach-teams] Saved team preference could not be read.');
       }
     }
 
@@ -211,8 +211,8 @@ export function CoachTeamProvider({ children }: { children: React.ReactNode }) {
 
     try {
       window.localStorage.setItem(selectedTeamStorageKey, selectedTeamId);
-    } catch (error) {
-      console.error('Unable to persist coach selected team id:', error);
+    } catch {
+      console.error('[coach-teams] Team preference could not be saved.');
     }
   }, [selectedTeamId, selectedTeamStorageKey]);
 
@@ -253,7 +253,7 @@ export function CoachTeamProvider({ children }: { children: React.ReactNode }) {
       );
 
       if (membershipUpsertError) {
-        console.error('Team created but coach membership upsert failed:', membershipUpsertError);
+        console.error('[coach-teams] Coach membership creation failed after team creation.');
       }
 
       await loadTeams(createdTeam.id);

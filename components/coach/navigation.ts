@@ -10,6 +10,7 @@ import {
   Users,
   ShieldCheck,
 } from 'lucide-react';
+import { PUBLIC_BETA_FEATURES } from '@/lib/betaScope.mjs';
 
 export interface CoachNavigationItem {
   label: string;
@@ -23,7 +24,9 @@ export const coachPrimaryNavigation: CoachNavigationItem[] = [
   { label: 'Teams', href: '/coach/teams', icon: Users },
   { label: 'Overview', href: '/coach/overview', icon: Layers, isTeamScoped: true },
   { label: 'Players', href: '/coach/players', icon: ClipboardList, isTeamScoped: true },
-  { label: 'Guardians', href: '/coach/guardians', icon: ShieldCheck, isTeamScoped: true },
+  ...(PUBLIC_BETA_FEATURES.guardianAndMinorAccounts
+    ? [{ label: 'Guardians', href: '/coach/guardians', icon: ShieldCheck, isTeamScoped: true }]
+    : []),
   { label: 'Analytics', href: '/coach/analytics', icon: BarChart3, isTeamScoped: true },
   { label: 'Calendar', href: '/coach/calendar', icon: CalendarDays, isTeamScoped: true },
 ];

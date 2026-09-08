@@ -28,6 +28,7 @@ import { WeeklyAvailabilityGrid } from './WeeklyAvailabilityGrid';
 import { TrainingResourcePicker } from './TrainingResourcePicker';
 import { CalendarWeek } from './CalendarWeek';
 import { EventModal } from './EventModal';
+import { PublicLegalLinks } from './legal/PublicLegalLinks';
 
 type StepId = 1 | 2 | 3 | 4;
 
@@ -308,10 +309,11 @@ export function OnboardingFlow() {
 
               <form onSubmit={handleSubmitStep1} className="space-y-5">
                 <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                  <label htmlFor="onboarding-display-name" className="block text-xs font-medium text-gray-400 mb-1.5">
                     Display name
                   </label>
                   <input
+                    id="onboarding-display-name"
                     type="text"
                     value={displayName}
                     onChange={(e) => {
@@ -330,10 +332,11 @@ export function OnboardingFlow() {
                 {/* Height & Weight */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                    <label htmlFor="onboarding-height" className="block text-xs font-medium text-gray-400 mb-1.5">
                       Height (cm)
                     </label>
                     <input
+                      id="onboarding-height"
                       type="number"
                       inputMode="decimal"
                       min={50}
@@ -346,10 +349,11 @@ export function OnboardingFlow() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                    <label htmlFor="onboarding-weight" className="block text-xs font-medium text-gray-400 mb-1.5">
                       Weight (kg)
                     </label>
                     <input
+                      id="onboarding-weight"
                       type="number"
                       inputMode="decimal"
                       min={20}
@@ -364,16 +368,17 @@ export function OnboardingFlow() {
                 </div>
 
                 {/* Positions */}
-                <div>
-                  <label className="block text-xs font-medium text-gray-400 mb-2">
+                <div role="group" aria-labelledby="onboarding-position-label">
+                  <p id="onboarding-position-label" className="block text-xs font-medium text-gray-400 mb-2">
                     Position
-                  </label>
+                  </p>
                   <div className="flex flex-wrap gap-2">
                     {POSITION_OPTIONS.map(pos => (
                       <button
                         type="button"
                         key={pos.id}
                         onClick={() => togglePosition(pos.id as Position)}
+                        aria-pressed={positions.includes(pos.id as Position)}
                         className={`px-3 py-2 rounded-full text-xs font-bold transition-all touch-target ${
                           positions.includes(pos.id as Position)
                             ? 'bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black shadow-md'
@@ -388,11 +393,11 @@ export function OnboardingFlow() {
 
                 {/* Team / coach code */}
                 <div className="glass-card p-4">
-                  <h3 className="text-xs font-bold text-white uppercase tracking-wider mb-1">
+                  <h3 id="onboarding-team-code-label" className="text-xs font-bold text-white uppercase tracking-wider mb-1">
                     Team / Coach Code
                   </h3>
                   <p className="text-[11px] text-gray-400 mb-3 leading-relaxed">
-                    Have a code from a coach or team? Link your account so future coach features can connect you. You can skip this for now.
+                    Have a code from a coach or team? Link your account to join the team workspace. You can skip this for now.
                   </p>
 
                   {teamConnected ? (
@@ -419,6 +424,8 @@ export function OnboardingFlow() {
                   ) : (
                     <>
                       <input
+                        id="onboarding-team-code"
+                        aria-labelledby="onboarding-team-code-label"
                         type="text"
                         value={teamCode}
                         onChange={(e) => {
@@ -668,6 +675,8 @@ export function OnboardingFlow() {
               </div>
             </section>
           )}
+
+          <PublicLegalLinks className="mt-8 pb-2" />
         </div>
       </main>
 

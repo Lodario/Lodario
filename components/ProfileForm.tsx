@@ -8,6 +8,7 @@ import { differenceInYears, parseISO } from 'date-fns';
 import { joinTeamByCode } from '@/lib/teamMembership';
 import { getPlayerDisplayNameValidationError, normalizePlayerDisplayName } from '@/lib/player-names';
 import { getPlayerAgeState } from '@/lib/guardian/onboarding';
+import { PUBLIC_BETA_FEATURES } from '@/lib/betaScope.mjs';
 
 export function ProfileForm() {
   const { profile, saveProfile } = useData();
@@ -34,7 +35,10 @@ export function ProfileForm() {
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.displayName || '');
-      if (profile.dateOfBirth) setDateOfBirth(profile.dateOfBirth);
+      if (profile.dateOfBirth) {
+        setDateOfBirth(profile.dateOfBirth);
+        setDateOfBirthVerified(true);
+      }
       setHeightCm(profile.heightCm != null ? String(profile.heightCm) : '');
       setWeightKg(profile.weightKg != null ? String(profile.weightKg) : '');
       setTeamCode(profile.teamCode || '');
@@ -44,6 +48,8 @@ export function ProfileForm() {
   }, [profile]);
 
   useEffect(() => {
+    if (!PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) return;
+
     let active = true;
     void getPlayerAgeState().then(({ data: ageState }) => {
       if (!active || !ageState?.dateOfBirth) return;
@@ -245,7 +251,7 @@ export function ProfileForm() {
         )}
         {dateOfBirthVerified ? (
           <p className="mt-1.5 text-[11px] leading-relaxed text-gray-500">
-            This is the verified birthday used for age-policy decisions. Request a correction from Guardians, permissions &amp; privacy if it is wrong.
+            This is the birthday used for public-beta eligibility. Contact Lodario support if it needs to be corrected.
           </p>
         ) : null}
       </div>

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AppLogo } from '@/components/AppLogo';
 import { BetaSignupForm } from './BetaSignupForm';
+import { PublicLegalLinks } from '@/components/legal/PublicLegalLinks';
 
 export const metadata: Metadata = {
   title: 'Join the Lodario Beta',
@@ -30,6 +31,7 @@ export default function BetaPage() {
           </div>
           <BetaSignupForm />
         </section>
+        <PublicLegalLinks className="justify-start" />
       </div>
     </main>
   );

@@ -1,4 +1,8 @@
 import { supabase } from '@/lib/supabase';
+import {
+  PUBLIC_BETA_FEATURES,
+  PUBLIC_BETA_UNAVAILABLE_MESSAGE,
+} from '@/lib/betaScope.mjs';
 
 export type PlayerAgeState = {
   hasAgeIdentity: boolean;
@@ -39,6 +43,10 @@ export type InvitationPreview = {
 };
 
 export async function getPlayerAgeState(): Promise<{ data: PlayerAgeState | null; error: string | null }> {
+  if (!PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
+    return { data: null, error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
+  }
+
   const { data, error } = await supabase.rpc('player_get_my_guardian_state');
   const raw = data as (PlayerAgeState & { ageKnown?: boolean; ageCheckpointRequired?: boolean; invitations?: Array<{ id: string; status: string; guardianEmailMasked: string; expiresAt: string }> }) | null;
   if (!raw) return { data: null, error: error?.message ?? null };
@@ -55,6 +63,10 @@ export async function getPlayerAgeState(): Promise<{ data: PlayerAgeState | null
 }
 
 export async function setInitialPlayerAge(dateOfBirth: string, countryCode: string) {
+  if (!PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
+    return { data: null, error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
+  }
+
   const { data, error } = await supabase.rpc('player_set_initial_age', {
     p_date_of_birth: dateOfBirth,
     p_country_code: countryCode,
@@ -63,11 +75,19 @@ export async function setInitialPlayerAge(dateOfBirth: string, countryCode: stri
 }
 
 export async function previewGuardianInvitation(token: string) {
+  if (!PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
+    return { data: null, error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
+  }
+
   const { data, error } = await supabase.rpc('guardian_preview_invitation', { p_token: token });
   return { data: (data as InvitationPreview | null) ?? null, error: error?.message ?? null };
 }
 
 export async function acceptGuardianInvitation(token: string, displayName: string, authorityDeclared: boolean) {
+  if (!PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
+    return { data: null, error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
+  }
+
   const { data, error } = await supabase.rpc('guardian_accept_invitation', {
     p_token: token,
     p_display_name: displayName,
@@ -78,6 +98,10 @@ export async function acceptGuardianInvitation(token: string, displayName: strin
 }
 
 export async function decidePlayerAccount(invitationId: string, approve: boolean, optionalConsents: Record<string, boolean>) {
+  if (!PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
+    return { data: null, error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
+  }
+
   const { data, error } = await supabase.rpc('guardian_decide_player_account', {
     p_invitation_id: invitationId,
     p_approve: approve,
@@ -95,6 +119,10 @@ export async function createGuardianInvitation(input: {
   invitationType?: string;
   relatedTeamId?: string;
 }) {
+  if (!PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
+    return { data: null, error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
+  }
+
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { data: null, error: 'Sign in to send a Guardian invitation.' };
   const response = await fetch('/api/guardian/invitations', {
@@ -107,6 +135,10 @@ export async function createGuardianInvitation(input: {
 }
 
 export async function manageGuardianInvitation(action: 'resend' | 'cancel', invitationId: string) {
+  if (!PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
+    return { data: null, error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
+  }
+
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) return { data: null, error: 'Sign in to manage this invitation.' };
   const response = await fetch('/api/guardian/invitations', {

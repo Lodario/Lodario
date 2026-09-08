@@ -1035,7 +1035,7 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
   });
 
   if (playersError) {
-    console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading team players via get_team_players RPC:', playersError, { teamId });
+    console.error('[coach-data] Team Player roster load failed.');
     return { data: [], error: playersError.message || 'Unable to load players.' };
   }
 
@@ -1075,27 +1075,24 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
   ]);
 
   if (wellnessResult.error) {
-    console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading wellness logs for team players:', wellnessResult.error, { teamId, playerCount: playerIds.length });
+    console.error('[coach-data] Player wellness load failed.');
     return { data: [], error: wellnessResult.error.message || 'Unable to load wellness logs.' };
   }
 
   if (trainingResult.error) {
-    console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading training logs for team players:', trainingResult.error, { teamId, playerCount: playerIds.length });
+    console.error('[coach-data] Player training load failed.');
     return { data: [], error: trainingResult.error.message || 'Unable to load training logs.' };
   }
 
   let calendarRows: CalendarRow[] = [];
   if (calendarResult.error) {
-    console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading calendar events for team players:', calendarResult.error, { teamId, playerCount: playerIds.length });
+    console.error('[coach-data] Player calendar load failed.');
   } else {
     calendarRows = calendarResult.rows;
   }
 
   if (eventTypeActivityResult.error) {
-    console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading player event type activity settings:', eventTypeActivityResult.error, {
-      teamId,
-      playerCount: playerIds.length,
-    });
+    console.error('[coach-data] Player event-type settings load failed.');
   }
 
   const coachManagedCalendarRows = calendarRows.filter((row) => parseCoachCalendarMeta(row.recurrence_config)?.coachManaged === true);
@@ -1105,15 +1102,12 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
   const coachEventTypeIds = Array.from(new Set(coachManagedCalendarRows.map((row) => row.event_type_id)));
   const coachEventTypeActivityResult = await loadCoachEventTypeActivity(coachIds, coachEventTypeIds);
   if (coachEventTypeActivityResult.error) {
-    console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading coach event type activity settings:', coachEventTypeActivityResult.error, {
-      teamId,
-      coachCount: coachIds.length,
-    });
+    console.error('[coach-data] Coach event-type settings load failed.');
   }
 
   let injuryQueryError: string | null = null;
   if (injuriesResult.error) {
-    console.error('[players/realData:loadRealTeamPlayerDatasets] Error loading injuries for team players:', injuriesResult.error, { teamId, playerCount: playerIds.length });
+    console.error('[coach-data] Player injury-status load failed.');
     injuryQueryError = injuriesResult.error.message || 'Unable to load injury records.';
   }
 
@@ -1121,7 +1115,7 @@ export async function loadRealTeamPlayerDatasets(teamId: string): Promise<{ data
   const trainingRows = (trainingResult.data ?? []) as TrainingRow[];
   const injuryRows = ((injuriesResult.data ?? []) as InjuryRow[]);
   if (attendanceResult.error) {
-    console.warn('[players/realData:loadRealTeamPlayerDatasets] Attendance history is unavailable for the sheet view:', attendanceResult.error, { teamId });
+    console.warn('[coach-data] Player attendance history load failed.');
   }
   const attendanceRows = attendanceResult.error ? [] : ((attendanceResult.data ?? []) as AttendanceRow[]);
 

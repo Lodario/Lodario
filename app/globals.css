@@ -48,6 +48,11 @@ body {
   /* The layout wrapper will handle the font-family */
 }
 
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
 @layer utilities {
   .glass-card {
     @apply bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl backdrop-blur-md shadow-lg;
