@@ -72,9 +72,9 @@ export function PublicBetaAgeGate({ children }: { children: React.ReactNode }) {
     return (
       <AgeGateFrame>
         <ShieldCheck className="text-[var(--accent-primary)]" size={38} />
-        <h1 className="mt-4 text-2xl font-bold text-white">Lodario 18+ beta</h1>
+        <h1 className="mt-4 text-2xl font-bold text-white">Lodario Coach workspace</h1>
         <p className="mt-3 text-sm leading-relaxed text-gray-400">
-          The current Lodario public beta is only available to people aged 18 or older.
+          Coach accounts require an adult. Younger Players can use the Player workspace under the country and Guardian rules.
         </p>
         <button type="button" onClick={signOut} className="mt-6 w-full rounded-xl border border-[var(--accent-primary)] px-4 py-3 text-sm font-bold text-[var(--accent-primary)]">
           Sign out
@@ -88,7 +88,7 @@ export function PublicBetaAgeGate({ children }: { children: React.ReactNode }) {
       <CalendarDays className="text-[var(--accent-primary)]" size={38} />
       <h1 className="mt-4 text-2xl font-bold text-white">Confirm your age</h1>
       <p className="mt-2 text-sm leading-relaxed text-gray-400">
-        Lodario’s current public beta is for adults aged 18 or older. Enter your date of birth once so we can check eligibility.
+        Coach accounts require an adult. Enter your date of birth once so we can check your Coach eligibility.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 text-left">

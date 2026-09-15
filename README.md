@@ -2,7 +2,7 @@
 
 Lodario is a mobile-first football training and team-management application for Players and Coaches. The current public-beta scope includes authentication, onboarding, profiles, teams, wellness and training logs, readiness and load guidance, injuries, calendars, analytics, RSVP/attendance, and feedback.
 
-The public beta is restricted to users aged 18 or older. Deferred Guardian/minor, AI, subscription/payment, advertising, and health-integration code remains in the repository but is disabled.
+Players use the existing country-specific age and Guardian rules. Younger Players require verified Guardian approval and current document acceptance; Coaches remain 18+. AI, subscription/payment, advertising, and health-integration features remain disabled.
 
 ## Local development
 
@@ -26,4 +26,4 @@ npm run build
 
 Do not apply Supabase migrations to a linked environment without reviewing `npx supabase db push --dry-run`, confirming a recoverable backup, and obtaining deployment approval.
 
-See [`docs/launch/18-plus-beta-scope.md`](docs/launch/18-plus-beta-scope.md) for the beta feature boundary, controls, migration status, and remaining launch work.
+See [`docs/launch/country-beta-status.md`](docs/launch/country-beta-status.md) for the current scope, verification, recovery procedures and deployment status. Older 18+ launch documents are historical and superseded by that status document.

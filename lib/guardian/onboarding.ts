@@ -14,6 +14,7 @@ export type PlayerAgeState = {
   guardianOverviewRequired: boolean;
   guardianRequired?: boolean;
   guardianConnectionRequired?: boolean;
+  hasGuardianConnection?: boolean;
   restricted: boolean;
   policyVersion?: string;
   policyStatus?: string;
@@ -33,6 +34,7 @@ export type InvitationPreview = {
   status?: string;
   invitationType?: string;
   playerName?: string;
+  playerId?: string;
   guardianName?: string | null;
   guardianEmail?: string;
   relationshipType?: string;

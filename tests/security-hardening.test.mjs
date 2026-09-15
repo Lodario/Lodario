@@ -46,7 +46,7 @@ test('direct API bypass does not allow Guardian, cross-owner export, or cross-ow
     source('app/api/account/delete/route.ts'),
   ]);
 
-  assert.match(scope, /guardianAndMinorAccounts: false/);
+  assert.match(scope, /guardianAndMinorAccounts: true/);
   assert.match(middleware, /'api'[\s\S]*status: 404/);
   assert.match(guardianApi, /if \(!PUBLIC_BETA_FEATURES\.guardianAndMinorAccounts\)/);
 

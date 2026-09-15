@@ -9,7 +9,7 @@ const outfit = Outfit({ subsets: ["latin"], weight: ["300", "400", "500", "600",
 
 const siteUrl = getSiteUrl();
 const siteDescription =
-  "Football training, wellness, readiness, calendar, and team tools for adult players and coaches.";
+  "Football training, wellness, readiness, calendar, and team tools for players, coaches, and Guardians.";
 
 export const metadata: Metadata = {
   metadataBase: siteUrl,

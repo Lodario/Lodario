@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required.', requestId }, { status: 401, headers: responseHeaders });
   }
 
-  const { data: ageStatus, error: ageError } = await supabase.rpc('public_beta_get_my_age_status');
+  const { data: ageStatus, error: ageError } = await supabase.rpc('public_beta_get_my_access_status');
   if (
     ageError
     || !ageStatus
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
     || Array.isArray(ageStatus)
     || ageStatus.eligible !== true
   ) {
-    return NextResponse.json({ error: 'The Lodario beta is only available to users aged 18 or older.', requestId }, { status: 403, headers: responseHeaders });
+    return NextResponse.json({ error: 'Complete the account, Guardian and consent requirements before sending in-app feedback. Support remains available by email.', requestId }, { status: 403, headers: responseHeaders });
   }
 
   let emailConfig;
@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
   const description = sanitizeString(payload.description, MAX_DESCRIPTION_LENGTH);
   const enteredUserEmail = sanitizeHeaderValue(sanitizeString(payload.userEmail, 254));
   const loggedInUserEmail = user.email ?? '';
-  const statusRole = ageStatus.role === 'player' || ageStatus.role === 'coach' ? ageStatus.role : '';
+  const statusRole = ['player', 'coach', 'guardian'].includes(ageStatus.role) ? ageStatus.role : '';
   const userRole = statusRole;
   const pagePath = sanitizeString(payload.pagePath, 200);
   const context = sanitizeString(payload.context, 200);

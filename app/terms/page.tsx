@@ -7,7 +7,7 @@ const termsVersion = REQUIRED_CONSENT_DOCUMENTS.find((document) => document.docu
 
 export const metadata: Metadata = {
   title: 'Terms of Use | Lodario',
-  description: 'Terms for using the Lodario 18+ public beta as a player or coach.',
+  description: 'Terms for using the Lodario public beta as a player or coach.',
   alternates: { canonical: '/terms' },
 };
 
@@ -17,12 +17,12 @@ export default function TermsPage() {
   return (
     <PublicDocumentLayout
       title="Terms of Use"
-      description="These Terms apply to player and coach use of Lodario during the current free 18+ public beta."
+      description="These Terms apply to player and coach use of Lodario during the current free public beta."
     >
       <Section title="Operator and eligibility">
         <p>
           Lodario is provided by <strong className={operatorName === LEGAL_OPERATOR_PLACEHOLDER ? 'text-amber-300' : 'text-white'}>{operatorName}</strong>.
-          You must be at least 18 years old to register for or use this beta. Guardian and minor accounts are not available.
+          Player access depends on date of birth and country of residence. Where the applicable account policy requires it, a verified Guardian must approve the account and accept the required documents. Coach accounts require an adult. Guardians must be adults authorised to act for the Player.
         </p>
       </Section>
 

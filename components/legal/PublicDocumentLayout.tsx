@@ -24,7 +24,7 @@ export function PublicDocumentLayout({
 
         <article className="glass-card p-5 sm:p-8">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--accent-secondary)]">
-            18+ public beta
+            Public beta
           </p>
           <h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl">{title}</h1>
           <p className="mt-3 text-sm leading-6 text-gray-300">{description}</p>

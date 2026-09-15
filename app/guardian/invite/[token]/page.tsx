@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
+import { RequiredConsentGate } from '@/components/RequiredConsentGate';
 import { AppLogo } from '@/components/AppLogo';
 import { useAuth } from '@/lib/AuthContext';
 import { acceptGuardianInvitation, decidePlayerAccount, previewGuardianInvitation, type InvitationPreview } from '@/lib/guardian/onboarding';
@@ -17,8 +18,8 @@ export default function GuardianInvitationPage() {
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [authority, setAuthority] = useState(false);
-  const [accepted, setAccepted] = useState<{ invitationId: string; requiresApproval: boolean; requiresReview: boolean } | null>(null);
-  const [optional, setOptional] = useState({ product_research: false, marketing: false, optional_analytics: false });
+  const [accepted, setAccepted] = useState<{ invitationId: string; requiresApproval: boolean; requiresReview: boolean; playerId?: string } | null>(null);
+  const optional = {};
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
@@ -27,12 +28,12 @@ export default function GuardianInvitationPage() {
   useEffect(() => { void (async () => {
     const result = await previewGuardianInvitation(token);
     setPreview(result.data); setEmail(result.data?.guardianEmail || ''); setDisplayName(result.data?.guardianName || ''); setError(result.error); setLoading(false);
-  })(); }, [token]);
+  })(); }, [token, user?.id]);
 
   useEffect(() => {
     if (!user || !preview?.valid || user.email?.toLowerCase() !== preview.guardianEmail?.toLowerCase()) return;
     if ((preview.status === 'accepted' || preview.status === 'review_required') && preview.invitationId) {
-      setAccepted({ invitationId: preview.invitationId, requiresApproval: preview.consentRequired === true, requiresReview: preview.status === 'review_required' });
+      setAccepted({ invitationId: preview.invitationId, requiresApproval: preview.consentRequired === true, requiresReview: preview.status === 'review_required', playerId: preview.playerId });
     } else if (preview.status === 'approved') {
       setDone('This invitation was already completed.');
     }
@@ -60,6 +61,7 @@ export default function GuardianInvitationPage() {
     const result = await decidePlayerAccount(accepted.invitationId,approve,optional);
     setLoading(false);
     if (result.error) { setError(result.error); return; }
+    if (approve && result.data?.reviewRequired) { setAccepted({ ...accepted, requiresReview: true }); return; }
     setDone(approve ? 'The Player account is approved and active.' : 'The Player account was not approved. The relationship is closed.');
     await refreshUserRoles();
   };
@@ -87,7 +89,7 @@ export default function GuardianInvitationPage() {
       <label className="block text-sm font-medium">Your name<input required value={displayName} onChange={e=>setDisplayName(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 p-3"/></label>
       <label className="flex items-start gap-3 rounded-xl border border-white/10 p-4 text-sm leading-relaxed"><input type="checkbox" checked={authority} onChange={e=>setAuthority(e.target.checked)} className="mt-1"/><span>I confirm I am an adult and I am authorised to act as this Player’s {preview.relationshipType?.replaceAll('_',' ')}.</span></label>
       <button onClick={accept} disabled={!authority||!displayName.trim()||loading} className="min-h-12 w-full rounded-xl bg-[var(--accent-primary)] font-bold text-black disabled:opacity-50">Accept invitation</button>
-    </div> : accepted?.requiresReview ? <p className="mt-6 rounded-xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm">Your verification requires support review. The Player account remains restricted.</p> : accepted?.requiresApproval && !done ? <div className="mt-6 space-y-4"><div className="rounded-xl border border-white/10 p-4"><h2 className="font-bold">Required account approval</h2><p className="mt-1 text-sm text-gray-400">Approve the Player account and required Guardian relationship, or reject it. Optional choices below are separate and can remain off.</p></div>{Object.entries(optional).map(([key,value])=><label key={key} className="flex items-center justify-between gap-4 text-sm"><span>{key.replaceAll('_',' ')}</span><input type="checkbox" checked={value} onChange={e=>setOptional(current=>({...current,[key]:e.target.checked}))}/></label>)}<div className="grid grid-cols-2 gap-3"><button onClick={()=>decide(false)} className="min-h-12 rounded-xl border border-red-300/30 text-red-200">Reject</button><button onClick={()=>decide(true)} className="min-h-12 rounded-xl bg-[var(--accent-primary)] font-bold text-black">Approve account</button></div></div> : null}
+    </div> : accepted?.requiresReview ? <p className="mt-6 rounded-xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm">Your verification requires support review. The Player account remains restricted.</p> : accepted?.requiresApproval && !done ? <><button onClick={()=>decide(false)} className="mt-5 min-h-11 w-full rounded-xl border border-red-300/30 text-red-200">Decline account approval</button><RequiredConsentGate playerId={accepted.playerId}><div className="mt-6 space-y-4"><div className="rounded-xl border border-white/10 p-4"><h2 className="font-bold">Required account approval</h2><p className="mt-1 text-sm text-gray-400">Approve the Player account and required Guardian relationship, or reject it.</p></div><div className="grid grid-cols-2 gap-3"><button onClick={()=>decide(false)} className="min-h-12 rounded-xl border border-red-300/30 text-red-200">Reject</button><button onClick={()=>decide(true)} className="min-h-12 rounded-xl bg-[var(--accent-primary)] font-bold text-black">Approve account</button></div></div></RequiredConsentGate></> : null}
     {done ? <div className="mt-6 rounded-xl border border-emerald-300/20 bg-emerald-300/10 p-4"><p className="flex items-center gap-2 font-bold text-emerald-200"><CheckCircle2 size={19}/>Completed</p><p className="mt-2 text-sm text-gray-300">{done}</p>{user ? <button onClick={openGuardian} className="mt-4 min-h-11 w-full rounded-xl bg-[var(--accent-primary)] font-bold text-black">Open Guardian workspace</button> : null}</div> : null}
     {notice ? <p className="mt-4 rounded-xl border border-sky-300/20 bg-sky-300/10 p-3 text-sm text-sky-100">{notice}</p> : null}
     {error ? <p className="mt-4 rounded-xl border border-red-300/20 bg-red-300/10 p-3 text-sm text-red-200">{error}</p> : null}

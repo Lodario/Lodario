@@ -1,0 +1,10 @@
+.local-backups
+backups
+.env
+.env.*
+!.env.example
+.git
+supabase/.temp
+supabase/.branches
+tests
+scripts/database

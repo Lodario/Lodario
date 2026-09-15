@@ -9,6 +9,7 @@ import { OfflineBanner } from '@/components/OfflineBanner';
 import { OnboardingGate } from '@/components/OnboardingGate';
 import { PublicBetaAgeGate } from '@/components/PublicBetaAgeGate';
 import { RequiredConsentGate } from '@/components/RequiredConsentGate';
+import { PlayerAccessGate } from '@/components/guardian/PlayerAccessGate';
 import { isCoachRoute, isGuardianRoute } from '@/lib/routeRoles';
 import {
   getPublicBetaDisabledRouteRule,
@@ -57,16 +58,18 @@ export function RootAppShell({ children }: RootAppShellProps) {
   if (guardianRoute && PUBLIC_BETA_FEATURES.guardianAndMinorAccounts) {
     return (
       <AuthGate requiredRole="guardian">
+        <RequiredConsentGate>
         <div className="min-h-screen bg-[var(--background)]">
           {children}
         </div>
+        </RequiredConsentGate>
       </AuthGate>
     );
   }
 
   return (
     <AuthGate requiredRole="player">
-      <PublicBetaAgeGate>
+      <PlayerAccessGate>
         <RequiredConsentGate>
           <DataProvider>
             <OnboardingGate>
@@ -80,7 +83,7 @@ export function RootAppShell({ children }: RootAppShellProps) {
             </OnboardingGate>
           </DataProvider>
         </RequiredConsentGate>
-      </PublicBetaAgeGate>
+      </PlayerAccessGate>
     </AuthGate>
   );
 }

@@ -1,4 +1,6 @@
-# Lodario 18+ public beta DPIA
+# Lodario country-policy public beta DPIA
+
+**Technical scope updated 15 September 2026; legal review remains required.** See [current release evidence](country-beta-status.md). Historical 18+ assumptions below are superseded where identified.
 
 **Status:** internal launch assessment, not professional legal certification
 
@@ -10,15 +12,15 @@
 
 ## Purpose and scope
 
-Lodario provides Player and Coach authentication, onboarding, profiles, teams, Coach-Player connections, wellness and training logs, readiness/load calculations, informational recommendations, pain and injury status, calendars, RSVP, attendance, analytics, feedback and support. The public beta is limited to adults aged 18 or older.
+Lodario provides Player, Coach and Guardian accounts, onboarding, profiles, teams, Coach-Player connections, wellness and training logs, readiness/load calculations, informational recommendations, pain and injury status, calendars, RSVP, attendance, analytics, feedback and support. Players follow configured country age/Guardian rules; Coaches remain 18+.
 
-Guardian/minor infrastructure remains in historical migrations but is disabled by application flags, route controls, API denial, privilege revocation and the pending 18+ migration. AI, payments, advertising, behavioural tracking, PostHog and health-device integrations are excluded.
+Guardian/minor flows are active, with verified email-bound invitations, relationship-scoped access, and Guardian acceptance of current documents where required. AI, payments, advertising, behavioural tracking, PostHog and health-device integrations are excluded.
 
 ## People and roles
 
 - **Players:** enter profile, wellness, training, pain/injury, calendar and team information.
 - **Coaches:** create/manage teams and view connected Players only through active managed-team relationships.
-- **Future Guardians:** schema exists for later phases but public registration and access are disabled.
+- **Guardians:** receive only the permitted overview through verified, active relationships; younger Players need their approval and document acceptance.
 - **Operator/support:** may access only what is necessary through trusted Supabase, Vercel and support-email administration.
 
 ## Data inventory, source, purpose and access
@@ -27,7 +29,7 @@ Guardian/minor infrastructure remains in historical migrations but is disabled b
 | --- | --- | --- | --- |
 | Authentication identifiers and email | User/Supabase Auth | Account access, verification, reset, security | Account owner; trusted Auth administration |
 | Name, role and Player profile | User | Personalisation, onboarding, team display | Owner; legitimate managed-team Coach for permitted Player fields |
-| DOB and adult eligibility | User; legacy authoritative age identity | Enforce 18+ beta | Owner through narrow status RPC; trusted administration |
+| DOB, country and eligibility | User; authoritative age identity | Apply country policy and Guardian requirements | Owner through narrow RPCs; verified Guardian where approval requires it; trusted administration |
 | Teams, invite codes and memberships | Coach/Player actions | Team connection and management | Related member; managing Coach |
 | Wellness, sleep, fatigue, stress and notes | Player | Readiness and trends | Player; legitimate managing Coach |
 | Training sessions, load and notes | Player | Load, analytics and recommendations | Player; legitimate managing Coach |
@@ -36,7 +38,7 @@ Guardian/minor infrastructure remains in historical migrations but is disabled b
 | Required consent history | Server after user action | Prove exact accepted document version/time | Owner read; trusted administration |
 | Feedback and support content | User/app context | Investigate and answer requests | Operator/support and Gmail delivery |
 | Minimal operational events | Application | Count export/deletion/feedback success/failure | Operator aggregates only |
-| Guardian records | Historical/future flows | Future Guardian lifecycle | Inactive for beta; trusted administration only after pending gate |
+| Guardian records and document acceptance | Invitation and approval flows | Relationship authorization and consent evidence | Verified participants through RLS/RPCs; trusted administration |
 
 Readiness, load and recommendation results are derived from source records. Recommendations are not stored as independent database records.
 
@@ -66,8 +68,8 @@ Provider region, contractual transfer mechanism, subprocessors and retention mus
 
 - Supabase RLS on all browser tables.
 - Owner predicates on private records and managed-team checks for Coach access.
-- Adult restrictive policies/triggers on core tables in the pending 18+ gate.
-- Guardian routes disabled; Guardian tables/RPCs revoked by the pending gate.
+- Country eligibility and current-consent restrictive policies/triggers on core tables.
+- Guardian reads require verified relationships, appropriate permissions and current Player consent; direct core health tables remain inaccessible to Guardians.
 - No service-role credential in browser or application environment.
 - Owner-scoped export/deletion functions accept no target user ID.
 - Recent JWT issue-time check, explicit phrase and team-ownership block for deletion.
@@ -87,11 +89,11 @@ Provider region, contractual transfer mechanism, subprocessors and retention mus
 | Sensitive information in logs | Possible | High | Fixed safe log labels and correlation IDs | Provider/platform metadata requires manual review |
 | Accidental or hostile deletion | Unlikely | High | No target ID, exact phrase, recent auth, transaction, Coach ownership block | User may misunderstand permanent effect |
 | Deletion partially fails | Unlikely | High | Single database transaction, safe retry/support path | Must verify against isolated representative data |
-| Failed or unusable backup | Possible | High | Dashboard checkpoint, three logical dumps, isolated restore drill | Current restore drill is blocked by Docker/`psql` |
+| Failed or unusable backup | Possible | High | Dashboard checkpoint, three logical dumps, isolated restore drill | Native PostgreSQL restore verified public/Auth/Storage metadata; backups currently depend on the local PC |
 | Excessive retention | Possible | Medium/High | Account deletion, 30-day logs, 12-month feedback email, 30-day manual backups, quarterly review | Provider-managed automatic-backup retention must be verified manually |
-| Future AI accesses health data | Not in beta | High | AI flag off; no AI environment key | Requires new DPIA and explicit approval |
+| Future AI accesses health data | Not in beta | High | AI UI/API flags off; existing key is server-only and inactive | Requires new DPIA and explicit approval |
 | Future payment processing | Not in beta | High | Payment/subscription flags off | Requires provider/security/legal review |
-| Future minor processing | Not in beta | Very high | 18+ gate and Guardian shutdown | Requires new DPIA, consent/legal review |
+| Minor processing | In beta | Very high | Country rules, verified Guardian relationships, exact document acceptance and restricted sporting-data access | Legal review of thresholds, consent and health processing remains required |
 | Availability/failed requests | Possible | Medium | Health endpoint, error boundaries, Vercel/Supabase monitoring | No paid multi-region monitoring |
 
 ## Incident response
@@ -116,7 +118,7 @@ Provider region, contractual transfer mechanism, subprocessors and retention mus
 
 ## Open concerns
 
-- Pending migrations have not run against an isolated restored database.
-- Linked database lint has two historical errors in disabled AI/Guardian functions.
-- Provider plan, region, automatic-backup retention and alert settings require operator confirmation. Vercel/Supabase error and security log retention must be configured to 30 days where supported.
+- All five pending migrations passed against an isolated restored database, including the Player-subject consent protection.
+- The country and schema-reconciliation migrations fix the DOB evaluator argument and ambiguous AI credit reference; see the current release record for hosted lint results.
+- Hosted plan, region and backup availability have been checked. Current recovery depends on the local maintenance task; independent offsite recovery and always-on alerting are suggested improvements. Provider logs expire within the documented 30-day maximum.
 - Professional legal review is intentionally scheduled later.

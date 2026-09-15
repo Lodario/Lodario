@@ -1,3 +1,5 @@
+> Historical 18+ release record. The [country-policy release record](country-beta-status.md) supersedes this scope, checklist and deployment status.
+
 # Lodario 18+ beta release checklist
 
 ## Source and scope

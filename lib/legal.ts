@@ -1,29 +1,29 @@
 export const SUPPORT_EMAIL = 'contact.lodario@gmail.com';
-export const LEGAL_EFFECTIVE_DATE = '23 July 2026';
-export const LEGAL_DOCUMENT_VERSION = '1.0';
+export const LEGAL_EFFECTIVE_DATE = '14 September 2026';
+export const LEGAL_DOCUMENT_VERSION = '1.1';
 
 export const REQUIRED_CONSENT_DOCUMENTS = [
   {
     documentType: 'terms_of_use',
-    documentVersion: 'terms-2026-07-23-v1.0',
+    documentVersion: 'terms-2026-09-14-v1.1',
     documentUrl: '/terms',
     label: 'Terms of Use',
   },
   {
     documentType: 'privacy_policy',
-    documentVersion: 'privacy-2026-07-23-v1.0',
+    documentVersion: 'privacy-2026-09-14-v1.1',
     documentUrl: '/privacy',
     label: 'Privacy Policy',
   },
   {
     documentType: 'health_data_processing',
-    documentVersion: 'health-data-2026-07-23-v1.0',
+    documentVersion: 'health-data-2026-09-14-v1.1',
     documentUrl: '/privacy#health-data',
     label: 'Health-data processing',
   },
   {
     documentType: 'coach_player_data_sharing',
-    documentVersion: 'coach-sharing-2026-07-23-v1.0',
+    documentVersion: 'coach-sharing-2026-09-14-v1.1',
     documentUrl: '/privacy#coach-sharing',
     label: 'Coach access and player-data sharing',
   },

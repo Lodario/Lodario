@@ -1,3 +1,5 @@
+> Historical 18+ release record. The [country-policy release record](country-beta-status.md) supersedes this scope, checklist and deployment status.
+
 # Lodario 18+ beta functional test plan
 
 **Automated result:** 72/72 passing on 8 September 2026

@@ -1,4 +1,5 @@
 import withSerwistInit from "@serwist/next";
+import { fileURLToPath } from "node:url";
 
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
@@ -6,6 +7,6 @@ const withSerwist = withSerwistInit({
 });
 
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = { outputFileTracingRoot: fileURLToPath(new URL('.', import.meta.url)) };
 
 export default withSerwist(nextConfig);

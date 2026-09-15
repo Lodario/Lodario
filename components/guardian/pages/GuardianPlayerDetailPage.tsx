@@ -7,12 +7,17 @@ import { loadGuardianBillingSummary, loadGuardianPlayerProfileSummary, loadPlaye
 import type { GuardianBillingSummary, GuardianPlayerOverview, GuardianPlayerProfileSummary } from '@/lib/guardian/types';
 import { relationshipLabel } from '@/lib/guardian/visibility';
 import { GuardianEmpty, GuardianError, GuardianLoading, PlayerAvatar, StatusPill } from '../GuardianUi';
+import { RequiredConsentGate } from '@/components/RequiredConsentGate';
 
 function Section({ title, icon: Icon, children }: { title: string; icon: typeof Activity; children: React.ReactNode }) {
   return <section className="glass-card p-5"><div className="mb-4 flex items-center gap-2"><Icon size={17} className="text-[var(--accent-primary)]" /><h2 className="text-sm font-semibold">{title}</h2></div>{children}</section>;
 }
 
 export function GuardianPlayerDetailPage({ playerId }: { playerId: string }) {
+  return <RequiredConsentGate playerId={playerId}><GuardianPlayerDetailContent playerId={playerId} /></RequiredConsentGate>;
+}
+
+function GuardianPlayerDetailContent({ playerId }: { playerId: string }) {
   const [data, setData] = useState<GuardianPlayerOverview | null>(null);
   const [billing, setBilling] = useState<GuardianBillingSummary | null>(null);
   const [profileSummary, setProfileSummary] = useState<GuardianPlayerProfileSummary | null>(null);
@@ -35,7 +40,7 @@ export function GuardianPlayerDetailPage({ playerId }: { playerId: string }) {
   if (loading) return <GuardianLoading label="Loading the player overview…" />;
   if (error) return <GuardianError message={error.includes('Linked player not found') ? 'This player is not linked to your Guardian account. The URL does not grant access.' : error} />;
   if (!data) return <GuardianEmpty title="Player unavailable" message="No Guardian-visible player information was returned." />;
-  const active = data.relationship.status === 'active';
+  const active = data.relationship.status === 'active' || data.relationship.status === 'adult_authorised';
   return (
     <div className="mx-auto max-w-6xl space-y-5">
       <Link href="/guardian/children" className="inline-flex min-h-11 items-center gap-1 text-sm text-gray-400 hover:text-white"><ChevronLeft size={16} />Linked players</Link>

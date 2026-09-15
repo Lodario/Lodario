@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Lodario',
     short_name: 'Lodario',
-    description: 'Football training, wellness, readiness, calendar, and team tools for adult players and coaches.',
+    description: 'Football training, wellness, readiness, calendar, and team tools for players, coaches, and Guardians.',
     id: '/',
     start_url: '/',
     scope: '/',

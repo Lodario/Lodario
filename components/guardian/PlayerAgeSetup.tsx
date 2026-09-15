@@ -6,6 +6,7 @@ import { AppLogo } from '@/components/AppLogo';
 import { useAuth } from '@/lib/AuthContext';
 import { createGuardianInvitation, setInitialPlayerAge, type PlayerAgeState } from '@/lib/guardian/onboarding';
 import { CountryResidenceSelector } from '@/components/guardian/CountryResidenceSelector';
+import { PublicLegalLinks } from '@/components/legal/PublicLegalLinks';
 
 export function PlayerAgeSetup({ onComplete }: { onComplete: (state: PlayerAgeState) => void }) {
   const { user } = useAuth();
@@ -45,7 +46,7 @@ export function PlayerAgeSetup({ onComplete }: { onComplete: (state: PlayerAgeSt
       invitationType: ageState.ageBand === 'under_self_consent' ? 'under13_approval' : 'minor_overview',
     });
     setLoading(false);
-    if (result.error) { setError(result.error); return; }
+    if (result.error || result.data?.warning) { setError(result.error || result.data.warning); return; }
     setDevelopmentUrl(result.data?.developmentPreviewUrl || null);
     onComplete({ ...ageState, restricted: ageState.guardianApprovalRequired, accountState: ageState.guardianApprovalRequired ? 'invitation_pending' : 'active' });
   };
@@ -58,7 +59,7 @@ export function PlayerAgeSetup({ onComplete }: { onComplete: (state: PlayerAgeSt
           <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-xl bg-[rgba(var(--accent-primary-rgb),0.15)]"><ShieldCheck className="text-[var(--accent-primary)]" /></div>
           {stage === 'age' ? (
             <form onSubmit={saveAge} className="space-y-4">
-              <div><h1 className="text-2xl font-bold">Set up your Player account</h1><p className="mt-2 text-sm leading-relaxed text-gray-400">Your date of birth is kept private and is used only to apply the correct account and Guardian rules. Coaches and Guardians do not see it.</p></div>
+              <div><h1 className="text-2xl font-bold">Set up your Player account</h1><p className="mt-2 text-sm leading-relaxed text-gray-400">Your date of birth and country of residence determine the account and Guardian rules that apply to you. A connected Guardian may see your date of birth while their approval is required.</p></div>
               <label className="block text-sm font-medium">Date of birth<input required type="date" max={new Date().toISOString().slice(0,10)} value={dateOfBirth} onChange={e=>setDateOfBirth(e.target.value)} className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 p-3" /></label>
               <CountryResidenceSelector value={countryCode} onChange={setCountryCode} />
               <Submit loading={loading} label="Continue" />
@@ -74,6 +75,7 @@ export function PlayerAgeSetup({ onComplete }: { onComplete: (state: PlayerAgeSt
           )}
           {error ? <p className="mt-4 flex gap-2 rounded-xl border border-red-400/20 bg-red-400/10 p-3 text-sm text-red-300"><AlertCircle size={18} />{error}</p> : null}
           {developmentUrl ? <a className="mt-4 block break-all text-xs text-[var(--accent-primary)] underline" href={developmentUrl}>Development-only invitation preview</a> : null}
+          <PublicLegalLinks className="mt-5" />
         </div>
       </div>
     </div>

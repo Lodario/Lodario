@@ -12,7 +12,7 @@ export default function SupportPage() {
   return (
     <PublicDocumentLayout
       title="Support and Contact"
-      description="Get help with the Lodario 18+ public beta or submit an account and privacy request."
+      description="Get help with the Lodario public beta or submit an account and privacy request."
     >
       <section className="rounded-2xl border border-[rgba(var(--accent-secondary-rgb),0.3)] bg-[rgba(var(--accent-secondary-rgb),0.08)] p-5">
         <h2 className="text-xl font-bold text-white">Email support</h2>

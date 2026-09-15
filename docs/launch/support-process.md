@@ -30,4 +30,6 @@
 
 ## Retention
 
+The installed maintenance task enforces this for app-generated feedback and mail carrying the **Lodario Support** Gmail label. Apply that label to manual support conversations at intake. See [current operations and DOB correction procedure](country-beta-status.md).
+
 Retain feedback and support emails for 12 months from receipt, then delete them from the mailbox and recoverable mail folders. Delete unnecessary quoted sensitive content sooner where practical. The product does not accept feedback attachments. Error/security logs associated with a support case retain their separate 30-day limit.

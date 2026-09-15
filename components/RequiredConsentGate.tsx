@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
@@ -19,6 +19,7 @@ type ConsentDocument = {
 
 type ConsentStatus = {
   complete: boolean;
+  guardianAcceptanceRequired?: boolean;
   documents: ConsentDocument[];
 };
 
@@ -31,7 +32,7 @@ function fallbackDocuments(): ConsentDocument[] {
   }));
 }
 
-export function RequiredConsentGate({ children }: { children: React.ReactNode }) {
+export function RequiredConsentGate({ children, playerId }: { children: React.ReactNode; playerId?: string }) {
   const [status, setStatus] = useState<ConsentStatus | null>(null);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
@@ -39,10 +40,13 @@ export function RequiredConsentGate({ children }: { children: React.ReactNode })
   const [declined, setDeclined] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadStatus = async () => {
+  const loadStatus = useCallback(async () => {
     setLoading(true);
     setError(null);
-    const { data, error: statusError } = await supabase.rpc('public_beta_get_my_consent_status');
+    const { data, error: statusError } = await supabase.rpc(
+      playerId ? 'guardian_get_player_consent_status' : 'public_beta_get_my_consent_status',
+      playerId ? { p_player_id: playerId } : undefined,
+    );
     if (
       statusError
       || !data
@@ -57,11 +61,13 @@ export function RequiredConsentGate({ children }: { children: React.ReactNode })
     }
     setStatus(data as ConsentStatus);
     setLoading(false);
-  };
+  }, [playerId]);
 
   useEffect(() => {
+    setChecked({});
+    setDeclined(false);
     void loadStatus();
-  }, []);
+  }, [loadStatus]);
 
   const documents = status?.documents ?? fallbackDocuments();
   const allChecked = useMemo(
@@ -77,8 +83,8 @@ export function RequiredConsentGate({ children }: { children: React.ReactNode })
       documents.map((document) => [document.documentType, document.documentVersion]),
     );
     const { data, error: acceptanceError } = await supabase.rpc(
-      'public_beta_accept_required_consents',
-      { p_acceptances: acceptances },
+      playerId ? 'guardian_accept_player_documents' : 'public_beta_accept_required_consents',
+      { p_acceptances: acceptances, ...(playerId ? { p_player_id: playerId } : {}) },
     );
     if (
       acceptanceError
@@ -105,6 +111,16 @@ export function RequiredConsentGate({ children }: { children: React.ReactNode })
 
   if (status?.complete) return <>{children}</>;
 
+  if (!playerId && status?.guardianAcceptanceRequired) return (
+    <div className="mx-auto max-w-lg space-y-5 p-6">
+      <h1 className="text-2xl font-bold">Your Guardian needs to review the documents</h1>
+      <p className="text-sm text-gray-300">Ask your connected Guardian to open your Player page in their workspace and accept the current documents. Your training and wellness access will resume after their approval is recorded.</p>
+      <button onClick={() => void loadStatus()} className="min-h-11 rounded-xl bg-[var(--accent-primary)] px-5 font-bold text-black">Check approval status</button>
+      <Link href="/support" className="block underline">Contact support</Link>
+      <AccountPrivacyActions compact />
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-[var(--background)] px-4 py-8 text-white">
       <div className="mx-auto max-w-xl">
@@ -117,7 +133,7 @@ export function RequiredConsentGate({ children }: { children: React.ReactNode })
             )}
             <div>
               <h1 className="text-xl font-bold">
-                {declined ? 'Required processing remains paused' : 'Review and accept the current documents'}
+                {declined ? 'Required processing remains paused' : playerId ? 'Review documents for this Player' : 'Review and accept the current documents'}
               </h1>
               <p className="mt-2 text-sm leading-relaxed text-gray-300">
                 Lodario needs a server-recorded acceptance of each current document before processing wellness, training, injury, calendar, or Coach-sharing data. Checkboxes are intentionally not preselected.
@@ -142,7 +158,7 @@ export function RequiredConsentGate({ children }: { children: React.ReactNode })
                     className="mt-1 h-4 w-4 accent-[var(--accent-primary)]"
                   />
                   <span className="text-sm leading-relaxed text-gray-200">
-                    I have read and accept the{' '}
+                    {playerId ? 'As this Player’s authorised Guardian, I have read and accept the ' : 'I have read and accept the '}
                     <Link
                       href={document.documentUrl}
                       target="_blank"
@@ -216,9 +232,9 @@ export function RequiredConsentGate({ children }: { children: React.ReactNode })
           </div>
         </div>
 
-        <div className="glass-card mt-4 p-5">
+        {!playerId ? <div className="glass-card mt-4 p-5">
           <AccountPrivacyActions compact />
-        </div>
+        </div> : null}
       </div>
     </div>
   );

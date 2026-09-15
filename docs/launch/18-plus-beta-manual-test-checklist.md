@@ -1,3 +1,5 @@
+> Historical 18+ release record. The [country-policy release record](country-beta-status.md) supersedes this scope, checklist and deployment status.
+
 # Lodario 18+ beta manual test checklist
 
 Run this checklist only against local development, a Vercel Preview connected to an isolated Supabase project, or another explicitly approved test environment. Do not use real health details or arbitrary email recipients.

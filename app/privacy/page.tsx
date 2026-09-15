@@ -9,7 +9,7 @@ const coachSharingVersion = REQUIRED_CONSENT_DOCUMENTS.find((document) => docume
 
 export const metadata: Metadata = {
   title: 'Privacy Policy | Lodario',
-  description: 'How Lodario handles personal, training, wellness, team, calendar, and support information during the 18+ public beta.',
+  description: 'How Lodario handles personal, training, wellness, team, calendar, and support information during the public beta.',
   alternates: { canonical: '/privacy' },
 };
 
@@ -38,13 +38,13 @@ export default function PrivacyPage() {
 
       <Section title="Information we handle and why">
         <ul className="list-disc space-y-2 pl-5">
-          <li><strong className="text-white">Account and profile:</strong> email address, authentication identifiers, name, role, date of birth, physical and football profile details, availability, training resources, and onboarding status. We use these to secure accounts, enforce the 18+ beta restriction, personalise the product, and provide role-appropriate features. Password authentication is handled by Supabase; Lodario does not receive your password in readable form.</li>
-          <li><strong className="text-white">Age and country:</strong> date of birth is used to calculate eligibility for the current 18+ beta. Country fields may remain in the inactive guardian/minor data model, but country is not currently used for the public beta age decision.</li>
+          <li><strong className="text-white">Account and profile:</strong> email address, authentication identifiers, name, role, date of birth, physical and football profile details, availability, training resources, and onboarding status. We use these to secure accounts, apply account and Guardian requirements, personalise the product, and provide role-appropriate features. Password authentication is handled by Supabase; Lodario does not receive your password in readable form.</li>
+          <li><strong className="text-white">Age and country:</strong> date of birth and country of residence are evaluated by the server to apply the configured country policy. Where no reviewed policy applies, Lodario requires Guardian approval below 13 and a Guardian invitation for ages 13–17. This fallback is a Lodario product rule. Coach accounts require an adult.</li>
           <li><strong className="text-white">Teams and connections:</strong> team details, team codes, memberships, and coach-player relationships are used to connect accounts and provide team workspaces.</li>
           <li><strong className="text-white">Training and wellness:</strong> wellness check-ins, training logs, readiness and load results, recommendations, pain reports, and injury status are used to show trends and informational training guidance. This can include sensitive health-related information.</li>
           <li><strong className="text-white">Calendar and attendance:</strong> individual and team events, recurring schedules, RSVP responses, attendance, and display preferences are used to run calendars and team participation features.</li>
           <li><strong className="text-white">Feedback and support:</strong> the email, title, description, page context, account role, time, browser user agent, and timezone supplied or attached to a feedback request are used to investigate and respond to it.</li>
-          <li><strong className="text-white">Policy records:</strong> required document type, exact version, and server-generated acceptance time are retained with the account. Historical Guardian/minor consent structures remain inactive for this beta.</li>
+          <li><strong className="text-white">Policy records:</strong> required document type, exact version, and server-generated acceptance time are retained with the account. Guardian relationships, verification, approval, and versioned document acceptance are recorded where required. Linked Guardians receive only the permitted read-only overview.</li>
           <li><strong className="text-white">Minimal beta operations:</strong> Lodario may retain limited first-party events for completed or failed exports, deletion attempts, feedback delivery, and application reliability. These events must not contain wellness answers, injury details, notes, email addresses, tokens, or message bodies.</li>
         </ul>
       </Section>
@@ -76,7 +76,7 @@ export default function PrivacyPage() {
       <Section title="Retention and security">
         <ul className="list-disc space-y-2 pl-5">
           <li><strong className="text-white">Account data:</strong> retained until the user deletes their account.</li>
-          <li><strong className="text-white">Error and security logs:</strong> retained for 30 days.</li>
+          <li><strong className="text-white">Error and security logs:</strong> retained for up to 30 days; provider logs may expire sooner.</li>
           <li><strong className="text-white">Feedback and support emails:</strong> retained for 12 months.</li>
           <li><strong className="text-white">Manual backups:</strong> retained for 30 days and then securely deleted.</li>
         </ul>

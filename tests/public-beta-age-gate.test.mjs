@@ -111,17 +111,17 @@ test('player and coach routes are gated before onboarding or data providers', as
   const shell = await readFile(new URL('components/RootAppShell.tsx', rootUrl), 'utf8');
   const gate = await readFile(new URL('components/PublicBetaAgeGate.tsx', rootUrl), 'utf8');
   assert.match(shell, /<AuthGate requiredRole="coach">[\s\S]*?<PublicBetaAgeGate>/);
-  assert.match(shell, /<AuthGate requiredRole="player">[\s\S]*?<PublicBetaAgeGate>[\s\S]*?<DataProvider>/);
+  assert.match(shell, /<AuthGate requiredRole="player">[\s\S]*?<PlayerAccessGate>[\s\S]*?<DataProvider>/);
   assert.match(gate, /getPublicBetaAgeStatus\(\)/);
   assert.match(gate, /confirmPublicBetaDateOfBirth\(dateOfBirth\)/);
-  assert.match(gate, /only available to people aged 18 or older/);
+  assert.match(gate, /Coach accounts require an adult/);
 });
 
 test('feedback API authenticates and verifies stored age instead of trusting payload fields', async () => {
   const route = await readFile(new URL('app/api/feedback/route.ts', rootUrl), 'utf8');
   const modal = await readFile(new URL('components/FeedbackModal.tsx', rootUrl), 'utf8');
   assert.match(route, /supabase\.auth\.getUser\(\)/);
-  assert.match(route, /supabase\.rpc\('public_beta_get_my_age_status'\)/);
+  assert.match(route, /supabase\.rpc\('public_beta_get_my_access_status'\)/);
   assert.match(route, /ageStatus\.eligible !== true/);
   assert.match(modal, /Authorization: `Bearer \$\{session\.access_token\}`/);
 });

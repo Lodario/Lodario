@@ -9,7 +9,7 @@ const migrationPath = 'supabase/migrations/20260723230000_beta_privacy_operation
 
 test('required consent versions are exact, current, server-recorded, and immutable', async () => {
   const [migration, legal, gate, privacy, terms, health] = await Promise.all([
-    source(migrationPath),
+    Promise.all([source(migrationPath), source('supabase/migrations/20260914120000_country_beta_access.sql')]).then(parts => parts.join('\n')),
     source('lib/legal.ts'),
     source('components/RequiredConsentGate.tsx'),
     source('app/privacy/page.tsx'),
@@ -18,10 +18,10 @@ test('required consent versions are exact, current, server-recorded, and immutab
   ]);
 
   const versions = [
-    'terms-2026-07-23-v1.0',
-    'privacy-2026-07-23-v1.0',
-    'health-data-2026-07-23-v1.0',
-    'coach-sharing-2026-07-23-v1.0',
+    'terms-2026-09-14-v1.1',
+    'privacy-2026-09-14-v1.1',
+    'health-data-2026-09-14-v1.1',
+    'coach-sharing-2026-09-14-v1.1',
   ];
   for (const version of versions) {
     assert.match(migration, new RegExp(version.replaceAll('.', '\\.')));

@@ -32,8 +32,8 @@ test('Player onboarding is gated and Coach entry uses the stable role-to-workspa
   const onboardingFlow = await source('components/OnboardingFlow.tsx');
 
   assert.match(rootShell, /<AuthGate requiredRole="coach">[\s\S]*?<PublicBetaAgeGate>/);
-  assert.match(rootShell, /<AuthGate requiredRole="player">[\s\S]*?<PublicBetaAgeGate>[\s\S]*?<DataProvider>[\s\S]*?<OnboardingGate>/);
-  assert.match(onboardingGate, /!profile \|\| !profile\.onboardingCompleted/);
+  assert.match(rootShell, /<AuthGate requiredRole="player">[\s\S]*?<PlayerAccessGate>[\s\S]*?<DataProvider>[\s\S]*?<OnboardingGate>/);
+  assert.match(onboardingGate, /!profile\?\.onboardingCompleted/);
   assert.match(onboardingFlow, /normalizePlayerDisplayName/);
   assert.match(onboardingFlow, /onboarding-display-name/);
   assert.match(onboardingFlow, /onboarding-height/);
@@ -106,9 +106,9 @@ test('Guardian direct access and under-18 core access fail closed at application
   const migration = await source('supabase/migrations/20260723210000_public_beta_18_plus_gate.sql');
   const shell = await source('components/RootAppShell.tsx');
 
-  assert.match(scope, /guardianAndMinorAccounts: false/);
-  assert.match(scope, /prefix: '\/api\/guardian'/);
-  assert.match(scope, /prefix: '\/guardian'/);
+  assert.match(scope, /guardianAndMinorAccounts: true/);
+  assert.match(scope, /PUBLIC_BETA_DISABLED_ROUTE_RULES = Object.freeze\(\[\]\)/);
+  assert.match(shell, /<PlayerAccessGate>/);
   assert.match(middleware, /status: 404/);
   assert.match(middleware, /NextResponse\.redirect/);
   assert.match(shell, /<PublicBetaAgeGate>/);
@@ -123,7 +123,7 @@ test('feedback is authenticated, age-checked, bounded, rate-limited, and deliver
   const delivery = await source('lib/email/feedback-delivery.mjs');
 
   assert.match(route, /supabase\.auth\.getUser\(\)/);
-  assert.match(route, /public_beta_get_my_age_status/);
+  assert.match(route, /public_beta_get_my_access_status/);
   assert.match(route, /RATE_LIMIT_MAX_REQUESTS/);
   assert.match(route, /MAX_TITLE_LENGTH/);
   assert.match(route, /MAX_DESCRIPTION_LENGTH/);

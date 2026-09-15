@@ -1,2 +1,5 @@
 import { GuardianPlayerDetailPage } from '@/components/guardian/pages/GuardianPlayerDetailPage';
-export default function Page({ params }: { params: { playerId: string } }) { return <GuardianPlayerDetailPage playerId={params.playerId} />; }
+export default async function Page({ params }: { params: Promise<{ playerId: string }> }) {
+  const { playerId } = await params;
+  return <GuardianPlayerDetailPage playerId={playerId} />;
+}

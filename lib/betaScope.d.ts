@@ -1,6 +1,6 @@
 export interface PublicBetaFeatures {
   readonly aiAssistant: false;
-  readonly guardianAndMinorAccounts: false;
+  readonly guardianAndMinorAccounts: true;
   readonly subscriptionsAndPayments: false;
   readonly advertising: false;
   readonly healthIntegrations: false;
@@ -19,5 +19,5 @@ export const PUBLIC_BETA_UNAVAILABLE_MESSAGE: string;
 export const PUBLIC_BETA_PUBLIC_ROUTE_PREFIXES: readonly string[];
 
 export function getPublicBetaDisabledRouteRule(pathname: string): PublicBetaDisabledRouteRule | null;
-export function isPublicBetaRoleEnabled(role: unknown): role is 'player' | 'coach';
+export function isPublicBetaRoleEnabled(role: unknown): role is 'player' | 'coach' | 'guardian';
 export function isPublicBetaPublicRoute(pathname: string): boolean;
