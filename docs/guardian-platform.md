@@ -17,6 +17,20 @@ The Guardian account, onboarding, linking, consent, and age-transition implement
 
 ## Apply to hosted Supabase
 
+The Coach Guardian sheet uses `coach_get_guardian_sheet` from migration
+`20260916160000_coach_guardian_sheet.sql`. It returns active team members and their
+real relationships/invitations, including expired and cancelled states. Sporting
+columns reuse the existing `get_team_players` consent checks. Account emails are
+masked. Invitation addresses are visible only for invitations created by the
+coach or associated with the selected team. Resend/cancel actions use the existing invitation API
+and its server-side permission checks. Coaches cannot approve consent or revoke
+relationships on behalf of Players or Guardians.
+
+The sheet refreshes after invitation actions, when the page regains focus, and
+every 30 seconds while visible. Search, filters and counts use these returned
+records. The native database test command includes transactional Guardian sheet
+checks with synthetic records and sends no email.
+
 No Docker is required. From the repository folder, use either:
 
 ```powershell
