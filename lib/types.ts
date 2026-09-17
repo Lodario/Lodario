@@ -46,7 +46,7 @@ export interface Team {
   id: string;
   name: string;
   inviteCode: string;
-  coachId: string;
+  coachId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -66,7 +66,7 @@ export interface TeamRow {
   id: string;
   name: string;
   invite_code: string;
-  created_by: string;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -86,7 +86,7 @@ export interface CoachTeam {
   id: string;
   name: string;
   code: string;
-  createdBy: string;
+  createdBy: string | null;
 }
 
 export type SelectedTeam = CoachTeam;
