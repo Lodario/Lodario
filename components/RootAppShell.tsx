@@ -73,7 +73,7 @@ export function RootAppShell({ children }: RootAppShellProps) {
         <RequiredConsentGate>
           <DataProvider>
             <OnboardingGate>
-              <div className="max-w-md mx-auto min-h-screen relative shadow-2xl bg-[var(--background)] overflow-hidden flex flex-col">
+              <div className="player-app-shell max-w-md mx-auto min-h-screen relative shadow-2xl bg-[var(--background)] overflow-hidden flex flex-col">
                 <OfflineBanner />
                 <main className="flex-1 overflow-y-auto pb-24">
                   {children}

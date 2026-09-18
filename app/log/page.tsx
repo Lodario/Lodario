@@ -5,7 +5,7 @@ import { WellnessForm } from '@/components/WellnessForm';
 import { TrainingForm } from '@/components/TrainingForm';
 import { useData } from '@/lib/DataContext';
 import { format, subDays, addDays, parseISO, isValid } from 'date-fns';
-import { ChevronLeft, ChevronRight, CheckCircle2, Heart, Dumbbell, Moon, Zap, Activity, MoreVertical, Pencil, Trash2, ShieldAlert } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, Heart, Dumbbell, Moon, Zap, BatteryMedium, Brain, MoreVertical, Pencil, Trash2, ShieldAlert } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { SESSION_TYPES, SessionType, TrainingLog } from '@/lib/types';
 
@@ -213,28 +213,28 @@ export default function LogPage() {
                     <p className="text-xs text-gray-400 mb-3">{format(parseISO(selectedWellness.date), 'EEEE, MMM d, yyyy')}</p>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex items-center space-x-2">
-                        <Moon size={14} className="text-[var(--metric-sleep-score)]" />
+                        <Moon size={14} color="#00bdf4" strokeWidth={2.4} fill="#00bdf4" />
                         <div>
                           <p className="text-[10px] text-gray-500 uppercase">Sleep</p>
                           <p className="text-sm font-bold text-white">{selectedWellness.sleepDuration}h · Q{selectedWellness.sleepQuality}/10</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Zap size={14} className="text-yellow-400" />
+                        <Zap size={14} color="#ffd43b" strokeWidth={2.4} fill="#ffd43b" />
                         <div>
                           <p className="text-[10px] text-gray-500 uppercase">Energy</p>
                           <p className="text-sm font-bold text-white">{selectedWellness.energy}/10</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Activity size={14} className="text-[var(--metric-fatigue)]" />
+                        <BatteryMedium size={14} color="#ff4249" strokeWidth={2.4} />
                         <div>
                           <p className="text-[10px] text-gray-500 uppercase">Fatigue</p>
                           <p className="text-sm font-bold text-white">{selectedWellness.fatigue}/10</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Heart size={14} className="text-[var(--metric-stress)]" />
+                        <Brain size={14} color="#ae58ff" strokeWidth={2.4} />
                         <div>
                           <p className="text-[10px] text-gray-500 uppercase">Stress</p>
                           <p className="text-sm font-bold text-white">{selectedWellness.stress}/10</p>

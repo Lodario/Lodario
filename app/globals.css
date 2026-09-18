@@ -48,6 +48,60 @@ body {
   /* The layout wrapper will handle the font-family */
 }
 
+/* Player home: proportions and colors follow the supplied design reference. */
+.player-home {
+  min-height: calc(100svh - 6rem);
+  padding: 25px 11px 32px;
+  background: radial-gradient(ellipse at 50% -15%, rgba(20, 71, 40, .17), transparent 46%),
+    radial-gradient(ellipse at 12% 24%, rgba(110, 61, 10, .055), transparent 38%), #0d0e0c;
+}
+.home-header { padding-left: 5px; margin-bottom: 25px; }
+.home-wordmark {
+  font-size: 36px;
+  font-weight: 850;
+  line-height: 1.25;
+  letter-spacing: -.8px;
+}
+.home-wordmark,
+.player-app-shell main h1 {
+  width: fit-content;
+  color: #ff922b;
+  background: linear-gradient(100deg, #ffda39 5%, #ff922b 53%, #ff4824 100%);
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.home-subtitle { margin-top: 2px; color: #f4f4f4; font-size: 16px; font-weight: 500; }
+.home-readiness-section { margin-bottom: 8px; }
+.home-readiness-heading { gap: 10px; padding: 0 6px; margin-bottom: 8px; }
+.home-readiness { display: block; width: 100%; height: auto; overflow: visible; }
+.home-readiness-progress { transition: stroke-dashoffset 1s ease, stroke-dasharray 1s ease; }
+.home-notifications-heading { margin-bottom: 17px; padding: 0 2px; }
+.home-notifications-empty {
+  min-height: 139px;
+  padding: 23px 18px;
+  color: #96999e;
+  border: 1px dashed rgba(255, 255, 255, .14);
+  border-radius: 16px;
+  background: linear-gradient(125deg, rgba(28, 28, 28, .7), rgba(23, 23, 23, .5));
+}
+.player-bottom-nav { padding: 16px 3px max(16px, env(safe-area-inset-bottom)); }
+.player-bottom-nav nav { max-width: 442px; }
+.player-bottom-nav ul {
+  min-height: 72px;
+  border: 1.5px solid transparent;
+  background: linear-gradient(#121312, #121312) padding-box,
+    linear-gradient(105deg, #ffe342, #ff942b 50%, #ff3c22) border-box;
+  box-shadow: none;
+}
+.player-bottom-nav a { color: #777b7e; }
+.player-bottom-nav a[aria-current="page"] { color: #ffad31; }
+.player-bottom-nav a[aria-current="page"] svg { stroke: url(#player-nav-gradient); }
+.player-bottom-nav a svg { width: 23px; height: 23px; }
+.player-bottom-nav a[aria-current="page"] span { background: #ffdb3e; bottom: -2px; }
+@media (prefers-reduced-motion: reduce) {
+  .home-readiness-progress { transition: none; }
+}
+
 :where(a, button, input, select, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--accent-primary);
   outline-offset: 2px;
