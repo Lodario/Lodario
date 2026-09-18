@@ -1,15 +1,39 @@
 'use client';
 
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend, LineChart, Line } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, LineChart, Line } from 'recharts';
 import { useData } from '../lib/DataContext';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays } from 'date-fns';
 import { calculateSessionLoad } from '../lib/training-load';
 import { calculatePlayerReadinessForDate } from '../lib/readiness';
 
 interface ChartProps {
   days: number;
 }
+
+function ChartCard({ title, children, legend }: { title: string; children: React.ReactNode; legend?: React.ReactNode }) {
+  return (
+    <div className="h-64 w-full glass-card p-4 flex flex-col">
+      <h3 className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider shrink-0">{title}</h3>
+      <div className="flex-1 min-h-0 min-w-0">
+        {children}
+      </div>
+      {legend}
+    </div>
+  );
+}
+
+const chartMargin = { top: 5, right: 8, left: -20, bottom: 0 };
+const dateAxisProps = {
+  dataKey: 'name',
+  stroke: 'gray',
+  fontSize: 10,
+  tickLine: false,
+  axisLine: false,
+  height: 24,
+  minTickGap: 12,
+  padding: { left: 10, right: 10 },
+} as const;
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
@@ -48,10 +72,9 @@ export function ReadinessChart({ days }: ChartProps) {
   if (data.length === 0) return <NoData />;
 
   return (
-    <div className="h-64 w-full glass-card p-4">
-      <h3 className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">Readiness Trend</h3>
+    <ChartCard title="Readiness Trend">
       <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+        <AreaChart data={data} margin={chartMargin}>
           <defs>
             <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="var(--metric-readiness)" stopOpacity={0.8}/>
@@ -59,13 +82,13 @@ export function ReadinessChart({ days }: ChartProps) {
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis dataKey="name" stroke="gray" fontSize={10} tickLine={false} axisLine={false} />
+          <XAxis {...dateAxisProps} />
           <YAxis stroke="gray" fontSize={10} tickLine={false} axisLine={false} domain={[0, 100]} />
           <Tooltip content={<CustomTooltip />} />
           <Area type="monotone" dataKey="score" name="Score" stroke="var(--metric-readiness)" fillOpacity={1} fill="url(#colorScore)" strokeWidth={3} />
         </AreaChart>
       </ResponsiveContainer>
-    </div>
+    </ChartCard>
   );
 }
 
@@ -86,18 +109,17 @@ export function LoadChart({ days }: ChartProps) {
   });
 
   return (
-    <div className="h-64 w-full glass-card p-4">
-      <h3 className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">Training Load (Acute)</h3>
+    <ChartCard title="Training Load (Acute)">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+        <BarChart data={data} margin={chartMargin}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis dataKey="name" stroke="gray" fontSize={10} tickLine={false} axisLine={false} />
+          <XAxis {...dateAxisProps} />
           <YAxis stroke="gray" fontSize={10} tickLine={false} axisLine={false} />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
           <Bar dataKey="load" name="Load (Intensity × Duration)" fill="var(--metric-load)" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
-    </div>
+    </ChartCard>
   );
 }
 
@@ -119,20 +141,30 @@ export function FatigueEnergyChart({ days }: ChartProps) {
   if (data.length === 0) return <NoData />;
 
   return (
-    <div className="h-64 w-full glass-card p-4">
-      <h3 className="text-xs font-bold text-gray-400 mb-4 uppercase tracking-wider">Energy vs Fatigue</h3>
+    <ChartCard
+      title="Energy vs Fatigue"
+      legend={
+        <div className="flex shrink-0 flex-wrap justify-center gap-x-4 gap-y-1 pt-2 text-[10px]">
+          <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--metric-energy)' }}>
+            <span className="h-2.5 w-2.5 rounded-full bg-current" aria-hidden="true" />Energy
+          </span>
+          <span className="inline-flex items-center gap-1.5" style={{ color: 'var(--metric-fatigue)' }}>
+            <span className="h-2.5 w-2.5 rounded-full bg-current" aria-hidden="true" />Fatigue
+          </span>
+        </div>
+      }
+    >
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={data} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+        <LineChart data={data} margin={chartMargin}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-          <XAxis dataKey="name" stroke="gray" fontSize={10} tickLine={false} axisLine={false} />
+          <XAxis {...dateAxisProps} />
           <YAxis stroke="gray" fontSize={10} tickLine={false} axisLine={false} domain={[0, 10]} />
           <Tooltip content={<CustomTooltip />} />
-          <Legend wrapperStyle={{ fontSize: '10px' }} iconType="circle" />
           <Line type="monotone" dataKey="energy" name="Energy" stroke="var(--metric-energy)" strokeWidth={3} dot={{ r: 3, fill: 'var(--metric-energy)', strokeWidth: 0 }} />
           <Line type="monotone" dataKey="fatigue" name="Fatigue" stroke="var(--metric-fatigue)" strokeWidth={3} dot={{ r: 3, fill: 'var(--metric-fatigue)', strokeWidth: 0 }} />
         </LineChart>
       </ResponsiveContainer>
-    </div>
+    </ChartCard>
   );
 }
 
