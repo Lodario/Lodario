@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+/.local-tools/
+/release-output/
 /.pnp
 .pnp.js
 .yarn/install-state.gz
