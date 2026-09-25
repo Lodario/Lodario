@@ -21,6 +21,8 @@ type FeedbackEmailConfig = SmtpConfig & {
   to: string;
 };
 
+const ACCOUNT_DELETION_EMAIL = 'contact.lodario@gmail.com';
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOCAL_SITE_URL = 'http://localhost:3000';
 export const LEGAL_OPERATOR_PLACEHOLDER = '[Legal operator name must be configured before launch]';
@@ -68,6 +70,13 @@ export function getFeedbackEmailServerConfig(): FeedbackEmailConfig {
   return {
     ...getSmtpServerConfig(),
     to: requireEmail(process.env.FEEDBACK_EMAIL_TO, 'FEEDBACK_EMAIL_TO'),
+  };
+}
+
+export function getAccountDeletionEmailServerConfig(): FeedbackEmailConfig {
+  return {
+    ...getSmtpServerConfig(),
+    to: ACCOUNT_DELETION_EMAIL,
   };
 }
 

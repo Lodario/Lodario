@@ -1,12 +1,72 @@
 import { createClient } from '@supabase/supabase-js';
+import nodemailer from 'nodemailer';
 import { NextRequest, NextResponse } from 'next/server';
-import { getSafeConfigurationMessage, getSupabaseServerConfig } from '@/lib/env/server';
+import {
+  getAccountDeletionEmailServerConfig,
+  getSafeConfigurationMessage,
+  getSupabaseServerConfig,
+} from '@/lib/env/server';
+import { deliverFeedbackEmail } from '@/lib/email/feedback-delivery.mjs';
 import { createRequestId, safeServerError } from '@/lib/server/request';
 
 export const runtime = 'nodejs';
 
 const attempts = new Map<string, { count: number; resetAt: number }>();
 const WINDOW_MS = 15 * 60 * 1000;
+const MAX_SUBJECT_LENGTH = 120;
+const MAX_MESSAGE_LENGTH = 4000;
+
+type DeletionPayload = {
+  confirmation?: unknown;
+  email?: unknown;
+  subject?: unknown;
+  message?: unknown;
+};
+
+function sanitizeString(value: unknown, maxLength: number): string {
+  return typeof value === 'string' ? value.trim().slice(0, maxLength) : '';
+}
+
+function sanitizeHeaderValue(value: string): string {
+  return value.replace(/[\r\n]+/g, ' ').trim();
+}
+
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function buildDeletionRequestText(params: {
+  accountEmail: string;
+  accountRole: string;
+  subject: string;
+  message: string;
+  requestId: string;
+}): string {
+  return [
+    'Lodario Account and Data Deletion Request',
+    '',
+    `Account email: ${params.accountEmail}`,
+    `Account role: ${params.accountRole || 'Not available'}`,
+    `Subject: ${params.subject}`,
+    `Request ID: ${params.requestId}`,
+    '',
+    'Message / feedback:',
+    params.message || 'Not provided',
+  ].join('\n');
+}
 
 function isSameOrigin(request: NextRequest): boolean {
   const origin = request.headers.get('origin');
@@ -37,7 +97,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Authentication required.', requestId }, { status: 401, headers });
   }
 
-  let body: { confirmation?: unknown };
+  let body: DeletionPayload;
   try {
     body = await request.json();
   } catch {
@@ -69,6 +129,70 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: 'Too many deletion attempts. Wait before retrying.', requestId },
       { status: 429, headers },
+    );
+  }
+
+  const submittedEmail = normalizeEmail(sanitizeString(body.email, 254));
+  const accountEmail = normalizeEmail(user.email ?? '');
+  const subject = sanitizeHeaderValue(sanitizeString(body.subject, MAX_SUBJECT_LENGTH));
+  const message = sanitizeString(body.message, MAX_MESSAGE_LENGTH);
+
+  if (!isValidEmail(submittedEmail) || !accountEmail || submittedEmail !== accountEmail) {
+    return NextResponse.json(
+      {
+        error: 'Please enter the email associated with your Lodario account or check the email for spelling errors.',
+        code: 'account_email_mismatch',
+        requestId,
+      },
+      { status: 400, headers },
+    );
+  }
+  if (!subject) {
+    return NextResponse.json({ error: 'A deletion request subject is required.', requestId }, { status: 400, headers });
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+  const profileRole = profile && ['player', 'coach', 'guardian'].includes(profile.role) ? profile.role : '';
+  const metadataRole = ['player', 'coach', 'guardian'].includes(user.user_metadata?.role)
+    ? user.user_metadata.role
+    : '';
+  const accountRole = profileRole || metadataRole;
+
+  let emailConfig;
+  try {
+    emailConfig = getAccountDeletionEmailServerConfig();
+  } catch (error) {
+    return NextResponse.json(
+      { error: getSafeConfigurationMessage(error, 'Deletion request email is unavailable.'), requestId },
+      { status: 500, headers },
+    );
+  }
+
+  const emailText = buildDeletionRequestText({ accountEmail, accountRole, subject, message, requestId });
+  try {
+    await deliverFeedbackEmail({
+      createTransport: nodemailer.createTransport,
+      config: emailConfig,
+      message: {
+        replyTo: accountEmail,
+        subject: `Lodario deletion request: ${subject}`,
+        text: emailText,
+        html: `<pre style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: pre-wrap; line-height: 1.5;">${escapeHtml(emailText)}</pre>`,
+      },
+    });
+  } catch {
+    safeServerError('account_deletion_failed', requestId, 502);
+    await supabase.rpc('public_beta_record_my_operational_event', {
+      p_event_type: 'deletion_failed',
+      p_request_id: requestId,
+    });
+    return NextResponse.json(
+      { error: 'The deletion request could not be sent, so your account was not deleted. Please try again later.', requestId },
+      { status: 502, headers },
     );
   }
 

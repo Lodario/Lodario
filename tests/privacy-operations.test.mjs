@@ -99,11 +99,14 @@ test('data export is authenticated, owner-scoped, rate-limited, and excludes unr
   assert.match(actions, /Download my data/);
 });
 
-test('account deletion cannot target another user and protects teams and Player-owned data', async () => {
-  const [migration, route, actions] = await Promise.all([
+test('account deletion uses the dedicated confirmed flow and cannot target another user', async () => {
+  const [migration, route, actions, form, scope, environment] = await Promise.all([
     source(migrationPath),
     source('app/api/account/delete/route.ts'),
     source('components/AccountPrivacyActions.tsx'),
+    source('components/DeleteAccountForm.tsx'),
+    source('lib/betaScope.mjs'),
+    source('lib/env/server.ts'),
   ]);
 
   assert.match(migration, /p_confirmation TEXT,\s*p_request_id UUID/);
@@ -124,12 +127,23 @@ test('account deletion cannot target another user and protects teams and Player-
 
   assert.match(route, /supabase\.auth\.getUser\(\)/);
   assert.doesNotMatch(route, /targetId|targetUser|p_user_id|service.role|service_role/i);
-  assert.match(route, /let body: \{ confirmation\?: unknown \}/);
+  assert.match(route, /type DeletionPayload/);
+  assert.match(route, /submittedEmail !== accountEmail/);
+  assert.match(route, /account_email_mismatch/);
+  assert.match(route, /deliverFeedbackEmail/);
+  assert.match(route, /Account email:/);
+  assert.match(route, /Account role:/);
   assert.match(route, /public_beta_delete_my_account/);
   assert.match(route, /isRateLimited/);
-  assert.match(actions, /DELETE MY LODARIO ACCOUNT/);
-  assert.match(actions, /signed in within the last 15 minutes/);
-  assert.match(actions, /Player-owned health logs are never deleted with a Coach account/);
+  assert.match(actions, /href="\/delete-account"/);
+  assert.match(form, /DELETE MY LODARIO ACCOUNT/);
+  assert.match(form, /Delete Account and Data/);
+  assert.match(form, /Send &amp; Delete All Account Data/);
+  assert.match(form, /Confirm Account &amp; Data Deletion/);
+  assert.match(form, /Player-owned health data is never deleted with a Coach account/);
+  assert.match(form, /result\?\.deleted !== true/);
+  assert.match(scope, /'\/delete-account'/);
+  assert.match(environment, /contact\.lodario@gmail\.com/);
 });
 
 test('privacy operations retain only minimal allowlisted measurement data', async () => {
