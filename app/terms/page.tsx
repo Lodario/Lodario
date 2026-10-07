@@ -36,6 +36,7 @@ export default function TermsPage() {
         <p>
           Keep your password and access links private, use an email account you control, provide accurate information, and promptly report suspected unauthorised access. You are responsible for activity performed through your account unless applicable law provides otherwise.
         </p>
+        <p className="mt-3">Lodario may email you about support requests, account security, identity verification and essential service updates; marketing emails require separate, optional consent.</p>
       </Section>
 
       <Section title="Players, coaches, teams and codes">

@@ -25,6 +25,7 @@ import {
   PUBLIC_BETA_UNAVAILABLE_MESSAGE,
 } from '@/lib/betaScope.mjs';
 import { PublicLegalLinks } from '@/components/legal/PublicLegalLinks';
+import { SignupConsentNotice } from '@/components/SignupConsentNotice';
 
 interface AuthGateProps {
   children: React.ReactNode;
@@ -183,9 +184,10 @@ function RoleSelectionScreen() {
   );
 }
 
-function AuthScreen() {
+export function AuthScreen({ preview = false }: { preview?: boolean } = {}) {
   const { signIn, signUp, resetPassword } = useAuth();
-  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>(preview ? 'signup' : 'signin');
+  const [marketingEmails, setMarketingEmails] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -217,11 +219,16 @@ function AuthScreen() {
     setLoading(true);
 
     try {
+      if (preview) {
+        if (mode === 'forgot') setResetSuccess(true);
+        else setSignUpSuccess(true);
+        return;
+      }
       if (mode === 'signin') {
         const result = await signIn(email, password);
         if (result.error) setError(result.error);
       } else if (mode === 'signup') {
-        const result = await signUp(email, password);
+        const result = await signUp(email, password, undefined, { marketingEmails });
         if (result.error) {
           setError(result.error);
         } else {
@@ -248,6 +255,7 @@ function AuthScreen() {
     setSignUpSuccess(false);
     setResetSuccess(false);
     setConfirmPassword('');
+    setMarketingEmails(false);
   };
 
   if (signUpSuccess || resetSuccess) {
@@ -258,16 +266,16 @@ function AuthScreen() {
             <div className="w-16 h-16 rounded-full bg-[rgba(var(--accent-primary-rgb),0.15)] flex items-center justify-center mx-auto mb-4">
               <Mail className="text-[var(--accent-primary)]" size={32} />
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">Check Your Email</h2>
+            <h2 className="text-xl font-bold text-white mb-2">{preview ? 'Signup preview complete' : 'Check Your Email'}</h2>
             <p className="text-sm text-gray-400 mb-6 leading-relaxed">
-              We&apos;ve sent a {resetSuccess ? 'password reset link' : 'confirmation link'} to <span className="text-white font-medium">{email}</span>.
-              Click the link to {resetSuccess ? 'reset your password' : 'activate your account'}.
+              {preview ? <>Local preview completed. No account was created and no emails were sent. Marketing choice: {marketingEmails ? 'selected' : 'not selected'}.</> : <>We&apos;ve sent a {resetSuccess ? 'password reset link' : 'confirmation link'} to <span className="text-white font-medium">{email}</span>. Click the link to {resetSuccess ? 'reset your password' : 'activate your account'}.</>}
             </p>
             <button
               onClick={() => {
                 setSignUpSuccess(false);
                 setResetSuccess(false);
                 setMode('signin');
+                setMarketingEmails(false);
               }}
               className="w-full py-3 rounded-xl text-sm font-bold text-[var(--accent-primary)] border border-[var(--accent-primary)] hover:bg-[rgba(var(--accent-primary-rgb),0.1)] transition-colors"
             >
@@ -289,6 +297,7 @@ function AuthScreen() {
         </div>
 
         <div className="glass-card p-6 animate-slide-up">
+          {preview ? <p role="status" className="mb-4 rounded-xl border border-amber-300/25 bg-amber-300/5 p-3 text-xs leading-5 text-amber-200">Local signup preview. Use sample details to try the flow. No accounts or email subscriptions are created.</p> : null}
           <h2 className="text-lg font-bold text-white mb-1">
             {mode === 'signin' && 'Welcome Back'}
             {mode === 'signup' && 'Create Account'}
@@ -370,6 +379,8 @@ function AuthScreen() {
                 </div>
               </div>
             )}
+
+            {mode === 'signup' ? <SignupConsentNotice marketingEmails={marketingEmails} onMarketingChange={setMarketingEmails} disabled={loading} /> : null}
 
             {error && (
               <div role="alert" className="flex items-start space-x-2 p-3 rounded-xl bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.2)] animate-fade-in">

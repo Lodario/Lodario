@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from './supabase';
 import { AppRole, isAppRole } from './routeRoles';
+import { buildSignupEmailPreference } from './signup-consent';
 import {
   isPublicBetaRoleEnabled,
   PUBLIC_BETA_UNAVAILABLE_MESSAGE,
@@ -15,7 +16,7 @@ interface AuthContextType {
   userRole: AppRole | null;
   availableRoles: AppRole[];
   isLoading: boolean;
-  signUp: (email: string, password: string, role?: AppRole) => Promise<{ error: string | null }>;
+  signUp: (email: string, password: string, role?: AppRole, choices?: { marketingEmails: boolean }) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   setUserRole: (role: AppRole) => Promise<{ error: string | null }>;
   switchRole: (role: AppRole) => Promise<{ error: string | null }>;
@@ -136,7 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const signUp = async (email: string, password: string, role?: AppRole): Promise<{ error: string | null }> => {
+  const signUp = async (email: string, password: string, role?: AppRole, choices?: { marketingEmails: boolean }): Promise<{ error: string | null }> => {
     if (role && !isPublicBetaRoleEnabled(role)) {
       return { error: PUBLIC_BETA_UNAVAILABLE_MESSAGE };
     }
@@ -144,6 +145,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const metadata: Record<string, unknown> = role
       ? { role, needs_role_selection: false }
       : { needs_role_selection: true };
+    metadata.marketing_signup_preference = buildSignupEmailPreference(choices?.marketingEmails);
 
     const { error } = await supabase.auth.signUp({
       email,
