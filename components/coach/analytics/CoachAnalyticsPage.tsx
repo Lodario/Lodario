@@ -76,7 +76,7 @@ function AveragesView({
 
   return (
     <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_300px]">
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid self-start gap-4 md:grid-cols-2">
         <TeamAnalyticsChart
           graphNumber={1}
           title="Team Readiness Score Trend"

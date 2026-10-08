@@ -193,13 +193,7 @@ export default function LogPage() {
           {!hasAnyLogs ? (
             <div className="glass-card p-6 flex flex-col items-center justify-center text-gray-400 border-dashed border-[rgba(255,255,255,0.2)]">
               <p className="text-sm">No logs recorded for this day</p>
-              <p className="mt-2 text-center text-xs leading-relaxed text-gray-500">
-                {!hasAnyWellnessLogs
-                  ? 'Start with Daily Wellness so Lodario can learn your sleep, energy, fatigue, and stress patterns.'
-                  : !hasAnyTrainingLogs
-                  ? 'Log your first training session after football, gym, or match play to build your load history.'
-                  : 'Use the buttons above to add wellness or training for this date.'}
-              </p>
+
             </div>
           ) : (
             <>

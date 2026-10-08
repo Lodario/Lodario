@@ -3,6 +3,7 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: dark;
   --background: #0d0d0c;
   --foreground: #f8f9fa;
 
@@ -46,6 +47,47 @@ body {
   color: var(--foreground);
   background: var(--background);
   /* The layout wrapper will handle the font-family */
+}
+
+/* Native bars remain a fallback in small menus and dialogs. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #8b8b8b transparent;
+}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner { background: transparent; }
+::-webkit-scrollbar-thumb { background: #8b8b8b; border-radius: 999px; }
+::-webkit-scrollbar-button { display: none; }
+/* Page and calendar thumbs are overlays: no native track or reserved gutter. */
+html, body, .quiet-scroll, [data-page-scroll] {
+  scrollbar-width: none;
+  scrollbar-gutter: auto;
+}
+html::-webkit-scrollbar, body::-webkit-scrollbar,
+.quiet-scroll::-webkit-scrollbar, [data-page-scroll]::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+.overlay-scrollbar-thumb {
+  position: fixed;
+  z-index: 50;
+  background: #8b8b8b;
+  border-radius: 999px;
+  touch-action: none;
+  cursor: grab;
+  transition: opacity 180ms ease;
+}
+.overlay-scrollbar-thumb:active { cursor: grabbing; }
+.overlay-scrollbar-thumb:focus-visible { opacity: 1 !important; }
+@media (prefers-reduced-motion: reduce) {
+  .overlay-scrollbar-thumb { transition: none; }
+}
+
+.wellness-snapshot { container-type: inline-size; }
+@container (max-width: 190px) {
+  .wellness-summary { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* Player home: proportions and colors follow the supplied design reference. */
@@ -111,7 +153,7 @@ body {
   .glass-card {
     @apply bg-[var(--card-bg)] border border-[var(--card-border)] rounded-2xl backdrop-blur-md shadow-lg;
   }
-  
+
   .touch-target {
     @apply min-h-[44px] min-w-[44px];
   }
@@ -127,7 +169,7 @@ body {
   .animate-fade-in {
     animation: fadeIn 0.4s ease-out;
   }
-  
+
   .animate-slide-up {
     animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }

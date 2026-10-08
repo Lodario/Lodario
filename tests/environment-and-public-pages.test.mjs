@@ -224,7 +224,7 @@ test('health wording stays informational while emergency and professional-care w
     'Injury Support',
     'Automatically Suggested Support',
     'active recovery guidance',
-    'suggested recovery plan',
+    'Follow recovery guidance',
     'reduce football intensity and avoid adding extra high-intensity work',
   ]) {
     assert.match(sources, new RegExp(replacement, 'i'), replacement);

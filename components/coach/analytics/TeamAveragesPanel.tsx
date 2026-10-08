@@ -21,19 +21,19 @@ export function TeamAveragesPanel({ metrics, graphNumber = 6, className }: TeamA
           No team averages yet. Wellness metrics reflect players who logged; training load appears once sessions are recorded.
         </p>
       ) : (
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-flow-col xl:grid-rows-3 xl:auto-cols-fr">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,7rem),1fr))] gap-2">
           {metrics.map((metric) => (
             <article
               key={metric.label}
-              className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2.5 py-2"
+              className="min-w-0 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2.5 py-2"
             >
               <p
-                className="text-[10px] uppercase tracking-wide text-gray-400"
+                className="text-[10px] uppercase tracking-wide text-gray-400 [overflow-wrap:anywhere]"
                 title={metric.label === 'Average Load' ? 'Total seven-day training load divided by all players on the team.' : undefined}
               >
                 {metric.label === 'Average Load' ? 'Average Load (7 days)' : metric.label}
               </p>
-              <p className="mt-0.5 text-xs font-semibold text-white">{metric.value}</p>
+              <p className="mt-0.5 text-xs font-semibold text-white [overflow-wrap:anywhere]">{metric.value}</p>
             </article>
           ))}
         </div>

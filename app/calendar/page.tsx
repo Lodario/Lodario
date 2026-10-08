@@ -132,7 +132,7 @@ export default function CalendarPage() {
     const nextDate = view === 'Week' ? subWeeks(currentDate, 1) : subDays(currentDate, 1);
     setCurrentDateKey(format(nextDate, 'yyyy-MM-dd'));
   };
-  
+
   const handleNext = () => {
     const nextDate = view === 'Week' ? addWeeks(currentDate, 1) : addDays(currentDate, 1);
     setCurrentDateKey(format(nextDate, 'yyyy-MM-dd'));
@@ -261,9 +261,7 @@ export default function CalendarPage() {
       {calendarEvents.length === 0 ? (
         <div className="mb-4 glass-card border-dashed border-[rgba(255,255,255,0.18)] p-4 text-sm text-gray-300">
           <p className="font-medium text-white">Your calendar is empty.</p>
-          <p className="mt-1 text-xs leading-relaxed text-gray-400">
-            Add training, matches, gym, school, and recovery blocks so your week and guidance have more context.
-          </p>
+
         </div>
       ) : null}
 
@@ -489,7 +487,7 @@ function DayView({ currentDate, onAddEvent, onEditEvent, onEventLongPress }: {
 
   return (
     <div className="glass-card animate-fade-in overflow-hidden relative">
-      <div ref={scheduleRef} className="overflow-y-auto max-h-[60vh] relative pb-20">
+      <div ref={scheduleRef} className="quiet-scroll overflow-y-auto max-h-[60vh] relative pb-20">
         {hours.map(hour => {
           const eventsHere = getEventsAtHour(hour);
           const startsHere = getStartsAtHour(hour);

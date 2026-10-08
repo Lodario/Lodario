@@ -317,7 +317,7 @@ function DaySchedule({
         </p>
       ) : null}
 
-      <div ref={scheduleRef} className="min-h-0 flex-1 overflow-y-auto">
+      <div ref={scheduleRef} className="min-h-0 flex-1 quiet-scroll overflow-y-auto">
         {hours.map((hour) => {
           const eventsHere = dayEvents.filter((event) =>
             getHourCellCoverage(hour, event.startHour, event.startMinute, event.endHour, event.endMinute)
@@ -464,7 +464,7 @@ function WeekSchedule({
           </p>
         ) : null}
 
-        <div ref={scheduleRef} className="min-h-0 flex-1 overflow-y-auto">
+        <div ref={scheduleRef} className="min-h-0 flex-1 quiet-scroll overflow-y-auto">
           {hours.map((hour) => (
             <div key={hour} data-hour={hour} className="flex min-h-[40px] border-b border-[rgba(255,255,255,0.05)]">
               <div className="w-10 shrink-0 pr-1 pt-1 text-right text-[10px] font-medium text-gray-500">

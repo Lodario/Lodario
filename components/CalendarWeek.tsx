@@ -331,7 +331,7 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent, onEventLong
       </div>
 
       {/* Grid */}
-      <div ref={scheduleRef} className="overflow-y-auto max-h-[60vh] relative pb-20">
+      <div ref={scheduleRef} className="quiet-scroll overflow-y-auto max-h-[60vh] relative pb-20">
         {hours.map(hour => (
           <div key={hour} data-hour={hour} className="flex min-h-[40px] border-b border-[rgba(255,255,255,0.05)]">
             <div className="w-10 flex-shrink-0 text-[10px] text-gray-500 text-right pr-2 pt-1 font-medium">
@@ -372,7 +372,7 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent, onEventLong
                     {hasEvent && eventsHere.map(re => {
                       const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
                       if (!coverage) return null;
-                      
+
                       const evLayout = layout.get(re.event.id);
                       const col = evLayout?.column ?? 0;
                       const totalCols = evLayout?.totalColumns ?? 1;
@@ -424,7 +424,7 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent, onEventLong
                       .map((re, idx) => {
                         const coverage = getHourCellCoverage(hour, re.startHour, re.startMinute, re.endHour, re.endMinute);
                         if (!coverage) return null;
-                        
+
                         const evLayout = layout.get(re.event.id);
                         const col = evLayout?.column ?? 0;
                         const totalCols = evLayout?.totalColumns ?? 1;

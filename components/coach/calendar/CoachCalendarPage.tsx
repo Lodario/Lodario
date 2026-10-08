@@ -653,8 +653,8 @@ export function CoachCalendarPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <header>
         <h1 className="text-2xl font-bold tracking-tight text-white">Calendar</h1>
-        <p className="mt-2 text-sm text-gray-400">Manage events, tasks, and schedule windows for {selectedTeam.name}.</p>
-        <p className="mt-3 text-xs font-medium text-[var(--accent-secondary)]">Selected team: {selectedTeam.name}</p>
+
+        <p className="mt-3 text-xs font-medium text-gray-400">Selected team: {selectedTeam.name}</p>
         {isLoading ? <p className="mt-2 text-xs text-gray-400">Loading team calendar data...</p> : null}
         {error ? <p className="mt-2 text-xs text-[var(--status-red)]">Unable to load calendar data: {error}</p> : null}
         {!isLoading && !error && !hasCalendarData ? (
@@ -685,7 +685,7 @@ export function CoachCalendarPage() {
               <h2 className="text-sm font-semibold text-white">
                 {selectedItem ? 'Edit Team Calendar Item' : 'Create Team Calendar Item'}
               </h2>
-              <p className="mt-1 text-xs text-gray-400">Target team: {selectedTeam.name}</p>
+
             </div>
             {selectedItem?.isDraft ? (
               <span className="rounded-full border border-[rgba(255,212,59,0.35)] bg-[rgba(255,212,59,0.12)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--status-yellow)]">

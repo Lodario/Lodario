@@ -192,7 +192,7 @@ export function CoachGuardianSheet({ teamId, loadingTeam = false }: { teamId: st
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--accent-primary)]">Team operations</p>
           <h1 className="mt-2 text-3xl font-bold text-white">Guardians</h1>
-          <p className="mt-2 text-sm text-gray-400">Manage guardian connections and invitations for your players.</p>
+
         </div>
         <button type="button" onClick={() => openInvite()} disabled={!teamId || unavailable || !rows.length || sending || Boolean(busyContact)} className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-[var(--accent-primary)] px-4 text-sm font-semibold text-black transition-opacity hover:opacity-90 disabled:opacity-40"><MailPlus size={17} />Invite guardian</button>
       </header>
@@ -210,7 +210,7 @@ export function CoachGuardianSheet({ teamId, loadingTeam = false }: { teamId: st
         </div>
         {loadError && <p role="alert" className="rounded-xl border border-rose-300/20 bg-rose-300/10 px-4 py-3 text-sm text-rose-200">{loadError} {rows.length > 0 ? 'Previously loaded information may be out of date.' : ''} Use Refresh to try again.</p>}
         <section aria-label="Guardian connections" aria-busy={loading} className="overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[rgba(11,13,13,0.72)] shadow-[0_24px_70px_rgba(0,0,0,0.24)]">
-          <div className="overflow-x-auto">
+          <div className="quiet-scroll overflow-x-auto">
             <table className="w-full min-w-[1120px] border-collapse text-left text-sm">
               <thead><tr className="border-b border-white/[0.08] text-xs font-medium text-gray-300">
                 <th scope="col" aria-sort={ascending ? 'ascending' : 'descending'} className="w-[210px] px-5 py-5"><button type="button" onClick={() => setAscending(value => !value)} className="inline-flex items-center gap-1.5 hover:text-white">Name {ascending ? <ChevronUp size={13} /> : <ChevronDown size={13} />}</button></th>
@@ -244,7 +244,7 @@ export function CoachGuardianSheet({ teamId, loadingTeam = false }: { teamId: st
       </>}
       <dialog ref={dialogRef} aria-labelledby="guardian-invite-title" onCancel={event => { if (sending) event.preventDefault(); }} className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-white/10 bg-[var(--surface-elevated)] p-0 text-white shadow-2xl backdrop:bg-black/70">
         <form onSubmit={invite} className="space-y-4 p-6">
-          <div className="flex items-start justify-between gap-4"><div><h2 id="guardian-invite-title" className="flex items-center gap-2 text-lg font-semibold"><MailPlus size={19} className="text-[var(--accent-primary)]" />Invite guardian</h2><p className="mt-1 text-xs text-gray-500">Send a secure invitation to a player’s guardian.</p></div><button type="button" aria-label="Close invitation" disabled={sending} onClick={() => dialogRef.current?.close()} className="rounded-lg p-1 text-gray-400 hover:bg-white/5 hover:text-white disabled:opacity-40"><X size={20} /></button></div>
+          <div className="flex items-start justify-between gap-4"><div><h2 id="guardian-invite-title" className="flex items-center gap-2 text-lg font-semibold"><MailPlus size={19} className="text-[var(--accent-primary)]" />Invite guardian</h2></div><button type="button" aria-label="Close invitation" disabled={sending} onClick={() => dialogRef.current?.close()} className="rounded-lg p-1 text-gray-400 hover:bg-white/5 hover:text-white disabled:opacity-40"><X size={20} /></button></div>
           {notice?.tone === 'error' && noticeElement}
           {loadError && <p role="alert" className="text-xs text-rose-200">Guardian information could not be refreshed. Close this dialog and refresh before sending an invitation.</p>}
           <label className="block text-xs text-gray-400">Player<select autoFocus required disabled={sending} value={selected} onChange={event => setSelected(event.target.value)} className={`${inputClass} mt-1.5`}><option value="">Select player</option>{rows.map(row => <option key={row.player_id} value={row.player_id}>{row.player_name}</option>)}</select></label>

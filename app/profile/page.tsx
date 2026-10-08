@@ -56,11 +56,11 @@ export default function ProfilePage() {
       <header className="mb-2 pl-1 flex justify-between items-center">
         <h1 className="text-3xl font-bold text-white tracking-tight">Athlete Profile</h1>
       </header>
-      
+
       {!profile && (
         <div className="mt-4 mb-2 p-4 bg-[rgba(255,255,255,0.05)] rounded-2xl border border-[rgba(255,255,255,0.2)]">
           <p className="text-sm text-gray-300">
-            Welcome to Lodario! Set up your profile so guidance can better reflect your training load and development.
+            Complete your athlete profile.
           </p>
         </div>
       )}
@@ -121,9 +121,7 @@ export default function ProfilePage() {
             </button>
             {resourcesOpen && (
               <div className="mt-4 animate-fade-in">
-                <p className="text-[11px] text-gray-400 mb-4 leading-relaxed">
-                  Pick the environments you have access to so recommendations can match.
-                </p>
+
                 <TrainingResourcePicker value={resources} onChange={setResources} />
                 <button
                   type="button"
@@ -136,7 +134,7 @@ export default function ProfilePage() {
             )}
           </div>
         )}
-        
+
         {/* We only show injury tracker once profile setup is done or if injuries exist */}
         {profile && (
           <InjuryTracker />
@@ -145,7 +143,7 @@ export default function ProfilePage() {
         {/* Account Section */}
         <div className="glass-card p-5 animate-slide-up">
           <h3 className="text-[var(--accent-primary)] font-bold uppercase tracking-wider text-xs mb-4">Account</h3>
-          
+
           {user && (
             <div className="flex items-center space-x-3 mb-4 p-3 rounded-xl bg-[rgba(255,255,255,0.03)]">
               <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-secondary)] flex items-center justify-center flex-shrink-0">

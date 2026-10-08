@@ -62,7 +62,7 @@ export function InjuryTracker() {
           <div className="glass-card p-5 text-center border-dashed border-[rgba(255,255,255,0.2)]">
             <CheckCircle2 className="mx-auto text-[var(--status-green)] mb-2" size={32} />
             <p className="text-sm font-medium text-white">No Active Issues</p>
-            <p className="text-xs text-gray-400 mt-1">You are fully fit to train.</p>
+
           </div>
         )}
       </div>

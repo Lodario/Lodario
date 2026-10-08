@@ -6,16 +6,21 @@ interface TeamAveragesPanelProps {
 }
 
 export function TeamAveragesPanel({ metrics, className }: TeamAveragesPanelProps) {
+  const order = ['Players', 'Team Readiness', 'Team Energy', 'Team Fatigue', 'Team Stress', 'Team Sleep Score', 'Acute Training Load', 'Load Score', 'Average Load', 'Team Sleep Quantity', 'Team Sleep Quality', 'Average Sleep Time', 'Average Wake Time'];
+  const orderedMetrics = [...metrics].sort((first, second) => {
+    const rank = (label: string) => order.includes(label) ? order.indexOf(label) : order.length;
+    return rank(first.label) - rank(second.label);
+  });
   return (
     <section className={`glass-card flex min-h-0 flex-col p-4 sm:p-5 ${className ?? ''}`}>
       <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-300">Team Averages</h2>
       {metrics.length === 0 ? (
         <p className="mt-4 text-sm text-gray-400">
-          No team averages yet. Wellness averages appear when players check in; load averages appear once sessions are logged.
+          No team averages yet.
         </p>
       ) : (
         <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-1">
-          {metrics.map((metric) => (
+          {orderedMetrics.map((metric) => (
             <article
               key={metric.label}
               className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-3 py-2.5"

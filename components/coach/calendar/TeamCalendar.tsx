@@ -235,7 +235,7 @@ function DaySchedule({
 
       <div
         ref={scheduleRef}
-        className="min-h-0 overflow-y-auto"
+        className="min-h-0 quiet-scroll overflow-y-auto"
         style={{ height: `${visibleHourCount * dayHourRowHeight}px` }}
       >
         {hours.map((hour) => {
@@ -399,7 +399,7 @@ function WeekSchedule({
 
         <div
           ref={scheduleRef}
-          className="min-h-0 overflow-y-auto"
+          className="min-h-0 quiet-scroll overflow-y-auto"
           style={{ height: `${visibleHourCount * weekHourRowHeight}px` }}
         >
           {hours.map((hour) => (

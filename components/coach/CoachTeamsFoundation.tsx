@@ -91,10 +91,8 @@ export function CoachTeamsFoundation() {
     <div className="mx-auto w-full max-w-6xl">
       <header className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-white">Teams</h1>
-        <p className="mt-2 text-sm text-gray-400">
-          Select the active team for Overview, Players, Analytics, and Calendar.
-        </p>
-        <p className="mt-3 text-xs font-medium text-[var(--accent-secondary)]">
+
+        <p className="mt-3 text-xs font-medium text-gray-400">
           Active team: {teams.length > 0 ? selectedTeam.name : 'No team selected'}
         </p>
       </header>
@@ -153,9 +151,7 @@ export function CoachTeamsFoundation() {
           <p className="mt-2 text-sm text-gray-400">
             Create your first team above. Lodario will generate an invite code you can share with players.
           </p>
-          <p className="mt-2 text-xs text-gray-500">
-            Once players join and start logging, team averages, readiness, load, and calendars will appear.
-          </p>
+
         </section>
       ) : (
         <TeamGrid

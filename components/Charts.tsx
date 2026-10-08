@@ -53,16 +53,16 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export function ReadinessChart({ days }: ChartProps) {
   const { wellnessLogs, trainingLogs } = useData();
-  
+
   const data = Array.from({ length: days }).map((_, i) => {
     const date = subDays(new Date(), days - 1 - i);
     const dateStr = format(date, 'yyyy-MM-dd');
     const log = wellnessLogs[dateStr];
-    
+
     const score = log
       ? calculatePlayerReadinessForDate(Object.values(wellnessLogs), trainingLogs, date).readiness.score
       : null;
-    
+
     return {
       name: format(date, 'MMM d'),
       score: score ? Math.round(score) : null,
@@ -94,14 +94,14 @@ export function ReadinessChart({ days }: ChartProps) {
 
 export function LoadChart({ days }: ChartProps) {
   const { trainingLogs } = useData();
-  
+
   const data = Array.from({ length: days }).map((_, i) => {
     const date = subDays(new Date(), days - 1 - i);
     const dateStr = format(date, 'yyyy-MM-dd');
-    
+
     const logs = trainingLogs.filter(l => l.date === dateStr);
     const load = logs.reduce((sum, l) => sum + calculateSessionLoad(l), 0);
-    
+
     return {
       name: format(date, 'MMM d'),
       load: load,
@@ -125,12 +125,12 @@ export function LoadChart({ days }: ChartProps) {
 
 export function FatigueEnergyChart({ days }: ChartProps) {
   const { wellnessLogs } = useData();
-  
+
   const data = Array.from({ length: days }).map((_, i) => {
     const date = subDays(new Date(), days - 1 - i);
     const dateStr = format(date, 'yyyy-MM-dd');
     const log = wellnessLogs[dateStr];
-    
+
     return {
       name: format(date, 'MMM d'),
       energy: log?.energy || null,
@@ -172,7 +172,7 @@ function NoData() {
   return (
     <div className="h-64 w-full glass-card p-4 flex items-center justify-center flex-col">
       <p className="text-gray-500 font-medium">Not enough data</p>
-      <p className="text-xs text-gray-600 mt-1 text-center">Trends appear after you log wellness and training for a few days.</p>
+
     </div>
   );
 }
