@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
-import { ArrowUpRight, CalendarPlus, CalendarRange, CheckCircle2, ChevronDown, ChevronRight, ClipboardCheck, ClipboardList, LineChart, XCircle } from 'lucide-react';
+import { ArrowUpRight, CheckCircle2, ChevronDown, ChevronRight, ClipboardCheck, XCircle } from 'lucide-react';
 import { CoachAttendanceModal } from '@/components/coach/attendance/CoachAttendanceModal';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
 import { useCoachSelectedTeamInsights } from '@/lib/coach/teamInsights';
@@ -41,12 +41,12 @@ function Sparkline({ points }: SparklineProps) {
     <svg viewBox={`0 0 ${width} ${height}`} className="h-16 w-full" preserveAspectRatio="none" aria-hidden>
       <defs>
         <linearGradient id="overviewTrendFill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="rgba(var(--accent-tertiary-rgb),0.4)" />
-          <stop offset="100%" stopColor="rgba(var(--accent-secondary-rgb),0.02)" />
+          <stop offset="0%" stopColor="rgba(255,255,255,0.12)" />
+          <stop offset="100%" stopColor="rgba(255,255,255,0.01)" />
         </linearGradient>
       </defs>
       <path d={areaPath} fill="url(#overviewTrendFill)" />
-      <path d={path} fill="none" stroke="var(--accent-secondary)" strokeWidth="2.5" strokeLinecap="round" />
+      <path d={path} fill="none" stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" />
     </svg>
   );
 }
@@ -109,7 +109,7 @@ function DailyWellnessDropdown({
       <button
         type="button"
         onClick={() => setOpen((previous) => !previous)}
-        className="flex w-full items-center justify-between gap-2 rounded-full border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.1)] px-3 py-1.5 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:border-[rgba(var(--accent-secondary-rgb),0.55)] hover:bg-[rgba(var(--accent-secondary-rgb),0.16)] sm:w-auto"
+        className="flex w-full items-center justify-between gap-2 rounded-full border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-white/[0.04] px-3 py-1.5 text-xs font-semibold text-gray-200 transition-colors hover:border-[rgba(var(--accent-secondary-rgb),0.55)] hover:bg-white/[0.06] sm:w-auto"
         aria-expanded={open}
       >
         <span>Daily wellness {status.completedCount}/{status.totalCount}</span>
@@ -180,33 +180,6 @@ function DailyWellnessDropdown({
   );
 }
 
-const quickActions = [
-  {
-    label: 'Create Team Event',
-    description: 'Open the team scheduler and create a new event or task.',
-    href: '/coach/calendar',
-    icon: CalendarPlus,
-  },
-  {
-    label: 'View Players',
-    description: 'Inspect player wellness, analytics, and personal calendars.',
-    href: '/coach/players',
-    icon: ClipboardList,
-  },
-  {
-    label: 'View Analytics',
-    description: 'Review team averages and individual comparisons.',
-    href: '/coach/analytics',
-    icon: LineChart,
-  },
-  {
-    label: 'View Calendar',
-    description: 'Manage upcoming team sessions, tasks, and game windows.',
-    href: '/coach/calendar',
-    icon: CalendarRange,
-  },
-];
-
 export function CoachOverviewPage() {
   const { selectedTeam } = useCoachTeam();
   const { overviewData, isLoading, error } = useCoachSelectedTeamInsights(selectedTeam.id);
@@ -229,9 +202,7 @@ export function CoachOverviewPage() {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white">Overview</h1>
-            <p className="mt-2 text-sm text-gray-400">
-              Team control room for {selectedTeam.name}. Quick status, risk signals, and next activities.
-            </p>
+
             {isLoading ? <p className="mt-2 text-xs text-gray-400">Loading team overview data...</p> : null}
             {error ? <p className="mt-2 text-xs text-[var(--status-red)]">Unable to load overview data: {error}</p> : null}
             <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
@@ -241,11 +212,11 @@ export function CoachOverviewPage() {
               <span className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.04)] px-2.5 py-1 font-medium text-gray-300">
                 {overviewData.summary.playerCount} players
               </span>
-              <span className="rounded-full border border-[rgba(var(--accent-secondary-rgb),0.3)] bg-[rgba(var(--accent-secondary-rgb),0.1)] px-2.5 py-1 font-medium text-[var(--metric-readiness)]">
-                Avg readiness {overviewData.summary.averageReadiness == null ? '--' : `${overviewData.summary.averageReadiness}%`}
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-medium text-gray-200">
+                Avg readiness <span className={overviewData.summary.averageReadiness == null ? 'text-gray-200' : 'text-[var(--metric-readiness)]'}>{overviewData.summary.averageReadiness == null ? '--' : `${overviewData.summary.averageReadiness}%`}</span>
               </span>
-              <span className="rounded-full border border-[rgba(var(--metric-load-rgb),0.35)] bg-[rgba(var(--metric-load-rgb),0.12)] px-2.5 py-1 font-medium text-[var(--metric-load)]">
-                Average Load (7 days) {overviewData.summary.averageLoad == null ? '--' : overviewData.summary.averageLoad}
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-medium text-gray-200">
+                Average Load (7 days) <span className={overviewData.summary.averageLoad == null ? 'text-gray-200' : 'text-[var(--metric-load)]'}>{overviewData.summary.averageLoad == null ? '--' : overviewData.summary.averageLoad}</span>
               </span>
             </div>
           </div>
@@ -253,7 +224,7 @@ export function CoachOverviewPage() {
           <div className="flex h-fit w-full flex-wrap items-center gap-2 lg:w-auto lg:justify-end">
             <DailyWellnessDropdown status={overviewData.dailyWellness} isLoading={isLoading} />
             <span
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${overviewData.summary.status.className}`}
+              className={`rounded-full border px-3 py-1.5 text-xs font-semibold uppercase tracking-wide ${overviewData.summary.status.label === 'Stable' ? 'border-[rgba(var(--status-green-rgb),0.4)] bg-white/[0.04] text-gray-200' : overviewData.summary.status.className}`}
             >
               {overviewData.summary.status.label}
             </span>
@@ -287,11 +258,11 @@ export function CoachOverviewPage() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-white">Players Needing Attention</h2>
-              <p className="mt-1 text-xs text-gray-400">Based on injury reports, readiness, fatigue, load, sleep, and stress signals.</p>
+
             </div>
             <Link
               href="/coach/players"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:text-white"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-gray-300 transition-colors hover:text-white"
             >
               Open players
               <ChevronRight size={14} />
@@ -301,9 +272,7 @@ export function CoachOverviewPage() {
           {overviewData.playersNeedingAttention.length === 0 ? (
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-4 py-5">
               <p className="text-sm text-gray-300">No players are currently flagged.</p>
-              <p className="mt-2 text-xs text-gray-500">
-                Flags appear when player logs show low readiness, high fatigue, elevated load, poor sleep, stress, or injury signals.
-              </p>
+
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -331,7 +300,7 @@ export function CoachOverviewPage() {
                       </span>
                       <Link
                         href={`/coach/players?player=${player.playerId}`}
-                        className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:text-white"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-gray-300 transition-colors hover:text-white"
                       >
                         View player
                         <ArrowUpRight size={12} />
@@ -348,11 +317,11 @@ export function CoachOverviewPage() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-white">Upcoming Activities</h2>
-              <p className="mt-1 text-xs text-gray-400">Team sessions, tasks, games, and training events.</p>
+
             </div>
             <Link
               href="/coach/calendar"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:text-white"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-gray-300 transition-colors hover:text-white"
             >
               Open calendar
               <ChevronRight size={14} />
@@ -422,36 +391,6 @@ export function CoachOverviewPage() {
             ))}
           </div>
         )}
-      </section>
-
-      <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">Quick Actions</h2>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Link
-                key={action.label}
-                href={action.href}
-                className="glass-card group flex flex-col gap-3 p-4 transition-colors hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(var(--surface-elevated-rgb),0.92)]"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="rounded-lg border border-[rgba(var(--accent-primary-rgb),0.24)] bg-[rgba(var(--accent-primary-rgb),0.1)] p-2 text-[var(--accent-primary)]">
-                    <Icon size={16} />
-                  </span>
-                  <ArrowUpRight
-                    size={14}
-                    className="text-gray-500 transition-colors group-hover:text-[var(--accent-secondary)]"
-                  />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-white">{action.label}</p>
-                  <p className="mt-1 text-xs text-gray-400">{action.description}</p>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
       </section>
 
       {attendanceModalTarget ? (

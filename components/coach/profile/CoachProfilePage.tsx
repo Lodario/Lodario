@@ -121,9 +121,7 @@ export function CoachProfilePage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <header>
         <h1 className="text-2xl font-bold tracking-tight text-white">Profile</h1>
-        <p className="mt-2 text-sm text-gray-400">
-          Coach profile details, connected teams, and account information.
-        </p>
+
       </header>
 
       <div className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
@@ -184,7 +182,7 @@ export function CoachProfilePage() {
           <section className="glass-card p-5">
             <div className="mb-4">
               <h3 className="text-sm font-semibold text-white">Personal Information</h3>
-              <p className="mt-1 text-xs text-gray-400">Update your account name and email.</p>
+
             </div>
 
             <form onSubmit={handleSaveProfile} className="space-y-3">
@@ -253,9 +251,7 @@ export function CoachProfilePage() {
 
           <section className="glass-card p-5">
             <h3 className="text-sm font-semibold text-white">Coach Profile Completion</h3>
-            <p className="mt-1 text-xs text-gray-400">
-              Team and player-specific coach metadata can be added once those backend tables are introduced.
-            </p>
+
             <div className="mt-3 flex items-center gap-2 text-xs text-gray-300">
               <Users size={14} className="text-[var(--accent-secondary)]" />
               <span>{connectedTeams > 0 ? `${connectedTeams} team(s) connected.` : 'No teams connected yet.'}</span>

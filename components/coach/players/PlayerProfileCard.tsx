@@ -33,7 +33,7 @@ export function PlayerProfileCard({ player, teamName }: PlayerProfileCardProps) 
         {player.positions.map((position) => (
           <span
             key={position}
-            className="rounded-full border border-[rgba(var(--accent-secondary-rgb),0.35)] bg-[rgba(var(--accent-secondary-rgb),0.12)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-secondary)]"
+            className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-gray-300"
           >
             {position}
           </span>
@@ -61,8 +61,8 @@ export function PlayerProfileCard({ player, teamName }: PlayerProfileCardProps) 
         </div>
       </dl>
 
-      <div className="mt-5 rounded-xl border border-[rgba(var(--accent-primary-rgb),0.25)] bg-[rgba(var(--accent-primary-rgb),0.08)] px-3 py-2">
-        <p className="text-xs uppercase tracking-wide text-[var(--accent-primary)]">Team</p>
+      <div className="mt-5 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2">
+        <p className="text-xs uppercase tracking-wide text-gray-400">Team</p>
         <p className="mt-1 text-sm font-semibold text-white">{teamName}</p>
       </div>
     </aside>

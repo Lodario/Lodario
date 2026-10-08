@@ -78,9 +78,8 @@ function InjuryStatusCard({
 
   return (
     <section className="glass-card p-3.5 sm:p-4">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-300">Injury Status</h3>
-      <div className="mt-2.5 flex items-center justify-between gap-3">
-        <span className="text-xs text-gray-300">Current state</span>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-300">Injury Status</h3>
         <span className={`rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${toneClass}`}>
           {label}
         </span>
@@ -91,19 +90,23 @@ function InjuryStatusCard({
       {injuryStatus.state === 'unavailable' ? (
         <p className="mt-2 text-xs text-gray-400">{injuryStatus.message ?? 'Injury data is not available for this player.'}</p>
       ) : null}
-      <p className="mt-2 text-[11px] text-gray-300">
-        Today&apos;s guidance: {todaysGuidance ?? 'Not available'}
-      </p>
-      {todaysRecommendation ? (
-        <div className="mt-2 rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-3 py-2">
-          <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-gray-300">
-            <span>Readiness: {todaysRecommendation.score}</span>
-            <span>Load Risk: {todaysRecommendation.loadRiskLabel}</span>
-            <span>Recommendation: {todaysRecommendation.recommendationLabel}</span>
-          </div>
-          <p className="mt-1.5 text-xs leading-relaxed text-gray-300">{todaysRecommendation.reason}</p>
-        </div>
-      ) : null}
+      <div className="mt-2.5 border-t border-white/10 pt-2">
+        <h4 className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">Today&apos;s guidance</h4>
+        <p className="mt-1 text-xs font-semibold leading-5 text-white">
+          {todaysGuidance ?? todaysRecommendation?.recommendationLabel ?? 'Awaiting wellness check-in'}
+        </p>
+        {todaysRecommendation ? (
+          <>
+            <p className="mt-2 text-xs leading-relaxed text-gray-300">{todaysRecommendation.reason}</p>
+            <p className="mt-2 text-[11px] leading-relaxed text-gray-400">
+              Readiness: <span className="font-medium text-gray-200">{todaysRecommendation.score}</span>
+              {' · '}Load risk: <span className="font-medium text-gray-200">{todaysRecommendation.loadRiskLabel}</span>
+            </p>
+          </>
+        ) : (
+          null
+        )}
+      </div>
     </section>
   );
 }
@@ -115,7 +118,7 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
     : undefined;
 
   return (
-    <div className="grid gap-4 2xl:grid-cols-[minmax(0,1fr)_285px]">
+    <div className="min-w-0 space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
         <PlayerAnalyticsChart
           graphNumber={1}
@@ -191,9 +194,7 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
           />
         </div>
       </div>
-
-      <div className="grid h-fit gap-4">
-        <PlayerAnalyticsLegend items={analyticsLegendItems} />
+      <div className="grid gap-4 md:grid-cols-2">
         <NotesSection title="Wellness Notes" emptyLabel="No wellness notes yet." notes={playerDataset.wellnessNotes} />
         <NotesSection title="Training Notes" emptyLabel="No training notes yet." notes={playerDataset.trainingNotes} />
       </div>
@@ -245,13 +246,11 @@ function DailyWellnessStatusStrip({
   }
 
   const Icon = completedToday ? CheckCircle2 : XCircle;
-  const toneClass = completedToday
-    ? 'border-[rgba(var(--status-green-rgb),0.35)] bg-[rgba(var(--status-green-rgb),0.1)] text-[var(--status-green)]'
-    : 'border-[rgba(255,146,43,0.35)] bg-[rgba(255,146,43,0.1)] text-[var(--status-orange)]';
+  const toneClass = 'border-white/10 bg-white/[0.04] text-gray-300';
 
   return (
     <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs ${toneClass}`}>
-      <Icon size={14} className="shrink-0" />
+      <Icon size={14} className={`shrink-0 ${completedToday ? 'text-[var(--status-green)]' : 'text-[var(--status-orange)]'}`} />
       <span className="font-semibold uppercase tracking-wide">
         Daily wellness: {completedToday ? 'Completed today' : 'Not completed today'}
       </span>
@@ -440,10 +439,7 @@ export function PlayersPage() {
       <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-white">Players</h1>
-          <p className="mt-2 text-sm text-gray-400">
-            Review individual player analytics, wellness, and scheduling for {selectedTeam.name}.
-          </p>
-          <p className="mt-3 text-xs font-medium text-[var(--accent-secondary)]">
+          <p className="mt-2 text-xs font-medium text-gray-400">
             Selected team: {selectedTeam.name}
           </p>
         </div>
@@ -478,10 +474,10 @@ export function PlayersPage() {
             className={`grid ${
               viewMode === 'calendar'
                 ? 'gap-4 xl:grid-cols-[250px_minmax(0,1fr)_340px] xl:items-stretch'
-                : 'gap-5 xl:grid-cols-[290px_minmax(0,1fr)]'
+                : 'gap-5 xl:grid-cols-[260px_minmax(0,1fr)] xl:items-start'
             }`}
           >
-            <div className="space-y-4">
+            <div className="flex min-w-0 flex-col gap-4">
               <PlayerProfileCard player={selectedPlayerDataset.player} teamName={selectedTeam.name} />
               <DailyWellnessStatusStrip
                 completedToday={selectedPlayerDataset.dailyWellness.completedToday}
@@ -493,6 +489,9 @@ export function PlayersPage() {
                   todaysGuidance={selectedPlayerDataset.todaysGuidance}
                   todaysRecommendation={selectedPlayerDataset.todaysRecommendation}
                 />
+              ) : null}
+              {viewMode === 'analytics' ? (
+                <PlayerAnalyticsLegend items={analyticsLegendItems} />
               ) : null}
               {viewMode === 'calendar' ? <WellnessMetricsPanel metrics={selectedPlayerDataset.wellness} /> : null}
             </div>

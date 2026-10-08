@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/AuthContext";
 import { RootAppShell } from "@/components/RootAppShell";
+import { OverlayScrollbars } from "@/components/OverlayScrollbars";
 import { getSiteUrl } from "@/lib/env/server";
 
 const outfit = Outfit({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"] });
@@ -80,6 +81,7 @@ export default function RootLayout({
         <AuthProvider>
           <RootAppShell>{children}</RootAppShell>
         </AuthProvider>
+        <OverlayScrollbars />
       </body>
     </html>
   );

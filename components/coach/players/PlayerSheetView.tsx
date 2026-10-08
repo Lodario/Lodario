@@ -436,7 +436,7 @@ function FloatingSessionPopover({
       ref={popoverRef}
       role="dialog"
       aria-label={ariaLabel}
-      className="fixed z-[80] overflow-y-auto"
+      className="fixed z-[80] quiet-scroll overflow-y-auto"
       style={position}
     >
       {children}
@@ -556,7 +556,7 @@ export function PlayerSheetView({
   return (
     <>
       <section className="overflow-hidden rounded-2xl border border-[rgba(255,255,255,0.1)] bg-[rgba(11,13,13,0.72)] shadow-[0_24px_70px_rgba(0,0,0,0.24)]">
-      <div className="hidden overflow-x-auto lg:block">
+      <div className="hidden quiet-scroll overflow-x-auto lg:block">
         <table className="w-full min-w-[1160px] border-collapse text-left text-sm">
           <thead>
             <tr className="border-b border-[rgba(255,255,255,0.08)] text-xs font-medium text-gray-300">

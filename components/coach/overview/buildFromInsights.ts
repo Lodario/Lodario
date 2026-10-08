@@ -319,7 +319,7 @@ export function buildTeamOverviewData({
       return {
         label: 'Load Score',
         value,
-        toneClass: getMetricToneClass(value, true),
+        toneClass: getMetricToneClass(value),
       };
     })(),
     (() => {

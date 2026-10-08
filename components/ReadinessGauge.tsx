@@ -11,7 +11,8 @@ export function ReadinessGauge({ score, color, label }: ReadinessGaugeProps) {
   const stroke = 7;
   const normalizedRadius = radius - stroke * 2;
   const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset = circumference - (score / 100) * circumference;
+  const progress = Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
+  const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
     <div className="relative flex items-center justify-center animate-fade-in touch-target">
@@ -25,7 +26,7 @@ export function ReadinessGauge({ score, color, label }: ReadinessGaugeProps) {
             cx={radius}
             cy={radius}
           />
-          <circle
+          {progress > 0 && <circle
             stroke={color}
             fill="transparent"
             strokeWidth={stroke}
@@ -39,11 +40,11 @@ export function ReadinessGauge({ score, color, label }: ReadinessGaugeProps) {
             r={normalizedRadius}
             cx={radius}
             cy={radius}
-          />
+          />}
         </svg>
         <div className="absolute flex flex-col items-center justify-center">
           <span className="text-[28px] font-black leading-none tracking-normal" style={{ color }}>
-            {score}
+            {progress}
           </span>
           <span className="mt-0.5 text-[10px] font-bold text-white/80 capitalize">{label}</span>
         </div>

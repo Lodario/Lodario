@@ -110,9 +110,7 @@ export function CoachSettingsPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <header>
         <h1 className="text-2xl font-bold tracking-tight text-white">Settings</h1>
-        <p className="mt-2 text-sm text-gray-400">
-          Manage your account security, default team, and support requests.
-        </p>
+
       </header>
 
       <section className="glass-card p-5">
@@ -122,7 +120,7 @@ export function CoachSettingsPage() {
           </span>
           <div>
             <h2 className="text-sm font-semibold text-white">Account Settings</h2>
-            <p className="mt-1 text-xs text-gray-400">Live account values from your signed-in session.</p>
+
           </div>
         </div>
 

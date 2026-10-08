@@ -7,7 +7,7 @@ interface HomeReadinessProps {
   painScore: number;
 }
 
-const clamp = (score: number) => Math.max(0, Math.min(100, score));
+const clamp = (score: number) => Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : 0;
 
 function arc(radius: number, start: number, end: number) {
   const point = (angle: number) => {
@@ -29,9 +29,9 @@ export function HomeReadiness({ score, label, breakdown, painScore }: HomeReadin
   const circumference = 2 * Math.PI * 58;
 
   return (
-    <svg viewBox="0 0 400 180" className="home-readiness" role="img" aria-label={`Daily readiness: ${score} out of 100, ${label}. ${metrics.map(metric => `${metric.label}: ${Math.round(metric.score)}`).join('. ')}`}>
+    <svg viewBox="0 0 400 180" className="home-readiness" role="img" aria-label={`Readiness score: ${score} out of 100, ${label}. ${metrics.map(metric => `${metric.label}: ${Math.round(metric.score)}`).join('. ')}`}>
       <circle cx="200" cy="80" r="58" fill="none" stroke="#293130" strokeWidth="12" />
-      <circle cx="200" cy="80" r="58" fill="none" stroke="#00d889" strokeWidth="12" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - clamp(score) / 100)} transform="rotate(-90 200 80)" className="home-readiness-progress" />
+      {clamp(score) > 0 && <circle cx="200" cy="80" r="58" fill="none" stroke="#00d889" strokeWidth="12" strokeLinecap="round" strokeDasharray={circumference} strokeDashoffset={circumference * (1 - clamp(score) / 100)} transform="rotate(-90 200 80)" className="home-readiness-progress" />}
       <text x="200" y="97" textAnchor="middle" fill="#00d889" fontSize="44" fontWeight="800">{score}</text>
       {metrics.map(({ label: metricLabel, score: metricScore, progress = metricScore, color, radius, left, Icon }) => {
         const angle = Math.asin(54 / radius) * 180 / Math.PI;
@@ -39,9 +39,10 @@ export function HomeReadiness({ score, label, breakdown, painScore }: HomeReadin
         const iconX = 200 + (left ? -1 : 1) * Math.sqrt(radius * radius - 54 * 54);
         return (
           <g key={metricLabel}>
-            <title>{metricLabel}: {Math.round(metricScore)} out of 100</title>
+            <title>{`${metricLabel}: ${Math.round(clamp(metricScore))} out of 100`}</title>
             <path d={path} fill="none" stroke={color} strokeOpacity="0.32" strokeWidth="14" strokeLinecap="round" />
-            <path d={path} fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" pathLength="100" strokeDasharray={`${clamp(progress)} 100`} transform={left ? undefined : 'translate(0 160) scale(1 -1)'} className="home-readiness-progress" />
+            {/* A round cap on a zero-length dash renders a stray dot. */}
+            {clamp(progress) > 0 && <path d={path} fill="none" stroke={color} strokeWidth="14" strokeLinecap="round" pathLength="100" strokeDasharray={`${clamp(progress)} 100`} transform={left ? undefined : 'translate(0 160) scale(1 -1)'} className="home-readiness-progress" />}
             <Icon x={iconX - 9} y="148" width="18" height="18" color={color} strokeWidth={2.4} fill={metricLabel === 'Energy' || metricLabel === 'Sleep' ? color : 'none'} />
           </g>
         );

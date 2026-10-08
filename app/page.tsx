@@ -358,31 +358,25 @@ export default function Home() {
 
       <header className="home-header relative">
         <h1 className="home-wordmark">Lodario</h1>
-        <p className="home-subtitle">Your personal training guide</p>
       </header>
-
-      {showInjuryAlert ? (
-        <div className="relative mb-6 flex items-start space-x-3 rounded-lg border border-[#ff6b6b] bg-[rgba(255,107,107,0.09)] p-4 shadow-[0_12px_28px_rgba(0,0,0,0.3)] backdrop-blur-md animate-slide-up touch-target">
-          <ShieldAlert className="text-[#ff6b6b] mt-0.5" size={24} />
-          <div>
-            <h3 className="text-[#ff6b6b] font-bold text-sm tracking-wide">Active Guidance</h3>
-            <p className="text-gray-300 text-xs mt-1 leading-relaxed">
-              {load.hasAutoInjury
-                ? 'Pain or injury has triggered active recovery guidance.'
-                : 'Active injury logged. Follow your suggested recovery plan.'}
-            </p>
-          </div>
-        </div>
-      ) : null}
 
       <section className="home-readiness-section relative animate-fade-in" style={{ animationDelay: '0.2s', animationFillMode: 'both' }}>
         <div className="home-readiness-heading flex items-center justify-center">
           <div className="h-px flex-1 bg-[linear-gradient(90deg,transparent,rgba(255,146,43,0.85))]" />
-          <h2 className="shrink-0 text-sm font-bold tracking-normal text-white">Daily Readiness</h2>
+          <h2 className="shrink-0 text-sm font-bold tracking-normal text-white">Readiness Score</h2>
           <div className="h-px flex-1 bg-[linear-gradient(90deg,rgba(255,146,43,0.85),transparent)]" />
         </div>
         <HomeReadiness score={readiness.score} label={readiness.label} breakdown={readiness.breakdown} painScore={painScore} />
       </section>
+
+      {showInjuryAlert ? (
+        <div className="mb-5 flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5">
+          <ShieldAlert className="shrink-0 text-[var(--status-red)]" size={20} />
+          <p className="text-xs leading-relaxed text-gray-200">
+            {load.hasAutoInjury ? 'Pain reported' : 'Active injury'} · Follow recovery guidance.
+          </p>
+        </div>
+      ) : null}
 
       <section className="home-notifications relative mb-12 animate-slide-up" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>
         <div className="home-notifications-heading flex justify-between items-center">
@@ -398,9 +392,6 @@ export default function Home() {
           <div className="home-notifications-empty flex flex-col items-center justify-center">
             <CalendarIcon size={30} className="mb-2 text-[#666a6d]" />
             <p className="text-sm font-medium">No notifications right now</p>
-            <p className="mt-1 text-center text-xs leading-relaxed text-[#74777c]">
-              Coach updates and upcoming items you should know about will appear here.
-            </p>
           </div>
         ) : (
           <div className="space-y-3">

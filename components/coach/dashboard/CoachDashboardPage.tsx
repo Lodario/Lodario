@@ -5,13 +5,8 @@ import { type MouseEvent, useCallback, useEffect, useMemo, useState } from 'reac
 import { format, parseISO } from 'date-fns';
 import {
   ArrowUpRight,
-  CalendarDays,
-  CalendarPlus,
   ChevronRight,
   ClipboardCheck,
-  Layers,
-  LineChart,
-  Users,
   X,
 } from 'lucide-react';
 import { CoachAttendanceModal } from '@/components/coach/attendance/CoachAttendanceModal';
@@ -68,41 +63,8 @@ const stableStatusBadge: TeamStatusBadge = {
 
 const liveStatusBadge: TeamStatusBadge = {
   label: 'Live',
-  className: 'border-[rgba(var(--status-green-rgb),0.35)] bg-[rgba(var(--status-green-rgb),0.12)] text-[var(--status-green)]',
+  className: 'border-white/10 bg-white/[0.04] text-gray-300',
 };
-
-const quickActions = [
-  {
-    label: 'Create Team Event',
-    description: 'Schedule a team event or task.',
-    href: '/coach/calendar',
-    icon: CalendarPlus,
-  },
-  {
-    label: 'View Teams',
-    description: 'Manage active team selection.',
-    href: '/coach/teams',
-    icon: Users,
-  },
-  {
-    label: 'View Selected Team Overview',
-    description: 'Open the current team control room.',
-    href: '/coach/overview',
-    icon: Layers,
-  },
-  {
-    label: 'View Analytics',
-    description: 'Review readiness and load trends.',
-    href: '/coach/analytics',
-    icon: LineChart,
-  },
-  {
-    label: 'View Calendar',
-    description: 'Manage activities and tasks.',
-    href: '/coach/calendar',
-    icon: CalendarDays,
-  },
-];
 
 const DISMISSED_ALERT_IDS_STORAGE_KEY = 'lodario:coach-dashboard:dismissed-alert-ids';
 const EMPTY_DISMISSED_ALERT_IDS: string[] = [];
@@ -299,15 +261,9 @@ export function CoachDashboardPage() {
       <header className="glass-card p-5 sm:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-[var(--accent-secondary)]">Coach Dashboard</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Coach Dashboard</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Welcome back, Coach.</h1>
-            <p className="mt-2 text-sm text-gray-400">
-              {todaySummary.totalTeams > 0
-                ? (todaySummary.averageReadiness == null && todaySummary.averageLoad == null
-                    ? 'No readiness or load logs have been recorded for your teams yet. Invite players and ask them to start logging.'
-                    : 'Team readiness and load metrics are connected from real player logs.')
-                : 'Create your first team to start your coach workspace.'}
-            </p>
+
             {isLoadingPlayerCounts ? <p className="mt-2 text-xs text-gray-400">Loading team player totals...</p> : null}
             {playerCountError ? <p className="mt-2 text-xs text-[var(--status-red)]">Unable to load player totals: {playerCountError}</p> : null}
             {calendarItemsError ? <p className="mt-2 text-xs text-[var(--status-red)]">Unable to load team calendar: {calendarItemsError}</p> : null}
@@ -318,13 +274,13 @@ export function CoachDashboardPage() {
               <span className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 font-medium text-gray-300">
                 {todaySummary.hasUnknownPlayerCounts ? 'Loading players...' : `${todaySummary.totalPlayers} players`}
               </span>
-              <span className="rounded-full border border-[rgba(var(--accent-secondary-rgb),0.3)] bg-[rgba(var(--accent-secondary-rgb),0.1)] px-2.5 py-1 font-medium text-[var(--metric-readiness)]">
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-medium text-gray-300">
                 Avg readiness {todaySummary.averageReadiness == null ? '--' : `${Math.round(todaySummary.averageReadiness)}%`}
               </span>
-              <span className="rounded-full border border-[rgba(var(--metric-load-rgb),0.35)] bg-[rgba(var(--metric-load-rgb),0.12)] px-2.5 py-1 font-medium text-[var(--metric-load)]">
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-medium text-gray-300">
                 Average Load (7 days) {todaySummary.averageLoad == null ? '--' : Math.round(todaySummary.averageLoad)}
               </span>
-              <span className="rounded-full border border-[rgba(var(--accent-primary-rgb),0.28)] bg-[rgba(var(--accent-primary-rgb),0.1)] px-2.5 py-1 font-medium text-[var(--accent-primary)]">
+              <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-medium text-gray-300">
                 Selected team: {selectedTeam.name}
               </span>
             </div>
@@ -342,7 +298,7 @@ export function CoachDashboardPage() {
           <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">All Teams Summary</h2>
           <Link
             href="/coach/teams"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:text-white"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-300 transition-colors hover:text-white"
           >
             Open teams
             <ChevronRight size={14} />
@@ -406,7 +362,7 @@ export function CoachDashboardPage() {
                   </button>
                   <Link
                     href="/coach/overview"
-                    className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:text-white"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-gray-300 transition-colors hover:text-white"
                   >
                     View team
                     <ArrowUpRight size={12} />
@@ -423,11 +379,11 @@ export function CoachDashboardPage() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-white">Cross-Team Upcoming Activities</h2>
-              <p className="mt-1 text-xs text-gray-400">Games, training, gym, recovery, and tasks across all teams.</p>
+
             </div>
             <Link
               href="/coach/calendar"
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:text-white"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-gray-300 transition-colors hover:text-white"
             >
               Open calendar
               <ChevronRight size={14} />
@@ -436,7 +392,7 @@ export function CoachDashboardPage() {
 
           {upcomingActivities.length === 0 ? (
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3 text-sm text-gray-300">
-              No upcoming activities yet. Add team events or tasks from Calendar.
+              No upcoming activities.
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -481,13 +437,13 @@ export function CoachDashboardPage() {
         <section className="glass-card p-4 sm:p-5">
           <div className="mb-3">
             <h2 className="text-sm font-semibold text-white">Recent Alerts</h2>
-            <p className="mt-1 text-xs text-gray-400">Real signals generated from current readiness, load, and injury data.</p>
+
           </div>
           {injuryAlertsError ? <p className="mb-2 text-xs text-[var(--status-red)]">Unable to load injury alerts: {injuryAlertsError}</p> : null}
           {isLoadingInjuryAlerts ? <p className="mb-2 text-xs text-gray-400">Loading injury alerts...</p> : null}
           {visibleRecentAlerts.length === 0 ? (
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3 text-sm text-gray-300">
-              No alerts triggered from current team data.
+              No recent alerts.
             </div>
           ) : (
             <div className="space-y-2.5">
@@ -527,47 +483,14 @@ export function CoachDashboardPage() {
         </section>
       </div>
 
-      <section>
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-gray-300">Quick Actions</h2>
-        <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
-          {quickActions.map((action) => {
-            const Icon = action.icon;
-            return (
-              <Link
-                key={action.label}
-                href={action.href}
-                className="glass-card group flex min-h-[96px] items-center justify-between gap-3 p-4 transition-colors hover:border-[rgba(255,255,255,0.2)] hover:bg-[rgba(var(--surface-elevated-rgb),0.92)]"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <span className="shrink-0 rounded-lg border border-[rgba(var(--accent-primary-rgb),0.24)] bg-[rgba(var(--accent-primary-rgb),0.1)] p-2 text-[var(--accent-primary)]">
-                    <Icon size={16} />
-                  </span>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold text-white">{action.label}</p>
-                    <p className="mt-1 text-xs text-gray-400">{action.description}</p>
-                  </div>
-                </div>
-                <ArrowUpRight
-                  size={14}
-                  className="shrink-0 text-gray-500 transition-colors group-hover:text-[var(--accent-secondary)]"
-                />
-              </Link>
-            );
-          })}
-        </div>
-      </section>
-
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-semibold text-white">All Teams Calendar</h2>
-            <p className="mt-1 text-xs text-gray-400">
-              Coach-wide schedule across all teams with daily and weekly views.
-            </p>
           </div>
           <Link
             href="/coach/calendar"
-            className="inline-flex items-center gap-1 text-xs font-semibold text-[var(--accent-secondary)] transition-colors hover:text-white"
+            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-300 transition-colors hover:text-white"
           >
             Open full calendar
             <ChevronRight size={14} />
