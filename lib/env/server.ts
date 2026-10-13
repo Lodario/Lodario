@@ -21,7 +21,7 @@ type FeedbackEmailConfig = SmtpConfig & {
   to: string;
 };
 
-const ACCOUNT_DELETION_EMAIL = 'contact.lodario@gmail.com';
+const ACCOUNT_DELETION_EMAIL = 'support@lodario.com';
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const LOCAL_SITE_URL = 'http://localhost:3000';

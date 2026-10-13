@@ -143,7 +143,7 @@ test('account deletion uses the dedicated confirmed flow and cannot target anoth
   assert.match(form, /Player-owned health data is never deleted with a Coach account/);
   assert.match(form, /result\?\.deleted !== true/);
   assert.match(scope, /'\/delete-account'/);
-  assert.match(environment, /contact\.lodario@gmail\.com/);
+  assert.match(environment, /support@lodario\.com/);
 });
 
 test('privacy operations retain only minimal allowlisted measurement data', async () => {

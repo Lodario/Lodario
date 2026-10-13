@@ -106,7 +106,7 @@ test('every required public page has route metadata, canonical URL, versioning, 
   const constants = await readFile(path.join(root, 'lib/legal.ts'), 'utf8');
   assert.match(layout, /LEGAL_EFFECTIVE_DATE/);
   assert.match(layout, /LEGAL_DOCUMENT_VERSION/);
-  assert.match(constants, /contact\.lodario@gmail\.com/);
+  assert.match(constants, /support@lodario\.com/);
 
   for (const [route, title] of publicPages) {
     const source = await readFile(path.join(root, 'app', route, 'page.tsx'), 'utf8');

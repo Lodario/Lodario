@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { SUPPORT_EMAIL } from '@/lib/legal';
 
 export default function GlobalError({
   reset,
@@ -21,7 +22,7 @@ export default function GlobalError({
           <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-6 text-center">
             <h1 className="text-xl font-bold">Lodario is temporarily unavailable</h1>
             <p className="mt-3 text-sm text-gray-300">
-              Retry once. If the problem continues, contact contact.lodario@gmail.com and include only this request ID.
+              Retry once. If the problem continues, contact {SUPPORT_EMAIL} and include only this request ID.
             </p>
             <p className="mt-3 font-mono text-xs text-gray-500">Request ID: {requestId}</p>
             <button

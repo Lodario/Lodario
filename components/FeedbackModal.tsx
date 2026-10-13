@@ -6,8 +6,7 @@ import { Check, Copy, MessageSquare, Send, X } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/AuthContext';
-
-const FEEDBACK_EMAIL = 'contact.lodario@gmail.com';
+import { SUPPORT_EMAIL } from '@/lib/legal';
 
 interface FeedbackButtonProps {
   contextLabel?: string;
@@ -304,7 +303,7 @@ export function FeedbackModal({ contextLabel, onClose }: FeedbackModalProps) {
 
             <div className="rounded-xl border border-[rgba(var(--accent-secondary-rgb),0.25)] bg-[rgba(var(--accent-secondary-rgb),0.08)] p-3">
               <p className="text-xs leading-relaxed text-gray-300">
-                Feedback is sent directly to {FEEDBACK_EMAIL}. If sending fails, copy the feedback and send it manually.
+                Feedback is sent directly to {SUPPORT_EMAIL}. If sending fails, copy the feedback and send it manually.
               </p>
               <p className="mt-2 text-xs text-gray-400">
                 Read our <Link href="/privacy" onClick={onClose} className="text-[var(--accent-secondary)] underline">Privacy Policy</Link> or visit <Link href="/support" onClick={onClose} className="text-[var(--accent-secondary)] underline">Support</Link>.

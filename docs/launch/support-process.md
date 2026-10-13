@@ -1,6 +1,8 @@
 # Lodario beta support process
 
-**Address:** `contact.lodario@gmail.com`
+**Address:** `support@lodario.com`
+
+The public support address forwards to the existing Gmail inbox. Keep the internal Gmail SMTP login unchanged; feedback and account-deletion requests use the public support address.
 
 ## Intake rules
 
