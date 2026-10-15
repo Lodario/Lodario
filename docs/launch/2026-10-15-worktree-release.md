@@ -19,4 +19,10 @@ A fresh private backup is recorded in `backup-2026-10-15T15-51-59-802Z.json`. Al
 
 The historical restore checker replays already-applied September migrations. For this release, an ignored local copy selects only the actual pending October migration; the tracked checker is unchanged.
 
-Production deployment is prepared using Vercel's existing hosted configuration. Release completion requires a ready build, the pending migration, publication of `main`, promotion to lodario.app, and public route/health checks.
+## Published release
+
+Application commit `abb8b0ff793efaa69acb60004e13fe8047090969` was pushed to `origin/main`. Vercel deployment `dpl_AtWYVxkcMp9yrGZJibcttCxKARQc` passed its production build and was promoted to https://lodario.app. Local production build, type validation, and lint also passed. Production migration application succeeded, and a final dry run reports no pending migrations.
+
+Live checks passed for eight public routes, both new logging routes, the coach dashboard, the exact loading GIF, health, and authentication denial on export/deletion/feedback APIs. The signup simulation renders the not-found screen in production. An existing signed-in coach session automatically routes from `/` to `/coach/dashboard` and loads the dashboard successfully. No production accounts, sporting-data entries, or test emails were created during verification.
+
+All seven original worktrees match their saved commit, tracked-diff, and untracked-file snapshots after integration. The excluded website, coach recoloring, and onboarding prototype remain untouched and unpublished.
