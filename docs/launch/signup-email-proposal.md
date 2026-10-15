@@ -2,7 +2,7 @@
 
 The signup screen places a linked Terms acceptance and Privacy Policy acknowledgement immediately before Create Account. It has one optional, initially unchecked marketing checkbox. There is no reminders checkbox. The existing required health-data and sharing acceptance gates remain intact, including Guardian approval where required.
 
-This is a prototype in the email-consent-preview worktree. No live signup, provider configuration, database migration, or email sender has been changed. `/signup-preview` exists only on a development server and simulates submission without creating accounts or sending emails. The separate Email Communications document and all its links have been removed. The Terms briefly clarify existing support, security, identity and essential service email purposes.
+The signup preference is integrated into `main` for the 15 October 2026 release. Provider configuration and email senders are unchanged. `/signup-preview` exists only on a development server and simulates submission without creating accounts or sending emails. The separate Email Communications document and all its links have been removed. The Terms briefly clarify existing support, security, identity and essential service email purposes.
 
 The only optional signup wording is: "I agree to receive marketing emails from Lodario. I can unsubscribe at any time." Its wording identifier is `marketing-email-2026-10-07-v1.1`. There is no extra email disclaimer below the checkbox.
 
