@@ -170,6 +170,8 @@ function buildTrainingLogHref(occurrence: ActivityOccurrence): string {
     date: occurrence.dateKey,
     duration: String(occurrence.durationMinutes),
     sessionType: occurrence.sessionType,
+    time: format(occurrence.start, 'HH:mm'),
+    title: occurrence.title,
   });
   return `/log?${params.toString()}`;
 }
@@ -204,7 +206,7 @@ export function buildPlayerReminders(input: BuildPlayerRemindersInput): PlayerRe
       type: 'daily-wellness',
       title: "Log today's wellness.",
       description: 'A quick check-in keeps readiness guidance useful.',
-      action: { label: 'Log wellness', href: '/log' },
+      action: { label: 'Log wellness', href: `/log/wellness?date=${todayKey}` },
       dismissible: true,
     }, dismissedReminderIds);
   }
@@ -215,7 +217,7 @@ export function buildPlayerReminders(input: BuildPlayerRemindersInput): PlayerRe
       type: 'missed-wellness',
       title: "You missed yesterday's wellness log.",
       description: 'Consistent logs make your trends more reliable.',
-      action: { label: 'Log wellness', href: '/log' },
+      action: { label: 'Log wellness', href: `/log/wellness?date=${yesterdayKey}` },
       dismissible: true,
     }, dismissedReminderIds);
   }

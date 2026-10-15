@@ -31,7 +31,7 @@ interface CalendarWeekProps {
   currentDate: Date;
   onAddEvent: (dateStr: string, hour?: number) => void;
   onEditEvent: (event: CalendarEvent, isRecurringInstance: boolean, instanceDate: string) => void;
-  onEventLongPress: (payload: { x: number; y: number; date: string; duration: number; sessionType: SessionType }) => void;
+  onEventLongPress: (payload: { x: number; y: number; date: string; duration: number; sessionType: SessionType; time: string; title?: string }) => void;
 }
 
 // Parse "HH:mm" into { hour, minute }
@@ -160,6 +160,8 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent, onEventLong
         x,
         y,
         date: renderedEvent.instanceDate,
+        time: String(renderedEvent.startHour).padStart(2, '0') + ':' + String(renderedEvent.startMinute).padStart(2, '0'),
+        title: renderedEvent.title,
         duration: computeDurationMinutes(
           renderedEvent.startHour,
           renderedEvent.startMinute,

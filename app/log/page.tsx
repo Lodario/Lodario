@@ -1,79 +1,35 @@
 'use client';
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { WellnessForm } from '@/components/WellnessForm';
-import { TrainingForm } from '@/components/TrainingForm';
 import { useData } from '@/lib/DataContext';
 import { format, subDays, addDays, parseISO, isValid } from 'date-fns';
 import { ChevronLeft, ChevronRight, CheckCircle2, Heart, Dumbbell, Moon, Zap, BatteryMedium, Brain, MoreVertical, Pencil, Trash2, ShieldAlert } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
-import { SESSION_TYPES, SessionType, TrainingLog } from '@/lib/types';
-
-const sessionTypeSet = new Set<SessionType>(SESSION_TYPES);
+import { useRouter, useSearchParams } from 'next/navigation';
+import { TrainingLog } from '@/lib/types';
 
 export default function LogPage() {
-  const [expandedForm, setExpandedForm] = useState<'wellness' | 'training' | null>(null);
-  const [selectedDateObj, setSelectedDateObj] = useState(new Date());
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const dateParam = searchParams.get('date');
+  const openParam = searchParams.get('open');
+  const savedParam = searchParams.get('saved');
   const [showSuccess, setShowSuccess] = useState(false);
-  const [trainingPrefill, setTrainingPrefill] = useState<Partial<TrainingLog> | null>(null);
-  const [editingTraining, setEditingTraining] = useState<TrainingLog | null>(null);
+  const [selectedDateObj, setSelectedDateObj] = useState(new Date());
   const [openTrainingMenuId, setOpenTrainingMenuId] = useState<string | null>(null);
   const [confirmDeleteTrainingId, setConfirmDeleteTrainingId] = useState<string | null>(null);
-
   const { wellnessLogs, trainingLogs, deleteTrainingLog } = useData();
-  const searchParams = useSearchParams();
-  const openParam = searchParams.get('open');
-  const dateParam = searchParams.get('date');
-  const durationParam = searchParams.get('duration');
-  const sessionTypeParam = searchParams.get('sessionType');
-
   const selectedDateStr = format(selectedDateObj, 'yyyy-MM-dd');
   const todayStr = format(new Date(), 'yyyy-MM-dd');
-
-  const handlePrevDay = () => setSelectedDateObj(subDays(selectedDateObj, 1));
-  const handleNextDay = () => {
-    if (selectedDateStr !== todayStr) {
-      setSelectedDateObj(addDays(selectedDateObj, 1));
-    }
-  };
-
-  const onSaved = () => {
-    setShowSuccess(true);
-    setExpandedForm(null);
-    setTrainingPrefill(null);
-    setEditingTraining(null);
-    setOpenTrainingMenuId(null);
-    setConfirmDeleteTrainingId(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    setTimeout(() => setShowSuccess(false), 3000);
-  };
-
-  const toggleForm = (form: 'wellness' | 'training') => {
-    setExpandedForm(prev => prev === form ? null : form);
-    setEditingTraining(null);
-    if (form === 'training') {
-      setTrainingPrefill(null);
-    }
-  };
-
+  const handlePrevDay = () => { setShowSuccess(false); setSelectedDateObj(subDays(selectedDateObj, 1)); };
+  const handleNextDay = () => { setShowSuccess(false); if (selectedDateStr < todayStr) setSelectedDateObj(addDays(selectedDateObj, 1)); };
+  const openForm = (kind: 'wellness' | 'training') => router.push('/log/' + kind + '?date=' + selectedDateStr);
   const handleEditTraining = (training: TrainingLog) => {
-    setEditingTraining(training);
-    setTrainingPrefill(training);
-    setExpandedForm('training');
-    setOpenTrainingMenuId(null);
-    setConfirmDeleteTrainingId(null);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    router.push('/log/training?date=' + training.date + '&edit=' + training.id);
   };
-
   const handleDeleteTraining = (trainingId: string) => {
     deleteTrainingLog(trainingId);
     setOpenTrainingMenuId(null);
     setConfirmDeleteTrainingId(null);
-    if (editingTraining?.id === trainingId) {
-      setEditingTraining(null);
-      setTrainingPrefill(null);
-      setExpandedForm(null);
-    }
   };
 
   // Get wellness log for the selected date
@@ -91,27 +47,25 @@ export default function LogPage() {
   const hasAnyTrainingLogs = trainingLogs.length > 0;
 
   useEffect(() => {
-    if (openParam !== 'training') return;
+    if (savedParam !== 'wellness' && savedParam !== 'training') return;
+    setShowSuccess(true);
+    const timeout = window.setTimeout(() => setShowSuccess(false), 3000);
+    return () => window.clearTimeout(timeout);
+  }, [savedParam]);
 
-    if (dateParam) {
-      const parsed = parseISO(dateParam);
-      if (isValid(parsed)) {
-        setSelectedDateObj(parsed);
-      }
+  useEffect(() => {
+    if (dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam)) {
+      const date = parseISO(dateParam);
+      if (isValid(date) && dateParam <= format(new Date(), 'yyyy-MM-dd')) setSelectedDateObj(date);
     }
+  }, [dateParam]);
 
-    const parsedDuration = durationParam ? Number(durationParam) : NaN;
-    const parsedSessionType =
-      sessionTypeParam && sessionTypeSet.has(sessionTypeParam as SessionType)
-        ? (sessionTypeParam as SessionType)
-        : undefined;
-
-    setTrainingPrefill({
-      sessionType: parsedSessionType,
-      duration: Number.isFinite(parsedDuration) && parsedDuration > 0 ? parsedDuration : undefined,
-    });
-    setExpandedForm('training');
-  }, [openParam, dateParam, durationParam, sessionTypeParam]);
+  useEffect(() => {
+    if (openParam !== 'training' && openParam !== 'wellness') return;
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('open');
+    router.replace('/log/' + openParam + '?' + params.toString());
+  }, [openParam, searchParams, router]);
 
   return (
     <div className="px-4 py-8 max-w-md mx-auto">
@@ -147,48 +101,21 @@ export default function LogPage() {
       {/* Toggle Buttons */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <button
-          onClick={() => toggleForm('wellness')}
-          className={`py-4 px-3 rounded-xl font-bold text-sm transition-all shadow-sm touch-target flex flex-col items-center justify-center space-y-1 ${
-            expandedForm === 'wellness' 
-              ? 'bg-gradient-to-br from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black shadow-lg shadow-[0_16px_40px_rgba(var(--accent-tertiary-rgb),0.22)]'
-              : 'glass-card text-gray-300 hover:text-white'
-          }`}
+          onClick={() => openForm('wellness')}
+          className="py-4 px-3 rounded-xl font-bold text-sm transition-all shadow-sm touch-target flex flex-col items-center justify-center space-y-1 glass-card text-gray-300 hover:text-white"
         >
           <Heart size={20} />
-          <span>Daily Wellness</span>
+          <span>Log wellness</span>
         </button>
         <button
-          onClick={() => toggleForm('training')}
-          className={`py-4 px-3 rounded-xl font-bold text-sm transition-all shadow-sm touch-target flex flex-col items-center justify-center space-y-1 ${
-            expandedForm === 'training' 
-              ? 'bg-gradient-to-br from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white shadow-lg shadow-[0_16px_40px_rgba(var(--accent-secondary-rgb),0.22)]'
-              : 'glass-card text-gray-300 hover:text-white'
-          }`}
+          onClick={() => openForm('training')}
+          className="py-4 px-3 rounded-xl font-bold text-sm transition-all shadow-sm touch-target flex flex-col items-center justify-center space-y-1 glass-card text-gray-300 hover:text-white"
         >
           <Dumbbell size={20} />
-          <span>Training Session</span>
+          <span>Log session</span>
         </button>
       </div>
 
-      {/* Expanded Form */}
-      {expandedForm === 'wellness' && (
-        <div className="animate-slide-up">
-          <WellnessForm key={`wellness-${selectedDateStr}`} selectedDate={selectedDateStr} onSaved={onSaved} />
-        </div>
-      )}
-      {expandedForm === 'training' && (
-        <div className="animate-slide-up">
-          <TrainingForm
-            key={`training-${selectedDateStr}-${trainingPrefill?.id || trainingPrefill?.sessionType || 'default'}-${trainingPrefill?.duration || 'default'}`}
-            selectedDate={selectedDateStr}
-            onSaved={onSaved}
-            initialValues={trainingPrefill || undefined}
-          />
-        </div>
-      )}
-
-      {/* Logs for Selected Date — shown when no form is expanded */}
-      {expandedForm === null && (
         <div className="space-y-4 animate-fade-in">
           {!hasAnyLogs ? (
             <div className="glass-card p-6 flex flex-col items-center justify-center text-gray-400 border-dashed border-[rgba(255,255,255,0.2)]">
@@ -356,7 +283,6 @@ export default function LogPage() {
             </>
           )}
         </div>
-      )}
     </div>
   );
 }

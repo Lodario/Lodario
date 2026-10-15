@@ -28,6 +28,7 @@ export function RootAppShell({ children }: RootAppShellProps) {
     || (PUBLIC_BETA_FEATURES.guardianAndMinorAccounts && pathname.startsWith('/guardian/invite/'));
   const coachRoute = isCoachRoute(pathname);
   const guardianRoute = isGuardianRoute(pathname);
+  const loggingRoute = pathname === '/log/wellness' || pathname === '/log/training';
 
   if (disabledRoute) {
     return null;
@@ -75,10 +76,10 @@ export function RootAppShell({ children }: RootAppShellProps) {
             <OnboardingGate>
               <div className="player-app-shell max-w-md mx-auto min-h-screen relative shadow-2xl bg-[var(--background)] overflow-hidden flex flex-col">
                 <OfflineBanner />
-                <main data-page-scroll className="flex-1 overflow-y-auto pb-24">
+                <main data-page-scroll className={`flex-1 overflow-y-auto ${loggingRoute ? '' : 'pb-24'}`}>
                   {children}
                 </main>
-                <BottomNav />
+                {!loggingRoute && <BottomNav />}
               </div>
             </OnboardingGate>
           </DataProvider>

@@ -17,8 +17,8 @@ interface DataContextType {
   injuries: InjuryRecord[];
   
   saveProfile: (profile: UserProfile) => void;
-  saveWellnessLog: (log: WellnessLog) => void;
-  saveTrainingLog: (log: TrainingLog) => void;
+  saveWellnessLog: (log: WellnessLog) => Promise<void>;
+  saveTrainingLog: (log: TrainingLog) => Promise<void>;
   deleteTrainingLog: (logId: string) => void;
   saveCalendarEvent: (event: CalendarEvent) => void;
   deleteCalendarEvent: (eventId: string) => void;
@@ -38,8 +38,8 @@ const defaultContext: DataContextType = {
   customEventTypes: [],
   injuries: [],
   saveProfile: () => {},
-  saveWellnessLog: () => {},
-  saveTrainingLog: () => {},
+  saveWellnessLog: async () => {},
+  saveTrainingLog: async () => {},
   deleteTrainingLog: () => {},
   saveCalendarEvent: () => {},
   deleteCalendarEvent: () => {},
@@ -126,16 +126,16 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     setData((prev) => ({ ...prev, profile }));
   }, []);
 
-  const saveWellnessLog = useCallback((log: WellnessLog) => {
-    StorageService.saveWellnessLog(log);
+  const saveWellnessLog = useCallback(async (log: WellnessLog) => {
+    await StorageService.saveWellnessLog(log);
     setData((prev) => ({
       ...prev,
       wellnessLogs: { ...prev.wellnessLogs, [log.date]: log },
     }));
   }, []);
 
-  const saveTrainingLog = useCallback((log: TrainingLog) => {
-    StorageService.saveTrainingLog(log);
+  const saveTrainingLog = useCallback(async (log: TrainingLog) => {
+    await StorageService.saveTrainingLog(log);
     setData((prev) => {
       const logs = [...prev.trainingLogs];
       const index = logs.findIndex((l) => l.id === log.id);

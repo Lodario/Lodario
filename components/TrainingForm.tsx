@@ -1,287 +1,146 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useId, useState } from 'react';
+import { ChevronDown, Dumbbell, Pencil } from 'lucide-react';
 import { useData } from '../lib/DataContext';
-import { Slider } from './ui/Slider';
-import { Toggle } from './ui/Toggle';
-import { InjuryStatusToggle } from './InjuryStatusToggle';
+import { Rating } from './logging/Rating';
+import { PainPanel } from './logging/PainPanel';
 import { TrainingLog, SESSION_TYPES, SessionType, SprintingOption } from '../lib/types';
 import { isAutomaticInjuryPainLevel } from '../lib/injury-status';
 import { v4 as uuidv4 } from 'uuid';
 
 interface TrainingFormProps {
   onSaved: () => void;
-  selectedDate: string; // YYYY-MM-DD
+  selectedDate: string;
   initialValues?: Partial<TrainingLog>;
+  calendarTitle?: string;
+  calendarTime?: string;
 }
 
-export function TrainingForm({ onSaved, selectedDate, initialValues }: TrainingFormProps) {
+const sessionLabels: Record<SessionType, string> = {
+  Solo: 'Solo training', Partner: 'Partner training', Team: 'Team training', Match: 'Match',
+  Cardio: 'Cardio', HIIT: 'HIIT', Gym: 'Gym', Other: 'Other activity',
+};
+const defaultPerformanceEnabled = (type: SessionType) => type === 'Team' || type === 'Match';
+
+export function TrainingForm({ onSaved, selectedDate, initialValues, calendarTitle, calendarTime }: TrainingFormProps) {
   const { saveTrainingLog } = useData();
-
-  const sessionTypes = SESSION_TYPES;
-  const defaultPerformanceEnabled = (type: SessionType) => type === 'Team' || type === 'Match';
   const [sessionType, setSessionType] = useState<SessionType>(initialValues?.sessionType || 'Team');
-  
-  const [duration, setDuration] = useState<string>(
-    initialValues?.duration && initialValues.duration > 0 ? String(initialValues.duration) : ''
-  );
-  const quickDurations = [30, 45, 60, 90];
-
-  const [distance, setDistance] = useState<string>('');
-  const [intensity, setIntensity] = useState<number>(7);
+  const [duration, setDuration] = useState(initialValues?.duration ? String(initialValues.duration) : '');
+  const [distance, setDistance] = useState('');
+  const [intensity, setIntensity] = useState(7);
   const [sprinting, setSprinting] = useState<SprintingOption>('no');
-  const [performance, setPerformance] = useState<number>(5);
-  const [performanceEnabled, setPerformanceEnabled] = useState<boolean>(
-    initialValues?.performance != null || defaultPerformanceEnabled(initialValues?.sessionType || 'Team')
-  );
-  
-  const [painActive, setPainActive] = useState<boolean>(false);
-  const [painLevel, setPainLevel] = useState<number>(1);
-  const [painNotes, setPainNotes] = useState<string>('');
-  const [manualInjury, setManualInjury] = useState<boolean>(false);
-  const [notes, setNotes] = useState<string>('');
-
-  const [error, setError] = useState<string>('');
+  const [performance, setPerformance] = useState(5);
+  const [performanceEnabled, setPerformanceEnabled] = useState(defaultPerformanceEnabled(sessionType));
+  const [painLevel, setPainLevel] = useState(0);
+  const [painNotes, setPainNotes] = useState('');
+  const [manualInjury, setManualInjury] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [error, setError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
+  const typeMenuId = useId();
   const isEditing = !!initialValues?.id;
-  const automaticallyTreatAsInjury = painActive && isAutomaticInjuryPainLevel(painLevel);
-  const isInjury = painActive && (manualInjury || automaticallyTreatAsInjury);
+  const painActive = painLevel > 0;
+  const isInjury = painActive && (manualInjury || isAutomaticInjuryPainLevel(painLevel));
+  const hasCalendarContext = !!(calendarTitle || calendarTime) && sessionType === initialValues?.sessionType;
 
   useEffect(() => {
-    const nextSessionType = initialValues?.sessionType || 'Team';
-    setSessionType(nextSessionType);
+    const nextType = initialValues?.sessionType || 'Team';
+    setSessionType(nextType);
     setDuration(initialValues?.duration && initialValues.duration > 0 ? String(initialValues.duration) : '');
     setDistance(initialValues?.distance != null ? String(initialValues.distance) : '');
     setIntensity(initialValues?.intensity ?? 7);
     setSprinting(initialValues?.sprinting || 'no');
     setPerformance(initialValues?.performance ?? 5);
-    setPerformanceEnabled(initialValues?.id ? initialValues.performance != null : defaultPerformanceEnabled(nextSessionType));
-    setPainActive(initialValues?.painActive ?? false);
-    setPainLevel(initialValues?.painLevel || 1);
+    setPerformanceEnabled(initialValues?.id ? initialValues.performance != null : defaultPerformanceEnabled(nextType));
+    setPainLevel(initialValues?.painActive ? initialValues.painLevel ?? 0 : 0);
     setPainNotes(initialValues?.painNotes || '');
     setManualInjury(initialValues?.isInjury ?? false);
     setNotes(initialValues?.notes || '');
   }, [initialValues, selectedDate]);
 
-  const handleSessionTypeChange = (type: SessionType) => {
-    setSessionType(type);
-    setPerformanceEnabled(defaultPerformanceEnabled(type));
-  };
-
-  const handlePainActiveChange = (checked: boolean) => {
-    setPainActive(checked);
-    if (!checked) {
-      setManualInjury(false);
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (saving) return;
     setError('');
-
     const durationNum = Number(duration);
-    if (!duration || isNaN(durationNum) || durationNum <= 0) {
-      setError('Please enter a valid duration.');
+    if (!Number.isFinite(durationNum) || durationNum <= 0) {
+      setError('Enter an actual duration greater than zero.');
       return;
     }
-
+    const distanceNum = distance === '' ? undefined : Number(distance);
+    if (distanceNum != null && (!Number.isFinite(distanceNum) || distanceNum < 0)) {
+      setError('Enter a valid distance of zero or more.');
+      return;
+    }
     const log: TrainingLog = {
-      id: initialValues?.id || uuidv4(),
-      date: initialValues?.date || selectedDate,
-      sessionType,
-      duration: durationNum,
-      distance: distance ? parseFloat(distance) : undefined,
-      intensity,
-      sprinting,
+      id: initialValues?.id || uuidv4(), date: initialValues?.date || selectedDate,
+      sessionType, duration: durationNum, distance: distanceNum, intensity, sprinting,
       performance: performanceEnabled ? performance : undefined,
-      painActive,
-      painLevel: painActive ? painLevel : undefined,
-      painNotes: painActive ? painNotes : undefined,
-      isInjury,
-      notes,
+      painActive, painLevel, painNotes: painActive ? painNotes : undefined, isInjury, notes,
     };
-    saveTrainingLog(log);
-    onSaved();
-    // Reset form mostly
-    setDistance('');
-    setNotes('');
-    setPainActive(false);
-    setManualInjury(false);
+    setSaving(true);
+    try {
+      await saveTrainingLog(log);
+      onSaved();
+    } catch {
+      setError('Your session could not be saved. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="animate-fade-in pb-8">
-      
-      {error && (
-        <div className="mb-4 p-3 rounded-xl bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.3)] text-[#ff6b6b] text-xs font-medium animate-fade-in">
-          {error}
-        </div>
-      )}
-
-      {/* Session Details */}
-      <div className="glass-card p-5 mb-6">
-        <h3 className="text-[var(--accent-primary)] font-bold uppercase tracking-wider text-xs mb-4">Session Details</h3>
-        
-        <label className="block text-xs font-medium text-gray-400 mb-2">Type</label>
-        <div className="grid grid-cols-4 gap-2 mb-6 cursor-pointer">
-          {sessionTypes.map(type => (
-            <div 
-              key={type}
-              onClick={() => handleSessionTypeChange(type)}
-              className={`text-center py-2 px-1 rounded-lg text-sm transition-colors touch-target flex justify-center items-center ${
-                sessionType === type 
-                  ? 'bg-[var(--accent-primary)] text-black font-bold' 
-                  : 'bg-[rgba(255,255,255,0.05)] text-gray-300 hover:bg-[rgba(255,255,255,0.1)]'
-              }`}
-            >
-              {type}
-            </div>
-          ))}
-        </div>
-
-        <label className="block text-xs font-medium text-gray-400 mb-2">Duration (mins)</label>
-        <div className="flex space-x-2 mb-4 overflow-x-auto pb-2">
-          {quickDurations.map(dur => (
-            <button
-              type="button"
-              key={dur}
-              onClick={() => setDuration(String(dur))}
-              className={`flex-shrink-0 px-4 py-2 rounded-lg text-sm touch-target ${
-                duration === String(dur)
-                  ? 'bg-[var(--accent-secondary)] text-white font-bold'
-                  : 'bg-[rgba(255,255,255,0.05)] text-gray-300 border border-[rgba(255,255,255,0.1)]'
-              }`}
-            >
-              {dur}
-            </button>
-          ))}
-          <input 
-            type="number"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            className="w-20 bg-[rgba(255,255,255,0.05)] border-2 border-[rgba(255,255,255,0.35)] rounded-lg p-2 text-white text-center ml-2 touch-target"
-          />
-        </div>
-
-        <label className="block text-xs font-medium text-gray-400 mb-1 mt-4">Distance (KM) - Optional</label>
-        <input 
-          type="number" 
-          step="0.1"
-          placeholder="e.g. 5.5"
-          value={distance}
-          onChange={(e) => setDistance(e.target.value)}
-          className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-white touch-target"
-        />
-      </div>
-
-      {/* Exertion & Performance */}
-      <div className="glass-card p-5 mb-6">
-        <h3 className="text-[var(--accent-secondary)] font-bold uppercase tracking-wider text-xs mb-4">Exertion & Performance</h3>
-        
-        <Slider label="RPE (Rate of Perceived Exertion)" value={intensity} onChangeValue={setIntensity} />
-        
-        <div className="mt-6 mb-6">
-          <label className="block text-xs font-medium text-gray-400 mb-2">Sprinting / High Speed Running</label>
-          <div className="flex space-x-2">
-            {[
-              { value: 'no', label: 'None' },
-              { value: 'yes-90-95', label: '90-95%' },
-              { value: 'yes-100', label: '100% Max' },
-            ].map(opt => (
-              <button
-                type="button"
-                key={opt.value}
-                onClick={() => setSprinting(opt.value as SprintingOption)}
-                className={`flex-1 py-2 px-1 rounded-lg text-xs font-medium touch-target ${
-                  sprinting === opt.value
-                    ? 'bg-gradient-to-r from-[var(--status-orange)] to-[#ff6b6b] text-white shadow-md'
-                    : 'bg-[rgba(255,255,255,0.05)] text-gray-400'
-                }`}
-              >
-                {opt.label}
-              </button>
+    <form onSubmit={handleSubmit} className="log-form">
+      <fieldset disabled={saving} className="log-form-fields">
+        <section className="log-card log-session-card">
+          <button type="button" className="log-session-toggle" aria-expanded={typeMenuOpen} aria-controls={typeMenuId} aria-label="Select session type" onClick={() => setTypeMenuOpen(value => !value)}>
+            <Dumbbell size={30} />
+            <span><strong>{hasCalendarContext && calendarTitle ? calendarTitle : sessionLabels[sessionType]}</strong>{hasCalendarContext && <small>From your calendar</small>}</span>
+            <span className="log-event-type-label">Event type</span>
+            <ChevronDown size={21} className={typeMenuOpen ? 'is-open' : ''} />
+          </button>
+          <div id={typeMenuId} hidden={!typeMenuOpen} className="log-session-menu" role="group" aria-label="Session type">
+            {SESSION_TYPES.map(type => <button key={type} type="button" aria-pressed={sessionType === type} onClick={() => {
+              setSessionType(type); setPerformanceEnabled(defaultPerformanceEnabled(type)); setTypeMenuOpen(false);
+            }}>{sessionLabels[type]}</button>)}
+          </div>
+          <label htmlFor="training-duration" className="log-duration-label">Actual duration</label>
+          <div className="log-duration-options">
+            {[30, 45, 60, 75, 90].map(minutes => <button key={minutes} type="button" aria-label={minutes + ' minutes'} aria-pressed={Number(duration) === minutes} onClick={() => setDuration(String(minutes))}>{minutes}</button>)}
+            <span className="log-duration-custom"><input id="training-duration" type="number" min="0" step="any" inputMode="decimal" value={duration} placeholder="0" aria-label="Actual duration in minutes" onChange={event => setDuration(event.target.value)} /><span>min</span><Pencil size={13} aria-hidden="true" /></span>
+          </div>
+        </section>
+        <section className="log-card log-effort-card">
+          <Rating label="How hard did it feel?" value={intensity} onChange={setIntensity} numbered lowLabel="Easy" highLabel="Max effort" />
+        </section>
+        <section className="log-card log-performance-card">
+          <div className="log-performance-control">
+            <button type="button" role="switch" aria-checked={performanceEnabled} aria-label="Record personal performance" onClick={() => setPerformanceEnabled(value => !value)}>{performanceEnabled ? 'On' : 'Off'}</button>
+          </div>
+          {performanceEnabled ? <Rating label="How was your performance?" value={performance} onChange={setPerformance} color="#ff4d78" numbered lowLabel="Poor" highLabel="Excellent" />
+            : <div className="log-performance-off"><h2>How was your performance?</h2><p>No performance rating recorded</p></div>}
+        </section>
+        <section className="log-card log-sprinting-card">
+          <h2>Sprinting</h2>
+          <div className="log-sprinting-options" role="group" aria-label="Sprinting">
+            {([{ value: 'no', label: 'None' }, { value: 'yes-90-95', label: '90–95%' }, { value: 'yes-100', label: '100%' }] as const).map(option => (
+              <button key={option.value} type="button" aria-pressed={sprinting === option.value} onClick={() => setSprinting(option.value)}>{option.label}</button>
             ))}
           </div>
-        </div>
-
-        <div className="mb-4">
-          <div className="mb-2 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium text-gray-200">Personal Performance</p>
-              {!performanceEnabled && (
-                <p className="mt-1 text-xs text-gray-500">No performance level recorded</p>
-              )}
-            </div>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={performanceEnabled}
-              aria-label="Toggle personal performance"
-              onClick={() => setPerformanceEnabled(value => !value)}
-              className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors focus:outline-none ${
-                performanceEnabled ? 'bg-[var(--accent-primary)]' : 'bg-gray-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  performanceEnabled ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-
-          {performanceEnabled && (
-            <Slider label="Performance Level" value={performance} onChangeValue={setPerformance} />
-          )}
-        </div>
-      </div>
-
-      {/* Pain & Notes */}
-      <div className="glass-card p-5 mb-6">
-        <h3 className="text-[#ff6b6b] font-bold uppercase tracking-wider text-xs mb-4">Pain & Notes</h3>
-        
-        <Toggle label="Pain during/after session?" checked={painActive} onChange={handlePainActiveChange} />
-        
-        {painActive && (
-          <div className="mt-4 animate-slide-up bg-[rgba(255,107,107,0.1)] p-4 rounded-xl border border-[rgba(255,107,107,0.2)]">
-            <Slider label="Pain Level" value={painLevel} min={1} max={10} onChangeValue={setPainLevel} />
-            <div className="mt-4">
-              <InjuryStatusToggle
-                checked={isInjury}
-                automaticallyEnabled={automaticallyTreatAsInjury}
-                onChange={setManualInjury}
-              />
-            </div>
-            <div className="mt-4">
-              <label className="block text-xs font-medium text-[#ff6b6b] mb-1">Pain Location</label>
-              <textarea 
-                value={painNotes}
-                onChange={(e) => setPainNotes(e.target.value)}
-                placeholder="Where did you feel it?"
-                className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(255,107,107,0.3)] rounded-lg p-3 text-white focus:outline-none"
-                rows={2}
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="mt-6">
-          <label className="block text-xs font-medium text-gray-400 mb-2">Session Notes</label>
-          <textarea 
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="Focus areas, coaches feedback, etc."
-            className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-white focus:outline-none focus:border-[var(--accent-primary)]"
-            rows={3}
-          />
-        </div>
-      </div>
-
-      <button 
-        type="submit" 
-        className="w-full bg-gradient-to-r from-[var(--accent-secondary)] to-[var(--accent-tertiary)] text-white font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 touch-target"
-      >
-        {isEditing ? 'Update Training Log' : 'Save Training Log'}
-      </button>
+        </section>
+        <PainPanel level={painLevel} onLevelChange={setPainLevel} notes={painNotes} onNotesChange={setPainNotes} injury={manualInjury} onInjuryChange={setManualInjury} />
+        {error && <p className="log-error" role="alert">{error}</p>}
+        <button type="submit" className="log-save-button">{saving ? 'Saving…' : isEditing ? 'Update session' : 'Save session'}</button>
+        <details className="log-extra-details" open={notes || distance ? true : undefined}>
+          <summary>Notes & distance <span>Optional</span></summary>
+          <label htmlFor="training-distance" className="log-field-label">Distance (km)</label>
+          <input id="training-distance" type="number" min="0" step="any" value={distance} onChange={event => setDistance(event.target.value)} className="log-input" />
+          <label htmlFor="training-notes" className="log-field-label">Session notes</label>
+          <textarea id="training-notes" value={notes} onChange={event => setNotes(event.target.value)} rows={2} className="log-input" />
+        </details>
+      </fieldset>
     </form>
   );
 }

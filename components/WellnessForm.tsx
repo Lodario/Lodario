@@ -2,9 +2,9 @@
 
 import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useData } from '../lib/DataContext';
-import { Slider } from './ui/Slider';
-import { Toggle } from './ui/Toggle';
-import { InjuryStatusToggle } from './InjuryStatusToggle';
+import { Moon, PersonStanding, Clock3, Pencil } from 'lucide-react';
+import { Rating } from './logging/Rating';
+import { PainPanel } from './logging/PainPanel';
 import { WellnessLog } from '../lib/types';
 import { isAutomaticInjuryPainLevel } from '../lib/injury-status';
 import { format, isBefore, parseISO, subDays } from 'date-fns';
@@ -24,12 +24,14 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
   const [energy, setEnergy] = useState(5);
   const [fatigue, setFatigue] = useState(5);
   const [stress, setStress] = useState(5);
-  const [painActive, setPainActive] = useState(false);
-  const [painLevel, setPainLevel] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [painLevel, setPainLevel] = useState(0);
   const [painNotes, setPainNotes] = useState('');
   const [manualInjury, setManualInjury] = useState(false);
   const [notes, setNotes] = useState('');
   const sleepTimesTouchedRef = useRef(false);
+  const painActive = painLevel > 0;
   const automaticallyTreatAsInjury = painActive && isAutomaticInjuryPainLevel(painLevel);
   const isInjury = painActive && (manualInjury || automaticallyTreatAsInjury);
 
@@ -63,8 +65,7 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
       setEnergy(existingLog.energy);
       setFatigue(existingLog.fatigue);
       setStress(existingLog.stress);
-      setPainActive(existingLog.painActive);
-      setPainLevel(existingLog.painLevel || 1);
+      setPainLevel(existingLog.painActive ? existingLog.painLevel ?? 0 : 0);
       setPainNotes(existingLog.painNotes || '');
       setManualInjury(existingLog.isInjury ?? false);
       setNotes(existingLog.notes || '');
@@ -79,20 +80,12 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
       setEnergy(5);
       setFatigue(5);
       setStress(5);
-      setPainActive(false);
-      setPainLevel(1);
+      setPainLevel(0);
       setPainNotes('');
       setManualInjury(false);
       setNotes('');
     }
   }, [existingLog, selectedDate, wellnessLogs, getPreviousSleepTimes]);
-
-  const handlePainActiveChange = (checked: boolean) => {
-    setPainActive(checked);
-    if (!checked) {
-      setManualInjury(false);
-    }
-  };
 
   const calculateDuration = () => {
     const sl = sleepTime.split(':').map(Number);
@@ -105,8 +98,11 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
     return Number(((wkMin - slMin) / 60).toFixed(1));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
+    setError('');
+    setSaving(true);
     const log: WellnessLog = {
       date: selectedDate,
       sleepTime,
@@ -117,107 +113,52 @@ export function WellnessForm({ onSaved, selectedDate }: WellnessFormProps) {
       fatigue,
       stress,
       painActive,
-      painLevel: painActive ? painLevel : undefined,
+      painLevel,
       painNotes: painActive ? painNotes : undefined,
       isInjury,
       notes,
     };
-    saveWellnessLog(log);
-    onSaved();
+    try {
+      await saveWellnessLog(log);
+      onSaved();
+    } catch {
+      setError('Your check-in could not be saved. Please try again.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="animate-fade-in pb-8">
-      <div className="glass-card p-5 mb-6">
-        <h3 className="text-[var(--accent-primary)] font-bold uppercase tracking-wider text-xs mb-4">Sleep Metrics</h3>
-        
-        <div className="flex space-x-4 mb-5">
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-400 mb-1">To Bed</label>
-            <input 
-              type="time" 
-              value={sleepTime} 
-              onChange={(e) => {
-                sleepTimesTouchedRef.current = true;
-                setSleepTime(e.target.value);
-              }}
-              className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-white touch-target"
-            />
+    <form onSubmit={handleSubmit} className="log-form">
+      <fieldset disabled={saving} className="log-form-fields">
+        <section className="log-card log-sleep-card">
+          <h2 className="log-card-title"><Moon size={25} className="log-moon" fill="currentColor" />Sleep</h2>
+          <div className="log-sleep-times">
+            <label className="log-time-field"><Clock3 size={20} /><span>Fall asleep</span>
+              <span className="log-time-input"><input type="time" required aria-label="Fall asleep" value={sleepTime} onChange={event => { sleepTimesTouchedRef.current = true; setSleepTime(event.target.value); }} /><Pencil size={15} aria-hidden="true" /></span>
+            </label>
+            <label className="log-time-field"><Clock3 size={20} /><span>Wake up</span>
+              <span className="log-time-input"><input type="time" required aria-label="Wake up" value={wakeTime} onChange={event => { sleepTimesTouchedRef.current = true; setWakeTime(event.target.value); }} /><Pencil size={15} aria-hidden="true" /></span>
+            </label>
           </div>
-          <div className="flex-1">
-            <label className="block text-xs font-medium text-gray-400 mb-1">Wake Up</label>
-            <input 
-              type="time" 
-              value={wakeTime} 
-              onChange={(e) => {
-                sleepTimesTouchedRef.current = true;
-                setWakeTime(e.target.value);
-              }}
-              className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-white touch-target"
-            />
-          </div>
-        </div>
-        
-        <div className="mb-2 text-right">
-          <span className="text-xs text-gray-400">Duration: </span>
-          <span className="text-sm font-bold text-white">{calculateDuration()} hrs</span>
-        </div>
-
-        <Slider label="Sleep Quality" value={sleepQuality} onChangeValue={setSleepQuality} />
-      </div>
-
-      <div className="glass-card p-5 mb-6">
-        <h3 className="text-[var(--accent-secondary)] font-bold uppercase tracking-wider text-xs mb-4">Readiness Indicators</h3>
-        <Slider label="Morning Energy" value={energy} onChangeValue={setEnergy} />
-        <Slider label="Muscle Fatigue/Soreness" value={fatigue} onChangeValue={setFatigue} />
-        <Slider label="General Stress" value={stress} onChangeValue={setStress} />
-      </div>
-
-      <div className="glass-card p-5 mb-6">
-        <h3 className="text-[#ff6b6b] font-bold uppercase tracking-wider text-xs mb-4">Pain & Injury</h3>
-        <Toggle label="Are you experiencing unusual pain?" checked={painActive} onChange={handlePainActiveChange} />
-        
-        {painActive && (
-          <div className="mt-4 animate-slide-up bg-[rgba(255,107,107,0.1)] p-4 rounded-xl border border-[rgba(255,107,107,0.2)]">
-            <Slider label="Pain Level" value={painLevel} min={1} max={10} onChangeValue={setPainLevel} />
-            <div className="mt-4">
-              <InjuryStatusToggle
-                checked={isInjury}
-                automaticallyEnabled={automaticallyTreatAsInjury}
-                onChange={setManualInjury}
-              />
-            </div>
-            <div className="mt-4">
-              <label className="block text-xs font-medium text-[#ff6b6b] mb-1">Pain Location & Description</label>
-              <textarea 
-                value={painNotes}
-                onChange={(e) => setPainNotes(e.target.value)}
-                placeholder="Where does it hurt? Is it sharp or dull?"
-                className="w-full bg-[rgba(0,0,0,0.2)] border border-[rgba(255,107,107,0.3)] rounded-lg p-3 text-white focus:outline-none"
-                rows={2}
-              />
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="glass-card p-5 mb-6">
-        <label className="block text-xs font-medium text-gray-400 mb-2">General Notes (Optional)</label>
-        <textarea 
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder="How are you feeling overall?"
-          className="w-full bg-[rgba(255,255,255,0.05)] border border-[rgba(255,255,255,0.1)] rounded-lg p-3 text-white focus:outline-none focus:border-[var(--accent-primary)]"
-          rows={3}
-        />
-      </div>
-
-      <button 
-        type="submit" 
-        className="w-full bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] text-black font-bold py-4 rounded-xl shadow-lg transform transition active:scale-95 touch-target"
-      >
-        Save Wellness Log
-      </button>
+          <p className="log-sleep-duration">Sleep duration: {calculateDuration()} h</p>
+          <Rating label="Sleep quality" value={sleepQuality} onChange={setSleepQuality} />
+        </section>
+        <section className="log-card log-body-card">
+          <h2 className="log-card-title"><PersonStanding size={28} />Body</h2>
+          <Rating label="Energy" value={energy} onChange={setEnergy} />
+          <Rating label="Fatigue" value={fatigue} onChange={setFatigue} color="#ff4d78" />
+          <Rating label="Stress" value={stress} onChange={setStress} color="#df00ed" />
+        </section>
+        <PainPanel level={painLevel} onLevelChange={setPainLevel} notes={painNotes} onNotesChange={setPainNotes} injury={manualInjury} onInjuryChange={setManualInjury} />
+        {error && <p className="log-error" role="alert">{error}</p>}
+        <button type="submit" className="log-save-button">{saving ? 'Saving…' : 'Save check-in'}</button>
+        <details className="log-extra-details" open={notes ? true : undefined}>
+          <summary>Additional notes <span>Optional</span></summary>
+          <label htmlFor="wellness-notes" className="log-field-label">How are you feeling overall?</label>
+          <textarea id="wellness-notes" value={notes} onChange={event => setNotes(event.target.value)} className="log-input" rows={2} />
+        </details>
+      </fieldset>
     </form>
   );
 }

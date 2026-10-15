@@ -153,14 +153,14 @@ export function calculateReadiness(
     sleepConsistencyScore = Math.max(0, 100 - (stdev * 50));
   }
 
-  // 4. Energy (1-10 -> 0-100)
+  // 4. Energy (0-10 -> 0-100)
   const energyScore = (todayLog.energy / 10) * 100;
 
-  // 5. Fatigue (1-10 -> Inverted 0-100)
-  const fatigueScore = ((10 - todayLog.fatigue + 1) / 10) * 100; // if fatigue 10 -> 10, if fatigue 1 -> 100
+  // 5. Fatigue (0 means none; preserve the scores for existing 1-10 logs)
+  const fatigueScore = Math.min(100, ((10 - todayLog.fatigue + 1) / 10) * 100); // if fatigue 10 -> 10, if fatigue 1 -> 100
 
-  // 6. Stress (1-10 -> Inverted 0-100)
-  const stressScore = ((10 - todayLog.stress + 1) / 10) * 100;
+  // 6. Stress (0 means none; preserve the scores for existing 1-10 logs)
+  const stressScore = Math.min(100, ((10 - todayLog.stress + 1) / 10) * 100);
 
   // 7. Load Score
   let loadScore = 100;

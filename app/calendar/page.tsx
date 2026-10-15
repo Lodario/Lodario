@@ -126,6 +126,8 @@ export default function CalendarPage() {
     date: string;
     duration: number;
     sessionType: SessionType;
+    time: string;
+    title?: string;
   } | null>(null);
 
   const handlePrev = () => {
@@ -189,25 +191,28 @@ export default function CalendarPage() {
     setShowEventModal(true);
   }, [calendarEvents, editingEvent, persistedOpenEvent, showEventModal]);
 
-  const handleEventLongPress = (payload: { x: number; y: number; date: string; duration: number; sessionType: SessionType }) => {
+  const handleEventLongPress = (payload: { x: number; y: number; date: string; duration: number; sessionType: SessionType; time: string; title?: string }) => {
     setLogSessionPrompt({
       x: payload.x,
       y: payload.y,
       date: payload.date,
       duration: payload.duration,
       sessionType: payload.sessionType,
+      time: payload.time,
+      title: payload.title,
     });
   };
 
   const handleLogSession = () => {
     if (!logSessionPrompt) return;
     const params = new URLSearchParams({
-      open: 'training',
       date: logSessionPrompt.date,
       duration: String(logSessionPrompt.duration),
       sessionType: logSessionPrompt.sessionType,
+      time: logSessionPrompt.time,
     });
-    router.push(`/log?${params.toString()}`);
+    if (logSessionPrompt.title) params.set('title', logSessionPrompt.title);
+    router.push(`/log/training?${params.toString()}`);
   };
 
   const getViewLabel = () => {
@@ -320,7 +325,7 @@ function DayView({ currentDate, onAddEvent, onEditEvent, onEventLongPress }: {
   currentDate: Date; 
   onAddEvent: (dateStr: string, hour?: number) => void;
   onEditEvent: (event: CalendarEvent, isRecurringInstance: boolean, instanceDate: string) => void;
-  onEventLongPress: (payload: { x: number; y: number; date: string; duration: number; sessionType: SessionType }) => void;
+  onEventLongPress: (payload: { x: number; y: number; date: string; duration: number; sessionType: SessionType; time: string; title?: string }) => void;
 }) {
   const { calendarEvents, calendarEventColorOverrides, customEventTypes, trainingLogs } = useData();
   const scheduleRef = useRef<HTMLDivElement>(null);
@@ -365,6 +370,8 @@ function DayView({ currentDate, onAddEvent, onEditEvent, onEventLongPress }: {
         x,
         y,
         date: renderedEvent.instanceDate,
+        time: String(renderedEvent.startHour).padStart(2, '0') + ':' + String(renderedEvent.startMinute).padStart(2, '0'),
+        title: renderedEvent.title,
         duration: computeDurationMinutes(
           renderedEvent.startHour,
           renderedEvent.startMinute,

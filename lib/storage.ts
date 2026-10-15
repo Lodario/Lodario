@@ -134,7 +134,7 @@ export class StorageService {
 
   static async saveWellnessLog(log: WellnessLog): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) throw new Error('Please sign in again to save your log.');
 
     // Upsert based on user_id + date unique constraint
     const { error } = await supabase
@@ -156,7 +156,7 @@ export class StorageService {
         notes: log.notes ?? null,
       }, { onConflict: 'user_id,date' });
 
-    if (error) console.error('[storage] Wellness save failed.');
+    if (error) throw error;
   }
 
   // --- Training Logs ---
@@ -191,7 +191,7 @@ export class StorageService {
 
   static async saveTrainingLog(log: TrainingLog): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) throw new Error('Please sign in again to save your log.');
 
     const { error } = await supabase
       .from('training_logs')
@@ -212,7 +212,7 @@ export class StorageService {
         notes: log.notes ?? null,
       }, { onConflict: 'id' });
 
-    if (error) console.error('[storage] Training save failed.');
+    if (error) throw error;
   }
 
   static async deleteTrainingLog(logId: string): Promise<void> {

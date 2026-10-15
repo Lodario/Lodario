@@ -129,12 +129,12 @@ export interface WellnessLog {
   sleepTime: string; // HH:mm
   wakeTime: string; // HH:mm
   sleepDuration: number; // hours (auto-calculated)
-  sleepQuality: number; // 1-10
-  energy: number; // 1-10
-  fatigue: number; // 1-10
-  stress: number; // 1-10
+  sleepQuality: number; // 0-10
+  energy: number; // 0-10
+  fatigue: number; // 0-10
+  stress: number; // 0-10
   painActive: boolean;
-  painLevel?: number; // 1-10
+  painLevel?: number; // 0-10
   painNotes?: string;
   isInjury?: boolean;
   notes?: string;
@@ -154,7 +154,7 @@ export interface TrainingLog {
   sprinting: SprintingOption;
   performance?: number; // 1-10 when performance was assessed
   painActive: boolean;
-  painLevel?: number; // 1-10
+  painLevel?: number; // 0-10
   painNotes?: string;
   isInjury?: boolean;
   notes?: string;
