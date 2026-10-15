@@ -11,7 +11,7 @@ interface TeamAnalyticsSeries {
 interface TeamAnalyticsChartProps {
   graphNumber: number;
   title: string;
-  data: Array<Record<string, string | number>>;
+  data: Array<Record<string, string | number | null>>;
   series: TeamAnalyticsSeries[];
   leftDomain?: [number, number];
   rightDomain?: [number, number];

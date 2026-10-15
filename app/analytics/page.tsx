@@ -1,10 +1,19 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { ReadinessChart, LoadChart, FatigueEnergyChart } from '@/components/Charts';
+import { AnalyticsHistorySelect } from '@/components/coach/analytics/AnalyticsHistorySelect';
+import { useAnalyticsHistoryRange } from '@/lib/useAnalyticsHistoryRange';
+import { useData } from '@/lib/DataContext';
+import { differenceInCalendarDays, parseISO } from 'date-fns';
 
 export default function AnalyticsPage() {
-  const [days, setDays] = useState<7 | 14 | 30>(7);
+  const [historyRange, setHistoryRange] = useAnalyticsHistoryRange();
+  const { wellnessLogs, trainingLogs } = useData();
+  const dates = [...Object.keys(wellnessLogs), ...trainingLogs.map(log => log.date)].sort();
+  const days = historyRange === 'unlimited'
+    ? Math.max(7, dates[0] ? differenceInCalendarDays(new Date(), parseISO(dates[0])) + 1 : 7)
+    : Number(historyRange);
 
   return (
     <div className="px-4 py-8 max-w-md mx-auto h-full flex flex-col pb-20">
@@ -13,20 +22,8 @@ export default function AnalyticsPage() {
       </header>
 
       {/* Time Range Switcher */}
-      <div className="flex bg-[rgba(255,255,255,0.05)] rounded-full p-1 mb-6 border border-[rgba(255,255,255,0.1)]">
-        {([7, 14, 30] as const).map(d => (
-          <button
-            key={d}
-            onClick={() => setDays(d)}
-            className={`flex-1 py-2 text-sm font-bold rounded-full transition-all shadow-sm touch-target ${
-              days === d 
-                ? 'bg-[var(--card-bg)] text-white border border-[rgba(255,255,255,0.1)]' 
-                : 'text-gray-400 transparent'
-            }`}
-          >
-            {d} Days
-          </button>
-        ))}
+      <div className="mb-6">
+        <AnalyticsHistorySelect value={historyRange} onChange={setHistoryRange} />
       </div>
 
       <div className="space-y-6 animate-slide-up">

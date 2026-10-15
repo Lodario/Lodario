@@ -88,8 +88,8 @@ export interface PlayerAnalyticsData {
   energyFatigueLoad: Array<{
     date: string;
     label: string;
-    energy: number;
-    fatigue: number;
+    energy: number | null;
+    fatigue: number | null;
     acuteTrainingLoad: number;
   }>;
   sleepQualityAndTiming: Array<{

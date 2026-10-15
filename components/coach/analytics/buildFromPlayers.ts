@@ -36,9 +36,9 @@ function mean(values: number[]) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-function meanDefined(values: Array<number | undefined>) {
+function meanDefined(values: Array<number | null | undefined>) {
   const defined = values.filter((value): value is number => typeof value === 'number' && Number.isFinite(value));
-  return mean(defined);
+  return defined.length ? roundTo(mean(defined), 1) : null;
 }
 
 function hhmmToMinutes(value: string): number {
@@ -110,8 +110,8 @@ function buildTeamAverageSeries(players: TeamPlayerDataset[]) {
     energyFatigueLoad: datePoints.map(({ date, label }) => ({
       date,
       label,
-      energy: roundTo(meanDefined(energyFatigueLoadByPlayer.map((map) => map.get(date)?.energy)), 1),
-      fatigue: roundTo(meanDefined(energyFatigueLoadByPlayer.map((map) => map.get(date)?.fatigue)), 1),
+      energy: meanDefined(energyFatigueLoadByPlayer.map((map) => map.get(date)?.energy)),
+      fatigue: meanDefined(energyFatigueLoadByPlayer.map((map) => map.get(date)?.fatigue)),
       acuteTrainingLoad: roundTo(getTeamTrainingLoadForDate(players, date) ?? 0, 0),
     })),
     sleepQualityAndTiming: datePoints.flatMap(({ date, label }) => {
@@ -146,7 +146,7 @@ function buildTeamAverageSeries(players: TeamPlayerDataset[]) {
         energyScore: roundTo(mean(points.map((point) => point.energyScore)), 0),
         fatigueScore: roundTo(mean(points.map((point) => point.fatigueScore)), 0),
         stressScore: roundTo(mean(points.map((point) => point.stressScore)), 0),
-        acuteTrainingLoad: roundTo(mean(points.map((point) => point.acuteTrainingLoad)), 0),
+        acuteTrainingLoad: roundTo(getTeamTrainingLoadForDate(players, date) ?? 0, 0),
         loadScore: roundTo(mean(points.map((point) => point.loadScore)), 0),
       }];
     }),

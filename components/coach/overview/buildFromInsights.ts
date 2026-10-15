@@ -307,7 +307,7 @@ export function buildTeamOverviewData({
       };
     })(),
     (() => {
-      const value = latestEnergyFatigueLoad ? toRange100From10(latestEnergyFatigueLoad.fatigue) : null;
+      const value = latestEnergyFatigueLoad?.fatigue != null ? toRange100From10(latestEnergyFatigueLoad.fatigue) : null;
       return {
         label: 'Fatigue',
         value,
@@ -339,7 +339,7 @@ export function buildTeamOverviewData({
       };
     })(),
     (() => {
-      const value = latestEnergyFatigueLoad ? toRange100From10(latestEnergyFatigueLoad.energy) : null;
+      const value = latestEnergyFatigueLoad?.energy != null ? toRange100From10(latestEnergyFatigueLoad.energy) : null;
       return {
         label: 'Energy',
         value,
@@ -416,7 +416,7 @@ export function buildTeamOverviewData({
 
   const readinessTrendPoints = analyticsData.averages.readinessTrend.map((point) => point.readinessScore);
   const loadTrendPoints = analyticsData.averages.energyFatigueLoad.map((point) => point.acuteTrainingLoad);
-  const fatigueTrendPoints = analyticsData.averages.energyFatigueLoad.map((point) => toRange100From10(point.fatigue));
+  const fatigueTrendPoints = analyticsData.averages.energyFatigueLoad.flatMap((point) => point.fatigue == null ? [] : [toRange100From10(point.fatigue)]);
 
   const trends: OverviewTrend[] = hasAnalyticsData ? [
     {

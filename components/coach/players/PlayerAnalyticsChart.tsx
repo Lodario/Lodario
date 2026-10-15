@@ -24,7 +24,7 @@ interface AnalyticsSeries {
 interface PlayerAnalyticsChartProps {
   graphNumber: number;
   title: string;
-  data: Array<Record<string, string | number>>;
+  data: Array<Record<string, string | number | null>>;
   series: AnalyticsSeries[];
   leftDomain?: [number, number];
   rightDomain?: [number, number];

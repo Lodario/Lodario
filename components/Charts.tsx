@@ -65,7 +65,7 @@ export function ReadinessChart({ days }: ChartProps) {
 
     return {
       name: format(date, 'MMM d'),
-      score: score ? Math.round(score) : null,
+      score: score == null ? null : Math.round(score),
     };
   }).filter(d => d.score !== null);
 
@@ -133,8 +133,8 @@ export function FatigueEnergyChart({ days }: ChartProps) {
 
     return {
       name: format(date, 'MMM d'),
-      energy: log?.energy || null,
-      fatigue: log?.fatigue || null,
+      energy: log?.energy ?? null,
+      fatigue: log?.fatigue ?? null,
     };
   }).filter(d => d.energy !== null);
 

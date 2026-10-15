@@ -15,6 +15,7 @@ import type { AnalyticsViewMode, ComparisonMetricKey, TeamAnalyticsDataset, Team
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
 import { useCoachSelectedTeamInsights } from '@/lib/coach/teamInsights';
 import { usePersistedState } from '@/lib/usePersistedState';
+import { useAnalyticsHistoryRange } from '@/lib/useAnalyticsHistoryRange';
 
 function getFilteredTeamAnalytics(teamAnalytics: TeamAnalyticsDataset, historyRange: AnalyticsHistoryRange): TeamAnalyticsDataset {
   const minDateTime = getHistoryMinDateTime([
@@ -89,7 +90,7 @@ function AveragesView({
           graphNumber={2}
           title="Team Energy vs Fatigue vs Acute Training Load"
           data={averages.energyFatigueLoad}
-          leftDomain={[250, 950]}
+          leftDomain={[0, 950]}
           rightDomain={[0, 10]}
           series={[
             {
@@ -108,7 +109,7 @@ function AveragesView({
           graphNumber={3}
           title="Team Sleep Time vs Sleep Quality vs Sleep Score"
           data={averages.sleepQualityAndTiming}
-          leftDomain={[4, 10]}
+          leftDomain={[0, 10]}
           rightDomain={[0, 100]}
           footerNote={sleepTimingNote}
           series={[
@@ -282,7 +283,7 @@ function IndividualsView({
 export function CoachAnalyticsPage() {
   const { selectedTeam } = useCoachTeam();
   const [viewMode, setViewMode] = usePersistedState<AnalyticsViewMode>('lodario:coach-analytics:view', 'averages');
-  const [historyRange, setHistoryRange] = usePersistedState<AnalyticsHistoryRange>('lodario:coach-analytics:history-range', 'unlimited');
+  const [historyRange, setHistoryRange] = useAnalyticsHistoryRange();
   const { analyticsData: teamAnalytics, isLoading, error } = useCoachSelectedTeamInsights(selectedTeam.id);
   const filteredTeamAnalytics = useMemo(
     () => getFilteredTeamAnalytics(teamAnalytics, historyRange),

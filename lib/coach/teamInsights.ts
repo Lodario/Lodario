@@ -250,7 +250,7 @@ function getTodayWellnessSnapshot(dataset: TeamPlayerDataset, todayDateKey: stri
 
   const hasWellnessSignal =
     Boolean(sleep && (sleep.sleepHours > 0 || sleep.sleepQualityScore > 0 || sleep.sleepScore > 0)) ||
-    Boolean(energyFatigue && (energyFatigue.energy > 0 || energyFatigue.fatigue > 0)) ||
+    Boolean(energyFatigue && (energyFatigue.energy != null || energyFatigue.fatigue != null)) ||
     Boolean(stress && stress.stress > 0);
 
   if (!hasWellnessSignal) {
@@ -290,12 +290,12 @@ function buildCalendarAverages(players: TeamPlayerDataset[]): TeamCalendarDatase
     .map((dataset) => getTodayWellnessSnapshot(dataset, todayDateKey))
     .filter((snapshot): snapshot is NonNullable<typeof snapshot> => Boolean(snapshot));
   const readinessSummary = getTeamReadinessForDate(players, todayDateKey);
-  const energy = wellnessSnapshots.map((snapshot) => snapshot.energy).filter((value) => value > 0);
-  const fatigue = wellnessSnapshots.map((snapshot) => snapshot.fatigue * 10).filter((value) => value > 0);
-  const sleepScore = wellnessSnapshots.map((snapshot) => snapshot.sleepScore).filter((value) => value > 0);
-  const sleepHours = wellnessSnapshots.map((snapshot) => snapshot.sleepHours).filter((value) => value > 0);
-  const sleepQuality = wellnessSnapshots.map((snapshot) => snapshot.sleepQualityScore).filter((value) => value > 0);
-  const stress = wellnessSnapshots.map((snapshot) => snapshot.stress).filter((value) => value > 0);
+  const energy = wellnessSnapshots.map((snapshot) => snapshot.energy);
+  const fatigue = wellnessSnapshots.map((snapshot) => snapshot.fatigue * 10);
+  const sleepScore = wellnessSnapshots.map((snapshot) => snapshot.sleepScore);
+  const sleepHours = wellnessSnapshots.map((snapshot) => snapshot.sleepHours);
+  const sleepQuality = wellnessSnapshots.map((snapshot) => snapshot.sleepQualityScore);
+  const stress = wellnessSnapshots.map((snapshot) => snapshot.stress);
   const loadScore = getTeamTrainingAverage(players, (dataset) =>
     dataset.wellness.hasAcuteTrainingData ? dataset.wellness.loadScore : 0
   );

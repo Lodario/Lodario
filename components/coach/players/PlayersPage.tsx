@@ -5,6 +5,7 @@ import { CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { useCoachTeam } from '@/lib/coach/selectedTeam';
 import { useData } from '@/lib/DataContext';
 import { usePersistedState } from '@/lib/usePersistedState';
+import { useAnalyticsHistoryRange } from '@/lib/useAnalyticsHistoryRange';
 import { AnalyticsHistorySelect } from '@/components/coach/analytics/AnalyticsHistorySelect';
 import { filterAnalyticsPoints, getHistoryMinDateTime, type AnalyticsHistoryRange } from '@/components/coach/analytics/historyRange';
 import { PlayerAnalyticsChart } from '@/components/coach/players/PlayerAnalyticsChart';
@@ -131,7 +132,7 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
           graphNumber={2}
           title="Energy vs Fatigue vs Acute Training Load"
           data={playerDataset.analytics.energyFatigueLoad}
-          leftDomain={[250, 950]}
+          leftDomain={[0, 950]}
           rightDomain={[0, 10]}
           series={[
             {
@@ -149,7 +150,7 @@ function AnalyticsView({ playerDataset }: { playerDataset: TeamPlayerDataset }) 
           graphNumber={3}
           title="Sleep Time vs Sleep Quality vs Sleep Score"
           data={playerDataset.analytics.sleepQualityAndTiming}
-          leftDomain={[4, 10]}
+          leftDomain={[0, 10]}
           rightDomain={[0, 100]}
           footerNote={sleepTimingNote}
           series={[
@@ -306,7 +307,7 @@ export function PlayersPage() {
   const { selectedTeam } = useCoachTeam();
   const { customEventTypes } = useData();
   const [viewMode, setViewMode] = useState<PlayerViewMode>('sheet');
-  const [historyRange, setHistoryRange] = usePersistedState<AnalyticsHistoryRange>('lodario:coach-players:history-range', 'unlimited');
+  const [historyRange, setHistoryRange] = useAnalyticsHistoryRange();
   const [teamPlayers, setTeamPlayers] = useState<TeamPlayerDataset[]>([]);
   const [isLoadingPlayers, setIsLoadingPlayers] = useState(false);
   const [playersError, setPlayersError] = useState<string | null>(null);

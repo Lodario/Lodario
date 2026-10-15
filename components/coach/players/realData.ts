@@ -720,8 +720,9 @@ function buildDatasetForPlayer(params: {
       loadScore: Math.round(load.loadScore),
       readinessScore,
       energyScore: readiness.breakdown.energy,
-      fatigueScore: readiness.breakdown.fatigue,
-      stressScore: readiness.breakdown.stress,
+      // Plot reported intensity; readiness contributions intentionally run in reverse.
+      fatigueScore: fatigue * 10,
+      stressScore: stress * 10,
       bedTime: wellness?.sleep_time ?? '--:--',
       wakeTime: wellness?.wake_time ?? '--:--',
     };
@@ -942,8 +943,8 @@ function buildDatasetForPlayer(params: {
       energyFatigueLoad: analyticsRows.map((row) => ({
         date: row.dateValue,
         label: row.label,
-        energy: row.energy,
-        fatigue: row.fatigue,
+        energy: row.hasWellness ? row.energy : null,
+        fatigue: row.hasWellness ? row.fatigue : null,
         acuteTrainingLoad: row.acuteTrainingLoad,
       })),
       sleepQualityAndTiming: analyticsRows.filter((row) => row.hasWellness).map((row) => ({

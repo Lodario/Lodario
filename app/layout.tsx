@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/AuthContext";
 import { RootAppShell } from "@/components/RootAppShell";
 import { OverlayScrollbars } from "@/components/OverlayScrollbars";
 import { getSiteUrl } from "@/lib/env/server";
+import { AppStartupProvider } from "@/components/AppLoadingScreen";
 
 const outfit = Outfit({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"] });
 
@@ -78,9 +79,11 @@ export default function RootLayout({
         />
       </head>
       <body className={`${outfit.className} antialiased min-h-screen bg-black`}>
-        <AuthProvider>
-          <RootAppShell>{children}</RootAppShell>
-        </AuthProvider>
+        <AppStartupProvider>
+          <AuthProvider>
+            <RootAppShell>{children}</RootAppShell>
+          </AuthProvider>
+        </AppStartupProvider>
         <OverlayScrollbars />
       </body>
     </html>

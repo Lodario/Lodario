@@ -10,11 +10,11 @@ export interface TeamReadinessTrendPoint {
 }
 
 export interface TeamEnergyFatigueLoadPoint {
-  [key: string]: string | number;
+  [key: string]: string | number | null;
   date: string;
   label: string;
-  energy: number;
-  fatigue: number;
+  energy: number | null;
+  fatigue: number | null;
   acuteTrainingLoad: number;
 }
 
