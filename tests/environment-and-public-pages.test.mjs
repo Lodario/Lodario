@@ -60,7 +60,7 @@ test('sanitised environment example documents every active beta variable', async
   assert.doesNotMatch(configuredValues, /service[_-]?role|sk_live_|sk-[A-Za-z0-9_-]{20,}|-----BEGIN (?:RSA |EC )?PRIVATE KEY-----/i);
   assert.match(example, /your_public_supabase_anon_key/);
   assert.match(example, /your_gmail_app_password_here/);
-  assert.match(example, /^NEXT_PUBLIC_SITE_URL=https:\/\/lodario\.vercel\.app$/m);
+  assert.match(example, /^NEXT_PUBLIC_SITE_URL=https:\/\/lodario\.app$/m);
   assert.match(example, /^LEGAL_OPERATOR_NAME=REPLACE_WITH_YOUR_FULL_LEGAL_NAME$/m);
   assert.match(gitignore, /^\.env$/m);
   assert.match(gitignore, /^\.env\.\*$/m);

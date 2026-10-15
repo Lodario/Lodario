@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'Lodario',
   webDir: 'native-shell',
   server: {
-    url: 'https://lodario.vercel.app',
+    url: 'https://lodario.app',
     cleartext: false,
     errorPath: 'offline.html'
   }

@@ -14,7 +14,7 @@ try {
 }catch{outcome.backup=false;}
 try{run('scripts/database/retention.mjs',['--apply']);outcome.retention=true;}catch{outcome.retention=false;}
 try{run('scripts/database/mail-retention.mjs',['--apply']);outcome.mailRetention=true;}catch{outcome.mailRetention=false;}
-try{const response=await fetch('https://lodario.vercel.app/api/health',{signal:AbortSignal.timeout(15000)});outcome.healthy=response.ok&&(await response.json()).status==='ok';}catch{outcome.healthy=false;}
+try{const response=await fetch('https://lodario.app/api/health',{signal:AbortSignal.timeout(15000)});outcome.healthy=response.ok&&(await response.json()).status==='ok';}catch{outcome.healthy=false;}
 fs.writeFileSync(path.join(directory,'maintenance-status.json'),JSON.stringify(outcome,null,2));
 console.log(JSON.stringify(outcome));
 if(!outcome.backup||!outcome.retention||!outcome.mailRetention||!outcome.healthy)process.exitCode=1;

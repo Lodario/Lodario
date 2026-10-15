@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-const origin='https://lodario.vercel.app';
+const origin='https://lodario.app';
 const routes=['/','/privacy','/terms','/cookies','/health-disclaimer','/support','/reset-password','/guardian'];
 const results=await Promise.all(routes.map(async route=>{
   const response=await fetch(origin+route,{signal:AbortSignal.timeout(15000)});
