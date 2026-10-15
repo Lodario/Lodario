@@ -56,6 +56,7 @@ export const useData = () => useContext(DataContext);
 
 export const DataProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
+  const userId = user?.id;
 
   const [data, setData] = useState<Omit<DataContextType, 'saveProfile' | 'saveWellnessLog' | 'saveTrainingLog' | 'deleteTrainingLog' | 'saveCalendarEvent' | 'deleteCalendarEvent' | 'saveCalendarEventColorOverride' | 'saveCustomEventType' | 'deleteCustomEventType' | 'saveInjury'>>({
     profile: null,
@@ -70,7 +71,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
 
   // Load all data from Supabase when the user is authenticated
   useEffect(() => {
-    if (!user) {
+    if (!userId) {
       setData({
         profile: null,
         wellnessLogs: {},
@@ -88,7 +89,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
       setData(prev => ({ ...prev, isLoading: true }));
 
       const { data: restricted } = PUBLIC_BETA_FEATURES.guardianAndMinorAccounts
-        ? await supabase.rpc('player_is_guardian_restricted', { p_player_id: user.id })
+        ? await supabase.rpc('player_is_guardian_restricted', { p_player_id: userId })
         : { data: false };
       if (restricted === true) {
         const profile = await StorageService.getProfile();
@@ -119,7 +120,7 @@ export const DataProvider = ({ children }: { children: ReactNode }) => {
     };
 
     loadData();
-  }, [user]);
+  }, [userId]);
 
   const saveProfile = useCallback((profile: UserProfile) => {
     StorageService.saveProfile(profile);

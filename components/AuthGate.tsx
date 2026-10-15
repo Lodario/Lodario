@@ -1,12 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/AuthContext';
 import { AppLogo } from '@/components/AppLogo';
+import { AppLoadingScreen } from '@/components/AppLoadingScreen';
 import {
-  Shield,
   Mail,
   Lock,
   Eye,
@@ -33,19 +32,17 @@ interface AuthGateProps {
 }
 
 export function AuthGate({ children, requiredRole }: AuthGateProps) {
-  const { user, userRole, isLoading, signOut } = useAuth();
+  const { user, userRole, isLoading } = useAuth();
+  const router = useRouter();
+  const redirectRoute = !isLoading && user && userRole && requiredRole && userRole !== requiredRole
+    ? getDefaultRouteForRole(userRole)
+    : null;
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--background)]">
-        <div className="relative">
-          <div className="w-16 h-16 rounded-full border-2 border-[var(--accent-primary)] border-t-transparent animate-spin" />
-          <Shield className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[var(--accent-primary)]" size={24} />
-        </div>
-        <p className="mt-6 text-gray-400 text-sm font-medium animate-pulse">Loading Lodario...</p>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (redirectRoute) router.replace(redirectRoute);
+  }, [redirectRoute, router]);
+
+  if (isLoading || redirectRoute) return <AppLoadingScreen />;
 
   if (!user) {
     return <AuthScreen />;
@@ -53,39 +50,6 @@ export function AuthGate({ children, requiredRole }: AuthGateProps) {
 
   if (!userRole) {
     return <RoleSelectionScreen />;
-  }
-
-  if (requiredRole && userRole !== requiredRole) {
-    const fallbackRoute = getDefaultRouteForRole(userRole);
-    const roleLabel = requiredRole === 'coach' ? 'coach' : requiredRole === 'guardian' ? 'Guardian' : 'player';
-
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--background)] px-4">
-        <div className="w-full max-w-sm">
-          <div className="glass-card p-8 text-center animate-slide-up">
-            <div className="w-16 h-16 rounded-full bg-[rgba(var(--accent-primary-rgb),0.15)] flex items-center justify-center mx-auto mb-4">
-              <Shield className="text-[var(--accent-primary)]" size={32} />
-            </div>
-            <h2 className="text-xl font-bold text-white mb-2">Route Access</h2>
-            <p className="text-sm text-gray-400 mb-6 leading-relaxed">
-              This section is for {roleLabel} accounts.
-            </p>
-            <Link
-              href={fallbackRoute}
-              className="w-full py-3 rounded-xl text-sm font-bold text-black bg-gradient-to-r from-[var(--accent-primary)] to-[var(--accent-tertiary)] inline-flex items-center justify-center"
-            >
-              Go to your workspace
-            </Link>
-            <button
-              onClick={signOut}
-              className="w-full mt-3 py-3 rounded-xl text-sm font-bold text-[var(--accent-primary)] border border-[var(--accent-primary)] hover:bg-[rgba(var(--accent-primary-rgb),0.1)] transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </div>
-    );
   }
 
   return <>{children}</>;
@@ -217,6 +181,7 @@ export function AuthScreen({ preview = false }: { preview?: boolean } = {}) {
     }
 
     setLoading(true);
+    let signedIn = false;
 
     try {
       if (preview) {
@@ -227,6 +192,7 @@ export function AuthScreen({ preview = false }: { preview?: boolean } = {}) {
       if (mode === 'signin') {
         const result = await signIn(email, password);
         if (result.error) setError(result.error);
+        else signedIn = true;
       } else if (mode === 'signup') {
         const result = await signUp(email, password, undefined, { marketingEmails });
         if (result.error) {
@@ -245,7 +211,8 @@ export function AuthScreen({ preview = false }: { preview?: boolean } = {}) {
     } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
-      setLoading(false);
+      // Successful sign-in hands off to AuthGate without flashing the form again.
+      if (!signedIn) setLoading(false);
     }
   };
 
@@ -257,6 +224,8 @@ export function AuthScreen({ preview = false }: { preview?: boolean } = {}) {
     setConfirmPassword('');
     setMarketingEmails(false);
   };
+
+  if (loading && mode === 'signin') return <AppLoadingScreen />;
 
   if (signUpSuccess || resetSuccess) {
     return (

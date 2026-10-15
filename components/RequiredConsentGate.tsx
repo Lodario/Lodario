@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import { REQUIRED_CONSENT_DOCUMENTS, SUPPORT_EMAIL } from '@/lib/legal';
 import { AccountPrivacyActions } from '@/components/AccountPrivacyActions';
+import { AppLoadingScreen } from '@/components/AppLoadingScreen';
 
 type ConsentDocument = {
   documentType: string;
@@ -102,11 +103,7 @@ export function RequiredConsentGate({ children, playerId }: { children: React.Re
   };
 
   if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] p-6 text-gray-300">
-        <Loader2 className="mr-2 animate-spin" size={20} /> Checking required documents…
-      </div>
-    );
+    return <AppLoadingScreen />;
   }
 
   if (status?.complete) return <>{children}</>;

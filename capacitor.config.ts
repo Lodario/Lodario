@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lodario',
+  appId: 'com.lodario.app',
   appName: 'Lodario',
   webDir: 'native-shell',
   server: {

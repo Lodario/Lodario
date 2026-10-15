@@ -1,7 +1,9 @@
+'use client';
+
 import React from 'react';
 import { RecommendationResult } from '../lib/recommendations';
 import type { PlayerDailyContext } from '../lib/player-context';
-import { Target, Activity, Zap, Shield } from 'lucide-react';
+import { Target, Activity, Zap, Shield, ChevronDown } from 'lucide-react';
 
 interface RecommendationCardProps {
   recommendation: RecommendationResult;
@@ -71,54 +73,81 @@ function buildGuidanceDetail(
 
 export function RecommendationCard({ recommendation, playerContext }: RecommendationCardProps) {
   const guidanceDetail = buildGuidanceDetail(recommendation, playerContext);
+  const [showMetrics, setShowMetrics] = React.useState(false);
+  const metricsId = React.useId();
+
+  const getColor = () => {
+    switch (recommendation.recommendationLabel) {
+      case 'Intense': return '#16c76a';
+      case 'Moderate': return '#b6db36';
+      case 'Light': return '#f4ad25';
+      case 'Recovery': return recommendation.recoveryCause === 'injury' ? '#ef4444' : '#ff4b23';
+    }
+  };
 
   const getIcon = () => {
     switch (recommendation.recommendationLabel) {
-      case 'Intense': return <Zap className="text-white opacity-80" />;
-      case 'Moderate': return <Activity className="text-white opacity-80" />;
-      case 'Light': return <Target className="text-white opacity-80" />;
-      case 'Recovery': return <Shield className="text-[var(--status-red)]" />;
-      default: return <Activity className="text-white opacity-80" />;
+      case 'Intense': return <Zap size={22} aria-hidden="true" />;
+      case 'Moderate': return <Activity size={22} aria-hidden="true" />;
+      case 'Light': return <Target size={22} aria-hidden="true" />;
+      case 'Recovery': return <Shield size={22} aria-hidden="true" />;
     }
   };
 
   return (
-    <div className="glass-card mt-6 animate-slide-up touch-target">
-      <div className="h-full w-full rounded-2xl p-4 flex flex-col justify-between">
-        <div className="flex items-center space-x-3 mb-3">
-          <div className="p-2 rounded-lg bg-white/[0.04]">
-            {getIcon()}
-          </div>
-          <h3 className="text-sm font-bold text-white">
-            {recommendation.recommendationLabel}
-          </h3>
-        </div>
+    <div
+      className="mt-6 rounded-2xl border border-[var(--recommendation-color)] bg-[var(--surface-card)] p-5 shadow-lg animate-slide-up"
+      style={{ '--recommendation-color': getColor() } as React.CSSProperties}
+    >
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h3 className="text-lg font-bold text-white">Recommendation</h3>
+        <button
+          type="button"
+          aria-label={showMetrics ? 'Hide readiness and load risk' : 'Show readiness and load risk'}
+          aria-expanded={showMetrics}
+          aria-controls={metricsId}
+          onClick={() => setShowMetrics((visible) => !visible)}
+          className="touch-target -mr-2 flex shrink-0 items-center justify-center rounded-lg text-gray-400 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--recommendation-color)]"
+        >
+          <ChevronDown size={18} aria-hidden="true" className={`transition-transform motion-reduce:transition-none ${showMetrics ? 'rotate-180' : ''}`} />
+        </button>
+      </div>
 
-        <div className="mb-3 grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2.5 py-2">
-            <span className="block text-[10px] uppercase tracking-wider text-gray-400">Readiness</span>
-            <span className="mt-0.5 block font-semibold text-white">{recommendation.score} - {recommendation.readinessZoneLabel}</span>
-          </div>
-          <div className="rounded-lg border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.04)] px-2.5 py-2">
-            <span className="block text-[10px] uppercase tracking-wider text-gray-400">Load Risk</span>
-            <span className="mt-0.5 block font-semibold text-white">{recommendation.loadRiskLabel}</span>
-          </div>
+      <div id={metricsId} hidden={!showMetrics} className="mb-4 rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2.5 text-xs text-gray-300">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+          <span>Readiness <strong className="font-semibold text-white">{recommendation.score} – {recommendation.readinessZoneLabel}</strong></span>
+          <span aria-hidden="true" className="text-gray-600">│</span>
+          <span>Load Risk – <strong className="font-semibold text-white">{recommendation.loadRiskLabel}</strong></span>
         </div>
+      </div>
 
-        <p className="mb-3 text-xs text-gray-300 leading-relaxed">
-          {guidanceDetail ?? recommendation.reason}
+      <div className="mb-3 flex items-center gap-2.5 text-[var(--recommendation-color)]">
+        {getIcon()}
+        <span className="text-xl font-bold">{recommendation.recommendationLabel}</span>
+      </div>
+
+      <p className="text-sm text-gray-300 leading-relaxed">
+        {recommendation.reason}
+      </p>
+
+      {guidanceDetail ? (
+        <p className="mt-2 text-xs leading-relaxed text-gray-400">
+          {guidanceDetail}
         </p>
+      ) : null}
 
-        {recommendation.limitingFactors.length > 0 && (
-          <div className="mb-4 flex flex-wrap gap-2">
+      {recommendation.limitingFactors.length > 0 && (
+        <div className="mt-4">
+          <p className="mb-2 text-xs font-medium text-gray-400">Limiting factors</p>
+          <div className="flex flex-wrap gap-2">
             {recommendation.limitingFactors.map((factor) => (
               <span key={factor} className="text-xs px-2 py-1 rounded-md bg-[rgba(255,255,255,0.08)] text-gray-200 border border-[rgba(255,255,255,0.08)]">
                 {formatLimitingFactor(factor)}
               </span>
             ))}
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

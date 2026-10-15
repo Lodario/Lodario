@@ -3,6 +3,7 @@
 import React, { FormEvent, useCallback, useEffect, useState } from 'react';
 import { CalendarDays, Loader2, ShieldCheck } from 'lucide-react';
 import { AppLogo } from '@/components/AppLogo';
+import { AppLoadingScreen } from '@/components/AppLoadingScreen';
 import { useAuth } from '@/lib/AuthContext';
 import { PublicLegalLinks } from '@/components/legal/PublicLegalLinks';
 import {
@@ -13,6 +14,7 @@ import {
 
 export function PublicBetaAgeGate({ children }: { children: React.ReactNode }) {
   const { user, userRole, signOut } = useAuth();
+  const userId = user?.id;
   const [status, setStatus] = useState<PublicBetaAgeStatus | null>(null);
   const [dateOfBirth, setDateOfBirth] = useState('');
   const [loading, setLoading] = useState(true);
@@ -20,7 +22,7 @@ export function PublicBetaAgeGate({ children }: { children: React.ReactNode }) {
   const [error, setError] = useState<string | null>(null);
 
   const loadStatus = useCallback(async () => {
-    if (!user || !userRole) return;
+    if (!userId || !userRole) return;
 
     setLoading(true);
     setError(null);
@@ -33,7 +35,7 @@ export function PublicBetaAgeGate({ children }: { children: React.ReactNode }) {
     }
 
     setStatus(result.data);
-  }, [user, userRole]);
+  }, [userId, userRole]);
 
   useEffect(() => {
     void loadStatus();
@@ -61,7 +63,7 @@ export function PublicBetaAgeGate({ children }: { children: React.ReactNode }) {
   };
 
   if (loading) {
-    return <AgeGateFrame><Loader2 className="animate-spin text-[var(--accent-primary)]" size={36} /><p className="mt-4 text-sm text-gray-400">Checking beta eligibility…</p></AgeGateFrame>;
+    return <AppLoadingScreen />;
   }
 
   if (status?.eligible) {

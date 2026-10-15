@@ -822,7 +822,7 @@ export function useCoachTeamPlayerCounts(teamIds: string[]) {
 
 export function useCoachTeamProfileAverages(teamIds: string[]) {
   const [averagesByTeamId, setAveragesByTeamId] = useState<Record<string, CoachTeamProfileAverages>>({});
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(teamIds.length > 0);
   const [error, setError] = useState<string | null>(null);
 
   const stableTeamIds = useMemo(
@@ -867,7 +867,7 @@ export function useCoachTeamProfileAverages(teamIds: string[]) {
 
 export function useCoachAllTeamsCalendarItems(teams: TeamReference[]) {
   const [items, setItems] = useState<TeamCalendarItem[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(teams.length > 0);
   const [error, setError] = useState<string | null>(null);
 
   const stableTeams = useMemo(
@@ -912,7 +912,7 @@ export function useCoachAllTeamsCalendarItems(teams: TeamReference[]) {
 
 export function useCoachTeamInjuryAlerts(teams: TeamReference[]) {
   const [alerts, setAlerts] = useState<CoachTeamInjuryAlert[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(teams.length > 0);
   const [error, setError] = useState<string | null>(null);
 
   const stableTeams = useMemo(

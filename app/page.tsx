@@ -19,6 +19,7 @@ import {
 import type { LucideIcon } from 'lucide-react';
 import { PlayerRsvpControl } from '@/components/calendar/PlayerRsvpControl';
 import { HomeReadiness } from '@/components/HomeReadiness';
+import { RecommendationCard } from '@/components/RecommendationCard';
 import { useAuth } from '@/lib/AuthContext';
 import {
   getPlayerRsvpTargetFromCalendarEvent,
@@ -239,7 +240,7 @@ function DismissibleNotificationCard({
 
 export default function Home() {
   const { user } = useAuth();
-  const { readiness } = useReadiness();
+  const { readiness, recommendation, hasWellnessToday } = useReadiness();
   const { calendarEvents, customEventTypes, injuries, trainingLogs, wellnessLogs } = useData();
   const [now, setNow] = React.useState(() => new Date());
   const [storedDismissedNotificationIds, setStoredDismissedNotificationIds] = usePersistedState<string[]>(
@@ -376,6 +377,12 @@ export default function Home() {
             {load.hasAutoInjury ? 'Pain reported' : 'Active injury'} · Follow recovery guidance.
           </p>
         </div>
+      ) : null}
+
+      {hasWellnessToday ? (
+        <section className="mb-6" aria-label="Today's recommendation">
+          <RecommendationCard recommendation={recommendation} />
+        </section>
       ) : null}
 
       <section className="home-notifications relative mb-12 animate-slide-up" style={{ animationDelay: '0.3s', animationFillMode: 'both' }}>

@@ -60,30 +60,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const enabledMetadataRole = isPublicBetaRoleEnabled(metadataRole) ? metadataRole : null;
     const needsRoleSelection = activeUser.user_metadata?.needs_role_selection === true;
 
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('id, role')
-      .eq('id', activeUser.id)
-      .maybeSingle();
+    const [{ data: profile, error }, { data: roleRows }] = await Promise.all([
+      supabase.from('profiles').select('id, role').eq('id', activeUser.id).maybeSingle(),
+      supabase.from('user_account_roles').select('role').eq('user_id', activeUser.id).eq('status', 'active'),
+    ]);
 
     if (error) {
       console.error('[auth] Unable to resolve account role.');
-      return enabledMetadataRole
-        ? { active: enabledMetadataRole, roles: [enabledMetadataRole] }
-        : { active: needsRoleSelection ? null : 'player', roles: needsRoleSelection ? [] : ['player'] };
     }
 
-    if (!profile) {
-      if (enabledMetadataRole) return { active: enabledMetadataRole, roles: [enabledMetadataRole] };
-      return { active: needsRoleSelection ? null : 'player', roles: needsRoleSelection ? [] : ['player'] };
-    }
-
-    const profileRole: AppRole = isAppRole(profile.role) ? profile.role : metadataRole ?? 'player';
-    const { data: roleRows } = await supabase.from('user_account_roles').select('role').eq('user_id', activeUser.id).eq('status', 'active');
+    const profileRole = isAppRole(profile?.role)
+      ? profile.role
+      : enabledMetadataRole ?? (needsRoleSelection ? null : 'player');
     const roles = Array.from(
       new Set([profileRole, ...(roleRows ?? []).map(row => row.role).filter(isAppRole)]),
-    ).filter(isPublicBetaRoleEnabled);
-    const saved = typeof window !== 'undefined' ? window.localStorage.getItem(`lodario-active-role:${activeUser.id}`) : null;
+    ).filter((role): role is AppRole => isAppRole(role) && isPublicBetaRoleEnabled(role));
+    let saved: string | null = null;
+    try {
+      saved = window.localStorage.getItem(`lodario-active-role:${activeUser.id}`);
+    } catch {
+      // Account routing must also work when browser storage is unavailable.
+    }
     const active = isAppRole(saved) && roles.includes(saved)
       ? saved
       : isPublicBetaRoleEnabled(profileRole)
@@ -94,12 +91,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let isMounted = true;
+    let activeUserId: string | null | undefined;
+    let syncVersion = 0;
+    let authEventReceived = false;
+    let authTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const syncSession = async (nextSession: Session | null) => {
+    const syncSession = async (nextSession: Session | null, updateUser = false) => {
       if (!isMounted) return;
 
       setSession(nextSession);
-      setUser(nextSession?.user ?? null);
+      setUser(current => current?.id === nextSession?.user.id && !updateUser ? current : nextSession?.user ?? null);
+
+      const nextUserId = nextSession?.user.id ?? null;
+      // INITIAL_SESSION/getSession and token refreshes can report the same user.
+      // Keep the current workspace mounted and reuse any role lookup in progress.
+      if (activeUserId === nextUserId) return;
+      activeUserId = nextUserId;
+      const version = ++syncVersion;
 
       if (!nextSession?.user) {
         setUserRoleState(null);
@@ -108,8 +116,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
+      setIsLoading(true);
       const resolvedRole = await resolveUserRole(nextSession.user);
-      if (!isMounted) return;
+      if (!isMounted || version !== syncVersion) return;
       setUserRoleState(resolvedRole.active);
       setAvailableRoles(resolvedRole.roles);
       setIsLoading(false);
@@ -118,21 +127,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const getInitialSession = async () => {
       setIsLoading(true);
       const { data: { session: currentSession } } = await supabase.auth.getSession();
-      await syncSession(currentSession);
+      if (!authEventReceived) await syncSession(currentSession);
     };
 
     void getInitialSession();
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, newSession) => {
-        setIsLoading(true);
-        void syncSession(newSession);
+      (event, newSession) => {
+        authEventReceived = true;
+        clearTimeout(authTimer);
+        // Supabase invokes listeners under its auth lock. Start database requests
+        // after the callback returns so they do not wait on that same lock.
+        authTimer = setTimeout(() => {
+          void syncSession(newSession, event === 'USER_UPDATED');
+        }, 0);
       }
     );
 
     return () => {
       isMounted = false;
+      clearTimeout(authTimer);
       subscription.unsubscribe();
     };
   }, []);

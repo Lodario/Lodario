@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { AppLoadingScreen } from '@/components/AppLoadingScreen';
 import { useAuth } from '@/lib/AuthContext';
 import { getPlayerAgeState, type PlayerAgeState } from '@/lib/guardian/onboarding';
 import { PlayerAgeSetup } from './PlayerAgeSetup';
@@ -25,7 +25,7 @@ export function PlayerAccessGate({ children }: { children: React.ReactNode }) {
 
   useEffect(() => { void refresh(); }, [refresh, user?.id]);
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center gap-3"><Loader2 className="animate-spin" />Checking account access…</div>;
+  if (loading) return <AppLoadingScreen />;
   if (error) return <div className="mx-auto max-w-md space-y-4 p-6"><h1 className="text-xl font-bold">Account setup unavailable</h1><p role="alert">{error}</p><button onClick={() => void refresh()} className="min-h-11 rounded-xl bg-[var(--accent-primary)] px-5 font-bold text-black">Try again</button><PublicLegalLinks /><AccountPrivacyActions compact /></div>;
   if (!state?.hasAgeIdentity) return <PlayerAgeSetup onComplete={() => void refresh()} />;
   if (state.restricted || (state.guardianConnectionRequired && !state.hasGuardianConnection)) {

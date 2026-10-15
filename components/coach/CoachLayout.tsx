@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import { AppLogo } from '@/components/AppLogo';
+import { AppLoadingScreen } from '@/components/AppLoadingScreen';
 import { CoachSidebar } from '@/components/coach/CoachSidebar';
 import { CoachMobileNav } from '@/components/coach/CoachMobileNav';
 import { getCoachPageTitle, isTeamScopedPath } from '@/components/coach/navigation';
@@ -16,9 +17,11 @@ interface CoachLayoutProps {
 function CoachLayoutInner({ children }: CoachLayoutProps) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
-  const { selectedTeam } = useCoachTeam();
+  const { selectedTeam, isLoadingTeams } = useCoachTeam();
   const teamScopedPage = isTeamScopedPath(pathname);
   const pageTitle = getCoachPageTitle(pathname);
+
+  if (isLoadingTeams) return <AppLoadingScreen />;
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-white">

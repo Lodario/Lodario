@@ -19,6 +19,7 @@ export interface RecommendationResult {
   loadRiskLabel: string;
   recommendation: RecommendationKey;
   recommendationLabel: RecommendationLabel;
+  recoveryCause: 'injury' | 'readiness' | null;
   intensity: RecommendationLabel;
   message: string;
   reason: string;
@@ -320,6 +321,7 @@ export function generateRecommendation(
     loadRiskLabel: LOAD_RISK_LABELS[loadRisk],
     recommendation,
     recommendationLabel,
+    recoveryCause: recommendation === 'recovery' ? (isInjured ? 'injury' : 'readiness') : null,
     intensity: recommendationLabel,
     message: reason,
     reason,

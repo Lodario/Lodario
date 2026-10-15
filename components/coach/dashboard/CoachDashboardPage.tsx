@@ -10,6 +10,7 @@ import {
   X,
 } from 'lucide-react';
 import { CoachAttendanceModal } from '@/components/coach/attendance/CoachAttendanceModal';
+import { AppLoadingScreen } from '@/components/AppLoadingScreen';
 import { FloatingAttendanceButton } from '@/components/coach/attendance/FloatingAttendanceButton';
 import { TeamCalendar } from '@/components/coach/calendar/TeamCalendar';
 import type { TeamCalendarItem } from '@/components/coach/calendar/types';
@@ -256,6 +257,10 @@ export function CoachDashboardPage() {
     });
   }, [setStoredDismissedAlertIds]);
 
+  if (isLoadingPlayerCounts || isLoadingCalendarItems || isLoadingInjuryAlerts) {
+    return <AppLoadingScreen />;
+  }
+
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <header className="glass-card p-5 sm:p-6">
@@ -263,8 +268,6 @@ export function CoachDashboardPage() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Coach Dashboard</p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Welcome back, Coach.</h1>
-
-            {isLoadingPlayerCounts ? <p className="mt-2 text-xs text-gray-400">Loading team player totals...</p> : null}
             {playerCountError ? <p className="mt-2 text-xs text-[var(--status-red)]">Unable to load player totals: {playerCountError}</p> : null}
             {calendarItemsError ? <p className="mt-2 text-xs text-[var(--status-red)]">Unable to load team calendar: {calendarItemsError}</p> : null}
             <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
@@ -272,7 +275,7 @@ export function CoachDashboardPage() {
                 {todaySummary.totalTeams} teams
               </span>
               <span className="rounded-full border border-[rgba(255,255,255,0.14)] bg-[rgba(255,255,255,0.05)] px-2.5 py-1 font-medium text-gray-300">
-                {todaySummary.hasUnknownPlayerCounts ? 'Loading players...' : `${todaySummary.totalPlayers} players`}
+                {todaySummary.hasUnknownPlayerCounts ? 'Player totals unavailable' : `${todaySummary.totalPlayers} players`}
               </span>
               <span className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 font-medium text-gray-300">
                 Avg readiness {todaySummary.averageReadiness == null ? '--' : `${Math.round(todaySummary.averageReadiness)}%`}
@@ -440,7 +443,6 @@ export function CoachDashboardPage() {
 
           </div>
           {injuryAlertsError ? <p className="mb-2 text-xs text-[var(--status-red)]">Unable to load injury alerts: {injuryAlertsError}</p> : null}
-          {isLoadingInjuryAlerts ? <p className="mb-2 text-xs text-gray-400">Loading injury alerts...</p> : null}
           {visibleRecentAlerts.length === 0 ? (
             <div className="rounded-xl border border-[rgba(255,255,255,0.1)] bg-[rgba(255,255,255,0.03)] px-3.5 py-3 text-sm text-gray-300">
               No recent alerts.
@@ -503,7 +505,6 @@ export function CoachDashboardPage() {
           onSelectItem={handleCalendarItemSelect}
           onCalendarViewportChange={closeFloatingAttendance}
         />
-        {isLoadingCalendarItems ? <p className="text-xs text-gray-400">Loading cross-team calendar...</p> : null}
       </section>
 
       {floatingAttendance ? (

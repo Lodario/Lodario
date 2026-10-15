@@ -6,27 +6,33 @@ import { format } from 'date-fns';
 import { loadGuardianEvents, loadGuardianUpdates } from '@/lib/guardian/api';
 import type { GuardianEvent, GuardianUpdate } from '@/lib/guardian/types';
 import { useGuardian } from '../GuardianProvider';
-import { GuardianEmpty, GuardianError, GuardianLoading, GuardianPageHeader, PlayerCard, PlayerFilter, StatusPill } from '../GuardianUi';
+import { GuardianEmpty, GuardianError, GuardianPageHeader, PlayerCard, PlayerFilter, StatusPill } from '../GuardianUi';
+import { AppLoadingScreen } from '@/components/AppLoadingScreen';
 
 export function GuardianOverviewPage() {
   const { activePlayers, selectedPlayerId, setSelectedPlayerId, isLoading, error, refresh } = useGuardian();
   const [events, setEvents] = useState<GuardianEvent[]>([]);
   const [updates, setUpdates] = useState<GuardianUpdate[]>([]);
+  const [initialLoading, setInitialLoading] = useState(true);
   const today = format(new Date(), 'yyyy-MM-dd');
 
   useEffect(() => {
     if (isLoading || activePlayers.length === 0) return;
+    let cancelled = false;
     void Promise.all([
       loadGuardianEvents(today, today, selectedPlayerId === 'all' ? undefined : selectedPlayerId),
       loadGuardianUpdates(),
     ]).then(([eventResult, updateResult]) => {
+      if (cancelled) return;
       setEvents(eventResult.data);
       setUpdates(updateResult.data.filter((item) => item.importance !== 'information').slice(0, 5));
+      setInitialLoading(false);
     });
+    return () => { cancelled = true; };
   }, [activePlayers.length, isLoading, selectedPlayerId, today]);
 
   const visiblePlayers = useMemo(() => selectedPlayerId === 'all' ? activePlayers : activePlayers.filter((player) => player.player_id === selectedPlayerId), [activePlayers, selectedPlayerId]);
-  if (isLoading) return <GuardianLoading />;
+  if (isLoading || (activePlayers.length > 0 && initialLoading)) return <AppLoadingScreen />;
   if (error) return <GuardianError message={error} onRetry={() => void refresh()} />;
   if (activePlayers.length === 0) return <div className="space-y-6"><GuardianPageHeader title="Guardian overview" description="Awareness, schedules, safety, and communication for linked players." /><GuardianEmpty title="No active linked players" message="There is no active Guardian-player relationship on this account. Pending and historical relationships remain visible on the Players page." /></div>;
 

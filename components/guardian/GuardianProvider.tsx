@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { loadLinkedPlayers } from '@/lib/guardian/api';
 import type { GuardianLinkedPlayer } from '@/lib/guardian/types';
+import { AppLoadingScreen } from '@/components/AppLoadingScreen';
 
 interface GuardianContextValue {
   players: GuardianLinkedPlayer[];
@@ -41,7 +42,7 @@ export function GuardianProvider({ children }: { children: React.ReactNode }) {
     players, activePlayers, selectedPlayerId, setSelectedPlayerId, isLoading, error, refresh,
   }), [players, activePlayers, selectedPlayerId, isLoading, error, refresh]);
 
-  return <GuardianContext.Provider value={value}>{children}</GuardianContext.Provider>;
+  return <GuardianContext.Provider value={value}>{isLoading ? <AppLoadingScreen /> : children}</GuardianContext.Provider>;
 }
 
 export function useGuardian() {

@@ -1,4 +1,4 @@
-package app.lodario;
+package com.lodario.app;
 
 import com.getcapacitor.BridgeActivity;
 
