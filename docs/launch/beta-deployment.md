@@ -175,8 +175,8 @@ npx supabase db push --linked
 | `LEGAL_OPERATOR_NAME` | Approved full legal name of the operator | Approved full legal name of the operator |
 | `GMAIL_SMTP_USER` | `contact.lodario@gmail.com` (internal SMTP login) | `contact.lodario@gmail.com` (internal SMTP login) |
 | `GMAIL_SMTP_APP_PASSWORD` | Preview-authorised Gmail app password; secret | Production-authorised Gmail app password; secret |
-| `FEEDBACK_EMAIL_TO` | `support@lodario.com` | `support@lodario.com` |
-| `EMAIL_FROM` | `Lodario Feedback <support@lodario.com>` | `Lodario Feedback <support@lodario.com>` |
+| `FEEDBACK_EMAIL_TO` | `support@lodario.app` | `support@lodario.app` |
+| `EMAIL_FROM` | `Lodario Feedback <support@lodario.app>` | `Lodario Feedback <support@lodario.app>` |
 
 `VERCEL` and `VERCEL_ENV` are supplied by Vercel. No service-role variable is required by this application. Do not configure AI, PostHog, payment, advertising, Guardian/minor, or health-integration variables for the beta. In particular, `OPENAI_API_KEY` is not a beta runtime requirement.
 

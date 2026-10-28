@@ -1,4 +1,4 @@
-export const SUPPORT_EMAIL = 'support@lodario.com';
+export const SUPPORT_EMAIL = 'support@lodario.app';
 export const LEGAL_EFFECTIVE_DATE = '14 September 2026';
 export const LEGAL_DOCUMENT_VERSION = '1.1';
 
