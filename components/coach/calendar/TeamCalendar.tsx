@@ -1,7 +1,9 @@
+import { CALENDAR_HOURS as hours, getCalendarInitialHour } from '@/lib/calendar/schedule';
+import { useCalendarViewport } from '@/hooks/useCalendarViewport';
 import { addDays, addWeeks, format, isSameDay, startOfWeek, subDays, subWeeks } from 'date-fns';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import type { CSSProperties } from 'react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo } from 'react';
 import type { TeamCalendarItem } from '@/components/coach/calendar/types';
 import { resolveCalendarOccurrence } from '@/lib/calendar/events';
 import { usePersistedState } from '@/lib/usePersistedState';
@@ -34,8 +36,6 @@ interface EventLayout {
   totalColumns: number;
 }
 
-const hours = Array.from({ length: 24 }).map((_, index) => index);
-const initialVisibleHour = 6;
 const visibleHourCount = 18;
 const dayHourRowHeight = 44;
 const weekHourRowHeight = 40;
@@ -194,19 +194,11 @@ function DaySchedule({
   onCalendarViewportChange?: () => void;
   eventTypeColors: Record<string, string>;
 }) {
-  const scheduleRef = useRef<HTMLDivElement>(null);
   const dateKey = format(date, 'yyyy-MM-dd');
   const dayItems = useMemo(() => parseDayItems(items, dateKey), [dateKey, items]);
   const layout = useMemo(() => computeOverlapGroups(dayItems, 4), [dayItems]);
-
-  useEffect(() => {
-    const container = scheduleRef.current;
-    if (!container) return;
-    const initialVisibleRow = container.querySelector<HTMLElement>(`[data-hour="${initialVisibleHour}"]`);
-    if (initialVisibleRow) {
-      container.scrollTop = initialVisibleRow.offsetTop;
-    }
-  }, [dateKey]);
+  const initialHour = getCalendarInitialHour(dayItems);
+  const scheduleRef = useCalendarViewport(dateKey, initialHour);
 
   useEffect(() => {
     const container = scheduleRef.current;
@@ -218,7 +210,7 @@ function DaySchedule({
     return () => {
       container.removeEventListener('scroll', handleScroll);
     };
-  }, [onCalendarViewportChange]);
+  }, [onCalendarViewportChange, scheduleRef]);
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)]">
@@ -236,7 +228,7 @@ function DaySchedule({
       <div
         ref={scheduleRef}
         className="min-h-0 quiet-scroll overflow-y-auto"
-        style={{ height: `${visibleHourCount * dayHourRowHeight}px` }}
+        style={{ height: `${Math.min(visibleHourCount, 24 - initialHour) * dayHourRowHeight}px` }}
       >
         {hours.map((hour) => {
           const itemsHere = dayItems.filter((item) =>
@@ -338,7 +330,6 @@ function WeekSchedule({
   onCalendarViewportChange?: () => void;
   eventTypeColors: Record<string, string>;
 }) {
-  const scheduleRef = useRef<HTMLDivElement>(null);
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = useMemo(() => Array.from({ length: 7 }).map((_, index) => addDays(weekStart, index)), [weekStart]);
 
@@ -346,16 +337,10 @@ function WeekSchedule({
     return weekDays.map((day) => parseDayItems(items, format(day, 'yyyy-MM-dd')));
   }, [items, weekDays]);
 
-  const layoutsByDay = useMemo(() => parsedByDay.map((dayItems) => computeOverlapGroups(dayItems, 2)), [parsedByDay]);
+  const initialHour = getCalendarInitialHour(parsedByDay.flat());
+  const scheduleRef = useCalendarViewport(format(weekStart, 'yyyy-MM-dd'), initialHour);
 
-  useEffect(() => {
-    const container = scheduleRef.current;
-    if (!container) return;
-    const initialVisibleRow = container.querySelector<HTMLElement>(`[data-hour="${initialVisibleHour}"]`);
-    if (initialVisibleRow) {
-      container.scrollTop = initialVisibleRow.offsetTop;
-    }
-  }, [currentDate]);
+  const layoutsByDay = useMemo(() => parsedByDay.map((dayItems) => computeOverlapGroups(dayItems, 2)), [parsedByDay]);
 
   useEffect(() => {
     const container = scheduleRef.current;
@@ -367,7 +352,7 @@ function WeekSchedule({
     return () => {
       container.removeEventListener('scroll', handleScroll);
     };
-  }, [onCalendarViewportChange]);
+  }, [onCalendarViewportChange, scheduleRef]);
 
   return (
     <div className="hidden h-full min-h-0 md:block">
@@ -400,7 +385,7 @@ function WeekSchedule({
         <div
           ref={scheduleRef}
           className="min-h-0 quiet-scroll overflow-y-auto"
-          style={{ height: `${visibleHourCount * weekHourRowHeight}px` }}
+          style={{ height: `${Math.min(visibleHourCount, 24 - initialHour) * weekHourRowHeight}px` }}
         >
           {hours.map((hour) => (
             <div key={hour} data-hour={hour} className="flex min-h-[40px] border-b border-[rgba(255,255,255,0.05)]">

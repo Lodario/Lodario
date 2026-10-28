@@ -1,4 +1,4 @@
-import type { CalendarEvent, CalendarEventColorOverride } from '@/lib/types';
+import type { CalendarEvent, CalendarEventColorOverride, CustomEventType } from '@/lib/types';
 import { parseCoachCalendarMeta } from '@/lib/calendar/events';
 
 export function resolveCalendarEventColorOverride(
@@ -18,4 +18,19 @@ export function resolveCalendarEventColorOverride(
     )?.color ??
     overrides.find((override) => override.scope === 'coach' && override.coachId === meta.coachId)?.color
   );
+}
+
+/** Keep event details, the colour picker and calendar blocks on the same colour. */
+export function resolveCalendarEventColor(
+  event: CalendarEvent,
+  eventTypeId: string,
+  overrides: CalendarEventColorOverride[],
+  eventTypes: CustomEventType[],
+  instanceDate?: string
+): string {
+  return resolveCalendarEventColorOverride(event, eventTypeId, overrides)
+    || (instanceDate ? event.overrides?.[instanceDate]?.color : undefined)
+    || event.color
+    || eventTypes.find(type => type.id === eventTypeId)?.color
+    || '#845ef7';
 }

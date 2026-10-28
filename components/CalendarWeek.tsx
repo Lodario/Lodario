@@ -1,5 +1,8 @@
 'use client';
 
+import { CALENDAR_HOURS as hours, getCalendarInitialHour } from '@/lib/calendar/schedule';
+import { useCalendarViewport } from '@/hooks/useCalendarViewport';
+
 import React, { useEffect, useRef } from 'react';
 import { format, addDays, startOfWeek, isSameDay, parseISO, getDay, getDate, isAfter, isBefore, lastDayOfMonth } from 'date-fns';
 import { CalendarEvent, SessionType } from '../lib/types';
@@ -7,7 +10,7 @@ import { useData } from '../lib/DataContext';
 import { Plus } from 'lucide-react';
 import { computeDurationMinutes, mapCalendarEventToSessionType } from '../lib/calendarLogSession';
 import { isBuiltInActivityEventType } from '../lib/calendar/events';
-import { resolveCalendarEventColorOverride } from '../lib/calendar/colorOverrides';
+import { resolveCalendarEventColor } from '../lib/calendar/colorOverrides';
 
 interface RenderedEvent {
   event: CalendarEvent;
@@ -118,19 +121,8 @@ function computeOverlapGroups(events: RenderedEvent[], maxCols: number): Map<str
 
 export function CalendarWeek({ currentDate, onAddEvent, onEditEvent, onEventLongPress }: CalendarWeekProps) {
   const { calendarEvents, calendarEventColorOverrides, customEventTypes, trainingLogs } = useData();
-  const scheduleRef = useRef<HTMLDivElement>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
-
-  useEffect(() => {
-    const container = scheduleRef.current;
-    if (!container) return;
-
-    const sixAmRow = container.querySelector<HTMLElement>('[data-hour="6"]');
-    if (sixAmRow) {
-      container.scrollTop = sixAmRow.offsetTop;
-    }
-  }, [currentDate]);
 
   useEffect(() => {
     return () => {
@@ -179,11 +171,6 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent, onEventLong
 
   const startDate = startOfWeek(currentDate, { weekStartsOn: 1 }); // Monday
   const weekDays = Array.from({ length: 7 }).map((_, i) => addDays(startDate, i));
-  const hours = Array.from({ length: 24 }).map((_, i) => i); // 0-23 full day
-
-  const getTypeColor = (typeId: string) => {
-    return customEventTypes.find(t => t.id === typeId)?.color || 'var(--accent-primary)';
-  };
 
   // Convert ISO day of week (0=Sun) to our system (1=Mon...7=Sun)
   const jsDateToRecurrenceDay = (jsDay: number): number => {
@@ -268,7 +255,7 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent, onEventLong
           endHour: finalParsedEnd.hour,
           endMinute: finalParsedEnd.minute,
           title: finalTitle,
-          color: resolveCalendarEventColorOverride(event, finalEventTypeId, calendarEventColorOverrides) || event.color || getTypeColor(finalEventTypeId),
+          color: resolveCalendarEventColor(event, finalEventTypeId, calendarEventColorOverrides, customEventTypes, dateStr),
         });
       }
     });
@@ -291,6 +278,8 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent, onEventLong
 
   // Pre-compute events and layout for all days
   const dayEvents = weekDays.map(day => getRenderedEventsForDay(day));
+  const initialHour = getCalendarInitialHour(dayEvents.flat());
+  const scheduleRef = useCalendarViewport(format(startDate, 'yyyy-MM-dd'), initialHour);
   const dayLayouts = dayEvents.map(evts => computeOverlapGroups(evts, 2)); // Weekly: max 2 cols
 
   // Feature 4: Recent activity highlight
@@ -333,7 +322,7 @@ export function CalendarWeek({ currentDate, onAddEvent, onEditEvent, onEventLong
       </div>
 
       {/* Grid */}
-      <div ref={scheduleRef} className="quiet-scroll overflow-y-auto max-h-[60vh] relative pb-20">
+      <div ref={scheduleRef} className="quiet-scroll overflow-y-auto max-h-[60vh] relative" style={{ maxHeight: `min(60vh, ${(24 - initialHour) * 40}px)` }}>
         {hours.map(hour => (
           <div key={hour} data-hour={hour} className="flex min-h-[40px] border-b border-[rgba(255,255,255,0.05)]">
             <div className="w-10 flex-shrink-0 text-[10px] text-gray-500 text-right pr-2 pt-1 font-medium">

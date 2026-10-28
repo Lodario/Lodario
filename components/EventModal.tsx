@@ -9,6 +9,7 @@ import { PlayerRsvpControl } from '@/components/calendar/PlayerRsvpControl';
 import { useAuth } from '@/lib/AuthContext';
 import { getPlayerRsvpTargetFromCalendarEvent } from '@/lib/calendar/attendance';
 import { parseCoachCalendarMeta } from '../lib/calendar/events';
+import { resolveCalendarEventColor } from '@/lib/calendar/colorOverrides';
 
 interface EventModalProps {
   onClose: () => void;
@@ -23,7 +24,7 @@ interface EventModalProps {
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 export function EventModal({ onClose, selectedDate, existingEvent, isRecurringInstance, instanceDate, defaultStartHour, readOnly = false }: EventModalProps) {
-  const { customEventTypes, saveCalendarEvent, deleteCalendarEvent, saveCalendarEventColorOverride, saveCustomEventType, deleteCustomEventType } = useData();
+  const { customEventTypes, calendarEventColorOverrides, saveCalendarEvent, deleteCalendarEvent, saveCalendarEventColorOverride, saveCustomEventType, deleteCustomEventType } = useData();
   const { user } = useAuth();
 
   // --- Event type long-press-to-delete ---
@@ -99,7 +100,7 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
   };
 
   const [title, setTitle] = useState(existingEvent?.title || '');
-  const [eventTypeId, setEventTypeId] = useState<string>(existingEvent?.eventTypeId || customEventTypes[0]?.id || 'other');
+  const [eventTypeId, setEventTypeId] = useState<string>((instanceDate && existingEvent?.overrides?.[instanceDate]?.eventTypeId) || existingEvent?.eventTypeId || customEventTypes[0]?.id || 'other');
   const [startTime, setStartTime] = useState(computeDefaultStart());
   const [endTime, setEndTime] = useState(computeDefaultEnd());
   const [eventDate, setEventDate] = useState(existingEvent ? existingEvent.start.split('T')[0] : selectedDate); // Feature 6
@@ -109,9 +110,14 @@ export function EventModal({ onClose, selectedDate, existingEvent, isRecurringIn
   const [recurrenceEndDate, setRecurrenceEndDate] = useState<string>(existingEvent?.recurrenceEndDate || ''); // Feature 7
   const [applyOnlyToThis, setApplyOnlyToThis] = useState(false);
   const [anticipatedIntensity, setAnticipatedIntensity] = useState<'Low' | 'Moderate' | 'High' | undefined>(existingEvent?.anticipatedIntensity);
-  const currentEventColor = existingEvent?.color || customEventTypes.find(type => type.id === (existingEvent?.eventTypeId || eventTypeId))?.color || '#845ef7';
+  const currentEventColor = existingEvent
+    ? resolveCalendarEventColor(existingEvent, eventTypeId, calendarEventColorOverrides, customEventTypes, instanceDate)
+    : customEventTypes.find(type => type.id === eventTypeId)?.color || '#845ef7';
   const [displayColor, setDisplayColor] = useState(currentEventColor);
   const [showColorSaveChoices, setShowColorSaveChoices] = useState(false);
+  useEffect(() => {
+    setDisplayColor(currentEventColor);
+  }, [currentEventColor]);
 
   // Description: collapsed row by default, expands into a textarea on click.
   // For recurring-instance edits, prefer any per-occurrence override description.

@@ -47,6 +47,7 @@ export interface PlayerCalendarEvent {
   playerId: string;
   teamId: string;
   title: string;
+  eventTypeId?: string;
   type: PlayerSessionType;
   kind?: 'event' | 'task';
   description?: string;

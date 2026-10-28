@@ -210,7 +210,10 @@ export default function LogPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setConfirmDeleteTrainingId(training.id)}
+                        onClick={() => {
+                          setOpenTrainingMenuId(null);
+                          setConfirmDeleteTrainingId(training.id);
+                        }}
                         className="w-full px-3 py-3 text-left text-xs font-bold text-[#ff6b6b] hover:bg-[rgba(255,107,107,0.08)] flex items-center"
                       >
                         <Trash2 size={14} className="mr-2" /> Delete
@@ -221,18 +224,18 @@ export default function LogPage() {
                   {confirmDeleteTrainingId === training.id && (
                     <div className="mb-4 p-3 rounded-xl bg-[rgba(255,107,107,0.1)] border border-[rgba(255,107,107,0.3)] animate-fade-in">
                       <p className="text-xs text-gray-200 mb-3">Delete this training log?</p>
-                      <div className="flex space-x-2">
+                      <div className="grid grid-cols-2 gap-2">
                         <button
                           type="button"
                           onClick={() => handleDeleteTraining(training.id)}
-                          className="flex-1 py-2 rounded-lg text-xs font-bold bg-[#ff6b6b] text-white flex items-center justify-center transition-transform active:scale-95"
+                          className="py-2 rounded-lg text-xs font-bold bg-[#ff6b6b] text-white flex items-center justify-center transition-transform active:scale-95"
                         >
                           <Trash2 size={14} className="mr-1.5" /> Delete Log
                         </button>
                         <button
                           type="button"
                           onClick={() => setConfirmDeleteTrainingId(null)}
-                          className="px-4 py-2 rounded-lg text-xs font-medium text-gray-400 bg-[rgba(255,255,255,0.05)] hover:text-white"
+                          className="py-2 rounded-lg text-xs font-bold text-gray-200 bg-gray-700 hover:bg-gray-600 hover:text-white"
                         >
                           Cancel
                         </button>

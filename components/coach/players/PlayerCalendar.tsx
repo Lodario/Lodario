@@ -1,6 +1,8 @@
+import { CALENDAR_HOURS as hours, getCalendarInitialHour } from '@/lib/calendar/schedule';
+import { useCalendarViewport } from '@/hooks/useCalendarViewport';
 import { addDays, addWeeks, format, isSameDay, startOfWeek, subDays, subWeeks } from 'date-fns';
 import { ChevronLeft, ChevronRight, Pencil, X } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import type { PlayerCalendarEvent } from '@/components/coach/players/types';
 import { resolveCalendarOccurrence } from '@/lib/calendar/events';
 import { usePersistedState } from '@/lib/usePersistedState';
@@ -39,7 +41,6 @@ export interface SelectedOccurrence {
   endTime: string;
 }
 
-const hours = Array.from({ length: 24 }).map((_, index) => index);
 
 function parseTime(timeStr: string): { hour: number; minute: number } {
   const [hourValue = '0', minuteValue = '0'] = timeStr.split(':');
@@ -143,7 +144,7 @@ function parseDayEvents(events: PlayerCalendarEvent[], dateString: string): Pars
         kind: event.kind ?? 'event',
         title: event.title,
         description: event.description,
-        eventTypeId: event.type,
+        eventTypeId: event.eventTypeId ?? event.type,
         recurrence: event.recurrence,
         recurrenceConfig: event.recurrenceConfig,
         recurrenceEndDate: event.recurrenceEndDate,
@@ -290,19 +291,11 @@ function DaySchedule({
   onSelectOccurrence: (occurrence: SelectedOccurrence, click: { x: number; y: number }) => void;
   eventTypeColors: Record<string, string>;
 }) {
-  const scheduleRef = useRef<HTMLDivElement>(null);
   const dateKey = format(date, 'yyyy-MM-dd');
   const dayEvents = useMemo(() => parseDayEvents(events, dateKey), [dateKey, events]);
   const layout = useMemo(() => computeOverlapGroups(dayEvents, 4), [dayEvents]);
-
-  useEffect(() => {
-    const container = scheduleRef.current;
-    if (!container) return;
-    const sixAmRow = container.querySelector<HTMLElement>('[data-hour="6"]');
-    if (sixAmRow) {
-      container.scrollTop = sixAmRow.offsetTop;
-    }
-  }, [dateKey]);
+  const initialHour = getCalendarInitialHour(dayEvents);
+  const scheduleRef = useCalendarViewport(dateKey, initialHour);
 
   return (
     <div className="relative flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-[rgba(255,255,255,0.08)]">
@@ -317,7 +310,7 @@ function DaySchedule({
         </p>
       ) : null}
 
-      <div ref={scheduleRef} className="min-h-0 flex-1 quiet-scroll overflow-y-auto">
+      <div ref={scheduleRef} className="min-h-0 flex-1 quiet-scroll overflow-y-auto" style={{ maxHeight: `min(60vh, ${(24 - initialHour) * 44}px)` }}>
         {hours.map((hour) => {
           const eventsHere = dayEvents.filter((event) =>
             getHourCellCoverage(hour, event.startHour, event.startMinute, event.endHour, event.endMinute)
@@ -417,7 +410,6 @@ function WeekSchedule({
   onSelectOccurrence: (occurrence: SelectedOccurrence, click: { x: number; y: number }) => void;
   eventTypeColors: Record<string, string>;
 }) {
-  const scheduleRef = useRef<HTMLDivElement>(null);
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekDays = useMemo(() => Array.from({ length: 7 }).map((_, index) => addDays(weekStart, index)), [weekStart]);
 
@@ -425,16 +417,10 @@ function WeekSchedule({
     return weekDays.map((day) => parseDayEvents(events, format(day, 'yyyy-MM-dd')));
   }, [events, weekDays]);
 
-  const layoutsByDay = useMemo(() => parsedByDay.map((dayEvents) => computeOverlapGroups(dayEvents, 2)), [parsedByDay]);
+  const initialHour = getCalendarInitialHour(parsedByDay.flat());
+  const scheduleRef = useCalendarViewport(format(weekStart, 'yyyy-MM-dd'), initialHour);
 
-  useEffect(() => {
-    const container = scheduleRef.current;
-    if (!container) return;
-    const sixAmRow = container.querySelector<HTMLElement>('[data-hour="6"]');
-    if (sixAmRow) {
-      container.scrollTop = sixAmRow.offsetTop;
-    }
-  }, [currentDate]);
+  const layoutsByDay = useMemo(() => parsedByDay.map((dayEvents) => computeOverlapGroups(dayEvents, 2)), [parsedByDay]);
 
   return (
     <div className="hidden h-full min-h-0 md:block">
@@ -464,7 +450,7 @@ function WeekSchedule({
           </p>
         ) : null}
 
-        <div ref={scheduleRef} className="min-h-0 flex-1 quiet-scroll overflow-y-auto">
+        <div ref={scheduleRef} className="min-h-0 flex-1 quiet-scroll overflow-y-auto" style={{ maxHeight: `min(60vh, ${(24 - initialHour) * 40}px)` }}>
           {hours.map((hour) => (
             <div key={hour} data-hour={hour} className="flex min-h-[40px] border-b border-[rgba(255,255,255,0.05)]">
               <div className="w-10 shrink-0 pr-1 pt-1 text-right text-[10px] font-medium text-gray-500">
@@ -581,7 +567,7 @@ export function PlayerCalendar({ events, eventTypeColors = {}, className, onEdit
         kind: event.kind ?? 'event',
         title: event.title,
         description: event.description,
-        eventTypeId: event.type,
+        eventTypeId: event.eventTypeId ?? event.type,
         recurrence: event.recurrence,
         recurrenceConfig: event.recurrenceConfig,
         recurrenceEndDate: event.recurrenceEndDate,

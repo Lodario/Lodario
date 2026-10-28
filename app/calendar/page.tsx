@@ -1,6 +1,9 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import { CALENDAR_HOURS as hours, getCalendarInitialHour } from '@/lib/calendar/schedule';
+import { useCalendarViewport } from '@/hooks/useCalendarViewport';
+
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarWeek } from '@/components/CalendarWeek';
 import { EventModal } from '@/components/EventModal';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
@@ -9,7 +12,7 @@ import { useData } from '@/lib/DataContext';
 import { CalendarEvent, SessionType } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { computeDurationMinutes, mapCalendarEventToSessionType } from '@/lib/calendarLogSession';
-import { resolveCalendarEventColorOverride } from '@/lib/calendar/colorOverrides';
+import { resolveCalendarEventColor } from '@/lib/calendar/colorOverrides';
 import { isBuiltInActivityEventType, isCoachManagedCalendarConfig } from '@/lib/calendar/events';
 import { usePersistedState } from '@/lib/usePersistedState';
 
@@ -106,7 +109,7 @@ export default function CalendarPage() {
   const { calendarEvents } = useData();
   const [view, setView] = usePersistedState<'Day' | 'Week'>('lodario:player-calendar:view', 'Week');
   const [currentDateKey, setCurrentDateKey] = usePersistedState('lodario:player-calendar:date', format(new Date(), 'yyyy-MM-dd'));
-  const currentDate = parseISO(currentDateKey);
+  const currentDate = useMemo(() => parseISO(currentDateKey), [currentDateKey]);
   const [showEventModal, setShowEventModal] = useState(false);
   const [selectedDateForEvent, setSelectedDateForEvent] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | undefined>(undefined);
@@ -221,35 +224,33 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="px-4 py-8 max-w-md mx-auto h-full flex flex-col relative pb-20" onClick={() => setLogSessionPrompt(null)}>
-      <header className="mb-6 pl-1 flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Schedule</h1>
+    <div className="px-4 pt-8 pb-6 max-w-md mx-auto h-full flex flex-col relative" onClick={() => setLogSessionPrompt(null)}>
+      <header className="mb-6 pl-1 flex justify-between items-center gap-3">
+        <h1 className="text-2xl min-[375px]:text-3xl font-bold text-white tracking-tight">Schedule</h1>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="bg-[rgba(255,255,255,0.05)] rounded-full p-1 flex" role="group" aria-label="Calendar view">
+            {(['Day', 'Week'] as const).map(v => (
+              <button
+                key={v}
+                onClick={() => setView(v)}
+                aria-pressed={view === v}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  view === v ? 'bg-[var(--card-bg)] text-white shadow' : 'text-gray-500'
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => handleAddEvent()}
+            aria-label="Add event"
+            className="bg-[var(--accent-primary)] text-black p-2 rounded-full shadow-lg hover:scale-105 transition-transform touch-target flex items-center justify-center"
+          >
+            <Plus size={24} />
+          </button>
         </div>
-        <button 
-          onClick={() => handleAddEvent()}
-          className="bg-[var(--accent-primary)] text-black p-2 rounded-full shadow-lg hover:scale-105 transition-transform touch-target flex items-center justify-center"
-        >
-          <Plus size={24} />
-        </button>
       </header>
-
-      {/* Controls — Day / Week only */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="bg-[rgba(255,255,255,0.05)] rounded-full p-1 flex">
-          {(['Day', 'Week'] as const).map(v => (
-            <button
-              key={v}
-              onClick={() => setView(v)}
-              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
-                view === v ? 'bg-[var(--card-bg)] text-white shadow' : 'text-gray-500'
-              }`}
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-      </div>
 
       <div className="flex justify-between items-center mb-4 glass-card p-2 rounded-full">
         <button onClick={handlePrev} className="p-2 text-gray-400 hover:text-white touch-target">
@@ -328,19 +329,8 @@ function DayView({ currentDate, onAddEvent, onEditEvent, onEventLongPress }: {
   onEventLongPress: (payload: { x: number; y: number; date: string; duration: number; sessionType: SessionType; time: string; title?: string }) => void;
 }) {
   const { calendarEvents, calendarEventColorOverrides, customEventTypes, trainingLogs } = useData();
-  const scheduleRef = useRef<HTMLDivElement>(null);
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef(false);
-
-  useEffect(() => {
-    const container = scheduleRef.current;
-    if (!container) return;
-
-    const sixAmRow = container.querySelector<HTMLElement>('[data-hour="6"]');
-    if (sixAmRow) {
-      container.scrollTop = sixAmRow.offsetTop;
-    }
-  }, [currentDate]);
 
   useEffect(() => {
     return () => {
@@ -389,11 +379,6 @@ function DayView({ currentDate, onAddEvent, onEditEvent, onEventLongPress }: {
 
   const dateStr = format(currentDate, 'yyyy-MM-dd');
   const dayOfWeek = getDay(currentDate) === 0 ? 7 : getDay(currentDate);
-  const hours = Array.from({ length: 24 }).map((_, i) => i);
-
-  const getTypeColor = (typeId: string) => {
-    return customEventTypes.find(t => t.id === typeId)?.color || 'var(--accent-primary)';
-  };
 
   const isPastRecurrenceEnd = (day: Date, endDateStr?: string): boolean => {
     if (!endDateStr) return false;
@@ -461,10 +446,13 @@ function DayView({ currentDate, onAddEvent, onEditEvent, onEventLongPress }: {
         endHour: finalParsedEnd.hour,
         endMinute: finalParsedEnd.minute,
         title: finalTitle,
-        color: resolveCalendarEventColorOverride(event, finalEventTypeId, calendarEventColorOverrides) || event.color || getTypeColor(finalEventTypeId),
+        color: resolveCalendarEventColor(event, finalEventTypeId, calendarEventColorOverrides, customEventTypes, dateStr),
       });
     }
   });
+
+  const initialHour = getCalendarInitialHour(renderedEvents);
+  const scheduleRef = useCalendarViewport(dateStr, initialHour);
 
   // Precompute persistent column layout (max 4 for day view)
   const layout = computeOverlapGroups(renderedEvents, 4);
@@ -494,7 +482,7 @@ function DayView({ currentDate, onAddEvent, onEditEvent, onEventLongPress }: {
 
   return (
     <div className="glass-card animate-fade-in overflow-hidden relative">
-      <div ref={scheduleRef} className="quiet-scroll overflow-y-auto max-h-[60vh] relative pb-20">
+      <div ref={scheduleRef} className="quiet-scroll overflow-y-auto max-h-[60vh] relative" style={{ maxHeight: `min(60vh, ${(24 - initialHour) * 44}px)` }}>
         {hours.map(hour => {
           const eventsHere = getEventsAtHour(hour);
           const startsHere = getStartsAtHour(hour);
